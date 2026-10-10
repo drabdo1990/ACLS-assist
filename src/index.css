@@ -1,0 +1,170 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   CodeOR design tokens.
+   Dark slate base (#070a11) with high-visibility acuity colors.
+   Monospace is a system stack — nothing loads from the network (offline-safe).
+--------------------------------------------------------------------------- */
+@theme {
+  --color-bg: #070a11;
+  --color-panel: #0d1320;
+  --color-panel2: #131c2c;
+  --color-line: #223049;
+  --color-ink: #e9eefb;
+  --color-mute: #93a4c0;
+
+  --color-crit: #ef4444;
+  --color-critdeep: #7f1d1d;
+  --color-warn: #f59e0b;
+  --color-cyber: #06b6d4;
+  --color-good: #10b981;
+
+  --font-mono:
+    ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+
+  /* Gloved-hand ergonomics: nothing is accidentally selectable while tapping fast. */
+  * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .selectable,
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  button {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Reserve space for the fixed bottom tab bar so the last content — including the
+     clinical disclaimer — is never hidden behind it. This replaces the previous
+     `safe-bottom` + `pb-28` combination, which collided on the same element and
+     resolved to 0px (the hand-written utility won the cascade). */
+  .pb-appbar {
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .touch-hit {
+    touch-action: manipulation;
+  }
+}
+
+/* --- Acuity animations ---------------------------------------------------- */
+
+/* Cycle clock < 10 s: flashing red is a safety signal and is intentionally
+   not removed under prefers-reduced-motion, only softened in rate. */
+@keyframes codeor-flash {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.18;
+  }
+}
+.animate-flash {
+  animation: codeor-flash 0.6s steps(1, end) infinite;
+}
+
+@keyframes codeor-flash-bg {
+  0%,
+  49% {
+    background-color: var(--color-crit);
+  }
+  50%,
+  100% {
+    background-color: var(--color-critdeep);
+  }
+}
+.animate-flash-bg {
+  animation: codeor-flash-bg 0.6s steps(1, end) infinite;
+}
+
+@keyframes codeor-beat {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  12% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+}
+.animate-beat {
+  animation: codeor-beat 0.545s ease-out infinite;
+}
+
+@keyframes codeor-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 22px rgba(239, 68, 68, 0);
+  }
+}
+.animate-ping-crit {
+  animation: codeor-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-beat,
+  .animate-ping-crit {
+    animation: none;
+  }
+  .animate-flash,
+  .animate-flash-bg {
+    animation-duration: 1.2s;
+  }
+}
