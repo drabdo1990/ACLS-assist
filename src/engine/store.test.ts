@@ -94,3 +94,53 @@ describe('amiodarone', () => {
     ]);
   });
 });
+
+describe('maternal arrest & crisis resolution', () => {
+  it('automatically starts the master arrest clock when maternal arrest is declared from idle', () => {
+    expect(s().status).toBe('idle');
+    s().declareCrisis('maternal');
+    expect(s().status).toBe('active');
+    expect(s().startedAt).toBe(T0);
+    expect(s().crisis.maternalStartedAt).toBe(T0);
+  });
+
+  it('resolves an active crisis timer and logs the resolution', () => {
+    s().declareCrisis('cico');
+    expect(s().crisis.cicoDeclaredAt).toBe(T0);
+    at(45_000);
+    s().resolveCrisis('cico');
+    expect(s().crisis.cicoDeclaredAt).toBeNull();
+    expect(lastEvent().label).toContain('CICO resolved');
+  });
+});
+
+describe('airway toggle & LAST low-dose epinephrine', () => {
+  it('allows unmarking advanced airway if tapped by mistake', () => {
+    s().startCode();
+    s().markAirwayPlaced();
+    expect(s().airwayPlaced).toBe(true);
+    s().markAirwayPlaced();
+    expect(s().airwayPlaced).toBe(false);
+    expect(lastEvent().label).toContain('Airway');
+  });
+
+  it('supports logging weight-scaled low-dose epinephrine (mcg) during LAST', () => {
+    s().startCode();
+    s().declareCrisis('last');
+    s().administerEpi(50);
+    expect(s().epi).toHaveLength(1);
+    expect(s().epi[0].mg).toBeCloseTo(0.05, 4);
+    expect(lastEvent().label).toBe('Epinephrine 50 mcg IV/IO');
+  });
+
+  it('undoes the most recent intervention and removes its dose record', () => {
+    s().startCode();
+    at(10_000);
+    s().administerEpi();
+    expect(s().epi).toHaveLength(1);
+    s().undoLastEvent();
+    expect(s().epi).toHaveLength(0);
+    expect(s().events.some((e) => e.label.startsWith('Epinephrine'))).toBe(false);
+  });
+});
+

@@ -13,6 +13,7 @@ export function CicoCard() {
   const weightKg = useCodeStore((s) => s.weightKg);
   const crisis = useCodeStore((s) => s.crisis);
   const declareCrisis = useCodeStore((s) => s.declareCrisis);
+  const resolveCrisis = useCodeStore((s) => s.resolveCrisis);
   const logCrisisDose = useCodeStore((s) => s.logCrisisDose);
 
   const sug = sugammadexPlan(weightKg);
@@ -45,6 +46,13 @@ export function CicoCard() {
           <p className="text-xs font-bold uppercase tracking-widest text-crit">CICO declared</p>
           <p className="tnum font-mono text-4xl font-bold text-crit">{since}</p>
           <p className="text-[11px] text-mute">since declaration</p>
+          <button
+            type="button"
+            onClick={() => resolveCrisis('cico')}
+            className="touch-hit mt-2 min-h-[48px] w-full rounded-xl border border-good/60 bg-good/15 text-xs font-bold text-good active:scale-[0.98]"
+          >
+            Airway secured — resolve CICO timer
+          </button>
         </div>
       )}
 

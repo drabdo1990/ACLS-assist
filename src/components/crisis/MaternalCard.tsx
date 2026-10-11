@@ -1,4 +1,4 @@
-import { Baby, Scissors } from 'lucide-react';
+import { Baby, Check, Scissors } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import { useNow } from '../../hooks/useNow';
 import { formatClock } from '../../engine/timing';
@@ -14,16 +14,21 @@ const DELIVERY_MS = MATERNAL_DELIVERY_MIN * 60_000;
 export function MaternalCard() {
   const now = useNow();
   const crisis = useCodeStore((s) => s.crisis);
+  const status = useCodeStore((s) => s.status);
+  const events = useCodeStore((s) => s.events);
   const declareCrisis = useCodeStore((s) => s.declareCrisis);
+  const resolveCrisis = useCodeStore((s) => s.resolveCrisis);
   const logEvent = useCodeStore((s) => s.logEvent);
 
   const startedAt = crisis.maternalStartedAt;
-  const elapsed = startedAt != null ? now - startedAt : 0;
+  const elapsed = startedAt != null ? Math.max(0, now - startedAt) : 0;
   const toHysterotomy = Math.max(0, HYSTEROTOMY_MS - elapsed);
   const toDelivery = Math.max(0, DELIVERY_MS - elapsed);
 
-  const atHysterotomy = startedAt != null && elapsed >= HYSTEROTOMY_MS;
-  const atDelivery = startedAt != null && elapsed >= DELIVERY_MS;
+  const delivered = events.some((e) => e.label === 'Fetus delivered');
+  const resolved = delivered || status === 'rosc';
+  const atHysterotomy = startedAt != null && !resolved && elapsed >= HYSTEROTOMY_MS;
+  const atDelivery = startedAt != null && !resolved && elapsed >= DELIVERY_MS;
 
   return (
     <CrisisCard
@@ -38,7 +43,7 @@ export function MaternalCard() {
           size="xl"
           icon={Baby}
           label="Start 4-minute rule"
-          sub="Maternal arrest — begin the perimortem clock"
+          sub="Maternal arrest — starts code & perimortem clock"
           onClick={() => declareCrisis('maternal')}
         />
       ) : (
@@ -50,13 +55,25 @@ export function MaternalCard() {
             ].join(' ')}
           >
             <p className={`text-xs font-bold uppercase tracking-widest ${atHysterotomy ? 'text-white' : 'text-good'}`}>
-              {atDelivery ? 'Deliver fetus now' : atHysterotomy ? 'Begin hysterotomy now' : `Hysterotomy in ${MATERNAL_HYSTEROTOMY_MIN} min`}
+              {delivered
+                ? 'Fetus delivered'
+                : status === 'rosc'
+                  ? 'Maternal ROSC achieved'
+                  : atDelivery
+                    ? 'Deliver fetus now'
+                    : atHysterotomy
+                      ? 'Begin hysterotomy now'
+                      : `Hysterotomy in ${MATERNAL_HYSTEROTOMY_MIN} min`}
             </p>
             <p className={`tnum font-mono text-4xl font-bold ${atHysterotomy ? 'text-white' : 'text-ink'}`}>
-              {formatClock(atHysterotomy ? elapsed : toHysterotomy)}
+              {formatClock(atHysterotomy || resolved ? elapsed : toHysterotomy)}
             </p>
             <p className={`text-[11px] ${atHysterotomy ? 'text-white/80' : 'text-mute'}`}>
-              {atHysterotomy ? `elapsed · delivery target ${formatClock(DELIVERY_MS)}` : `until minute ${MATERNAL_HYSTEROTOMY_MIN}`}
+              {resolved
+                ? 'elapsed since perimortem clock start'
+                : atHysterotomy
+                  ? `elapsed · delivery target ${formatClock(DELIVERY_MS)}`
+                  : `until minute ${MATERNAL_HYSTEROTOMY_MIN}`}
             </p>
           </div>
           {atHysterotomy && !atDelivery ? (
@@ -73,12 +90,25 @@ export function MaternalCard() {
             />
             <BigButton
               variant="good"
-              icon={Baby}
-              label="Log delivery"
-              sub={`target ${formatClock(toDelivery)}`}
-              onClick={() => logEvent('crisis', 'Fetus delivered')}
+              icon={delivered ? Check : Baby}
+              label={delivered ? 'Delivery logged' : 'Log delivery'}
+              sub={delivered ? 'Tap to resolve timer' : `target ${formatClock(toDelivery)}`}
+              onClick={() => {
+                if (!delivered) {
+                  logEvent('crisis', 'Fetus delivered');
+                } else {
+                  resolveCrisis('maternal');
+                }
+              }}
             />
           </div>
+          <button
+            type="button"
+            onClick={() => resolveCrisis('maternal')}
+            className="touch-hit mt-2 min-h-[48px] w-full rounded-xl border border-line bg-panel2 text-xs font-bold text-mute active:scale-[0.98]"
+          >
+            Stop / resolve maternal timer
+          </button>
         </>
       )}
 
@@ -87,3 +117,4 @@ export function MaternalCard() {
     </CrisisCard>
   );
 }
+

@@ -16,6 +16,7 @@ export function LastCard() {
   const crisis = useCodeStore((s) => s.crisis);
   const doses = useCodeStore((s) => s.crisisDoses);
   const declareCrisis = useCodeStore((s) => s.declareCrisis);
+  const resolveCrisis = useCodeStore((s) => s.resolveCrisis);
   const logCrisisDose = useCodeStore((s) => s.logCrisisDose);
 
   const plan = lastLipidPlan(weightKg);
@@ -52,10 +53,21 @@ export function LastCard() {
           variant="crit"
           icon={TriangleAlert}
           label="Declare LAST"
-          sub="Starts the LAST clock and logs the event"
+          sub="Starts the LAST clock, enables Epi <1 mcg/kg cap, and logs event"
           onClick={() => declareCrisis('last')}
         />
-      ) : null}
+      ) : (
+        <div className="flex items-center justify-between rounded-xl border border-crit/60 bg-crit/10 px-3 py-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-crit">LAST protocol active</span>
+          <button
+            type="button"
+            onClick={() => resolveCrisis('last')}
+            className="touch-hit rounded-lg border border-line bg-panel2 px-3 py-1.5 text-xs font-bold text-ink active:scale-95"
+          >
+            Resolve LAST
+          </button>
+        </div>
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Readout label="Bolus 1.5 mL/kg" value={plan.bolusMl} unit="mL" tone="crit" />

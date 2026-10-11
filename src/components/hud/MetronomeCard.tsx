@@ -53,7 +53,7 @@ export function MetronomeCard() {
             }`}
             style={running ? { animationDuration: `${60 / metronome.bpm}s` } : undefined}
           />
-          {metronome.on ? 'Metronome ON' : 'Metronome OFF'}
+          {metronome.on ? (status === 'paused' ? 'Metronome PAUSED' : 'Metronome ON') : 'Metronome OFF'}
         </button>
 
         <div className="flex flex-col items-center gap-1">

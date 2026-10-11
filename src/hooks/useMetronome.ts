@@ -51,12 +51,11 @@ export function useMetronome(): { beat: number; running: boolean } {
           });
         }
         const delayMs = Math.max(0, (next - ac.currentTime) * 1000);
-        const isAudioBeat = audioRef.current;
         const isHapticBeat = hapticRef.current;
         const id = window.setTimeout(() => {
           if (stopped) return;
           setBeat((b) => b + 1);
-          if (isHapticBeat && !isAudioBeat) haptic.tick();
+          if (isHapticBeat) haptic.tick();
         }, delayMs);
         visualTimers.push(id);
         next += interval;

@@ -101,7 +101,7 @@ export interface CodeStore extends PersistedSession {
   reArrest: () => void;
 
   logEvent: (category: EventCategory, label: string, detail?: string) => void;
-  administerEpi: () => void;
+  administerEpi: (mcg?: number) => void;
   deliverShock: (joules: number, shockable: boolean) => void;
   administerAmiodarone: () => void;
   markAirwayPlaced: () => void;
@@ -110,8 +110,18 @@ export interface CodeStore extends PersistedSession {
   setMetronome: (patch: Partial<MetronomeState>) => void;
   setSetting: (patch: Partial<Settings>) => void;
   declareCrisis: (kind: 'last' | 'mh' | 'cico' | 'maternal') => void;
+  resolveCrisis: (kind: 'last' | 'mh' | 'cico' | 'maternal') => void;
   logCrisisDose: (dose: { label: string; mg?: number; ml?: number; category?: EventCategory }) => void;
+  undoLastEvent: () => void;
   reset: () => void;
+}
+
+/** True while any perioperative crisis clock has been started (drives the ticker and wake lock). */
+export function hasCrisisClock(s: Pick<PersistedSession, 'crisis'>): boolean {
+  const c = s.crisis;
+  return (
+    c.maternalStartedAt != null || c.cicoDeclaredAt != null || c.mhDeclaredAt != null || c.lastDeclaredAt != null
+  );
 }
 
 function toPersisted(s: CodeStore): PersistedSession {
@@ -142,7 +152,9 @@ function toPersisted(s: CodeStore): PersistedSession {
 
 const persisted = loadPersisted();
 const bootSession: PersistedSession = persisted ?? emptySession();
-const wasRestored = persisted != null && persisted.status !== 'idle' && persisted.events.length > 0;
+const wasRestored =
+  persisted != null &&
+  (persisted.status !== 'idle' || hasCrisisClock(persisted) || persisted.events.length > 0);
 
 export const useCodeStore = create<CodeStore>((set) => {
   /** Merge a mutation, bumping the persistence revision. */
@@ -286,18 +298,22 @@ export const useCodeStore = create<CodeStore>((set) => {
         return { events: [...s.events, mkEvent(category, label, detail, at, el(s, at))] };
       }),
 
-    administerEpi: () =>
+    administerEpi: (mcg) =>
       apply((s) => {
         const at = Date.now();
         const t = el(s, at);
-        const dose: DoseEvent = { at, t, label: 'Epinephrine 1 mg IV/IO', mg: 1 };
+        const isLowDose = mcg != null && mcg > 0;
+        const mg = isLowDose ? mcg / 1000 : 1;
+        const label = isLowDose ? `Epinephrine ${mcg} mcg IV/IO` : 'Epinephrine 1 mg IV/IO';
+        const detail = isLowDose ? 'LAST low-dose bolus (< 1 mcg/kg)' : 'Repeat every 3–5 min';
+        const dose: DoseEvent = { at, t, label, mg };
         playConfirm();
         haptic.confirm();
         return {
           epi: [...s.epi, dose],
           events: [
             ...s.events,
-            mkEvent('drug', 'Epinephrine 1 mg IV/IO', 'Repeat every 3–5 min', at, t),
+            mkEvent('drug', label, detail, at, t),
           ],
         };
       }),
@@ -344,9 +360,24 @@ export const useCodeStore = create<CodeStore>((set) => {
 
     markAirwayPlaced: () =>
       apply((s) => {
-        if (s.airwayPlaced) return {};
         const at = Date.now();
         haptic.confirm();
+        if (s.airwayPlaced) {
+          return {
+            airwayPlaced: false,
+            ventilationStarted: false,
+            events: [
+              ...s.events,
+              mkEvent(
+                'airway',
+                'Advanced Airway Unmarked',
+                'Returned to 30:2 compression-ventilation ratio',
+                at,
+                el(s, at),
+              ),
+            ],
+          };
+        }
         return {
           airwayPlaced: true,
           ventilationStarted: true,
@@ -421,7 +452,57 @@ export const useCodeStore = create<CodeStore>((set) => {
             break;
         }
         haptic.warn();
-        return { crisis, events: [...s.events, mkEvent('crisis', label, detail, at, t)] };
+        const nextEvents = [...s.events];
+        const autoStartArrest = kind === 'maternal' && s.status === 'idle';
+        if (autoStartArrest) {
+          nextEvents.push(
+            mkEvent('system', 'Code Initiated', 'Maternal cardiac arrest — CPR started', at, 0),
+          );
+        }
+        nextEvents.push(mkEvent('crisis', label, detail, at, autoStartArrest ? 0 : t));
+        return {
+          ...(autoStartArrest
+            ? {
+                status: 'active' as SessionStatus,
+                startedAt: at,
+                pausedAt: null,
+                pausedAccumMs: 0,
+                cycleStartedAt: at,
+                cyclePausedAccumMs: 0,
+                cycleIndex: 1,
+              }
+            : {}),
+          crisis,
+          events: nextEvents,
+        };
+      }),
+
+    resolveCrisis: (kind) =>
+      apply((s) => {
+        const at = Date.now();
+        const t = el(s, at);
+        const crisis = { ...s.crisis };
+        let label = '';
+        switch (kind) {
+          case 'last':
+            crisis.lastDeclaredAt = null;
+            label = 'LAST resolved';
+            break;
+          case 'mh':
+            crisis.mhDeclaredAt = null;
+            label = 'Malignant Hyperthermia resolved';
+            break;
+          case 'cico':
+            crisis.cicoDeclaredAt = null;
+            label = 'CICO resolved — airway secured';
+            break;
+          case 'maternal':
+            crisis.maternalStartedAt = null;
+            label = 'Maternal perimortem timer resolved';
+            break;
+        }
+        playConfirm();
+        return { crisis, events: [...s.events, mkEvent('crisis', label, undefined, at, t)] };
       }),
 
     logCrisisDose: ({ label, mg, ml, category = 'crisis' }) =>
@@ -437,6 +518,44 @@ export const useCodeStore = create<CodeStore>((set) => {
         return {
           crisisDoses: [...s.crisisDoses, dose],
           events: [...s.events, mkEvent(category, label, detail || undefined, at, t)],
+        };
+      }),
+
+    undoLastEvent: () =>
+      apply((s) => {
+        if (s.events.length === 0) return {};
+        const last = s.events[s.events.length - 1];
+        // Never undo the initial Code Initiated / Chest Compressions Started events via quick undo
+        if (last.category === 'system' && last.label === 'Code Initiated') return {};
+        const events = s.events.slice(0, -1);
+        const epi =
+          last.category === 'drug' && last.label.startsWith('Epinephrine') && s.epi.length > 0
+            ? s.epi.slice(0, -1)
+            : s.epi;
+        const amio =
+          last.category === 'drug' && last.label.startsWith('Amiodarone') && s.amio.length > 0
+            ? s.amio.slice(0, -1)
+            : s.amio;
+        const shocks =
+          last.category === 'shock' && s.shocks.length > 0 ? s.shocks.slice(0, -1) : s.shocks;
+        const crisisDoses =
+          s.crisisDoses.length > 0 && s.crisisDoses[s.crisisDoses.length - 1].at === last.at
+            ? s.crisisDoses.slice(0, -1)
+            : s.crisisDoses;
+        const airwayPlaced =
+          last.label === 'Advanced Airway Placed'
+            ? false
+            : last.label === 'Advanced Airway Unmarked'
+              ? true
+              : s.airwayPlaced;
+        return {
+          events,
+          epi,
+          amio,
+          shocks,
+          crisisDoses,
+          airwayPlaced,
+          ventilationStarted: airwayPlaced,
         };
       }),
 
@@ -463,14 +582,6 @@ if (typeof window !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') writer.flush();
   });
-}
-
-/** True while any perioperative crisis clock has been started (drives the ticker and wake lock). */
-export function hasCrisisClock(s: Pick<PersistedSession, 'crisis'>): boolean {
-  const c = s.crisis;
-  return (
-    c.maternalStartedAt != null || c.cicoDeclaredAt != null || c.mhDeclaredAt != null || c.lastDeclaredAt != null
-  );
 }
 
 /** Cycle length re-exported for UI convenience. */

@@ -11,6 +11,7 @@ export function MhCard() {
   const weightKg = useCodeStore((s) => s.weightKg);
   const crisis = useCodeStore((s) => s.crisis);
   const declareCrisis = useCodeStore((s) => s.declareCrisis);
+  const resolveCrisis = useCodeStore((s) => s.resolveCrisis);
   const logCrisisDose = useCodeStore((s) => s.logCrisisDose);
 
   const dant = dantrolenePlan(weightKg);
@@ -36,7 +37,18 @@ export function MhCard() {
           sub="Stop volatile + suxamethonium immediately"
           onClick={() => declareCrisis('mh')}
         />
-      ) : null}
+      ) : (
+        <div className="flex items-center justify-between rounded-xl border border-warn/60 bg-warn/10 px-3 py-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-warn">MH protocol active</span>
+          <button
+            type="button"
+            onClick={() => resolveCrisis('mh')}
+            className="touch-hit rounded-lg border border-line bg-panel2 px-3 py-1.5 text-xs font-bold text-ink active:scale-95"
+          >
+            Resolve MH
+          </button>
+        </div>
+      )}
 
       <div className="mt-3 rounded-xl border border-warn/50 bg-warn/5 p-3">
         <p className="mb-2 flex items-center gap-2 text-sm font-bold text-warn">
