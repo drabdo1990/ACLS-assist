@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useCodeStore } from '../engine/store';
+import { hasCrisisClock, useCodeStore } from '../engine/store';
 
 /**
  * Single app-wide render ticker. Updates `now` in the store so every clock
@@ -10,10 +10,12 @@ export function useTicker(): void {
   const status = useCodeStore((s) => s.status);
   const tick = useCodeStore((s) => s.tick);
   const metronomeOn = useCodeStore((s) => s.metronome.on);
+  const crisisClock = useCodeStore(hasCrisisClock);
 
   useEffect(() => {
-    // Keep the clock fresh for a running code, a paused code, or a live metronome.
-    const live = status === 'active' || status === 'paused';
+    // Keep the clock fresh for a running/paused code, a live metronome, or a declared
+    // crisis (maternal / CICO countdowns run independently of the arrest clock).
+    const live = status === 'active' || status === 'paused' || crisisClock;
     tick(Date.now());
     if (!live && !metronomeOn) return;
 
@@ -38,7 +40,7 @@ export function useTicker(): void {
       cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [status, metronomeOn, tick]);
+  }, [status, metronomeOn, crisisClock, tick]);
 }
 
 /** Current ticker value. Only components that need live time should use this. */

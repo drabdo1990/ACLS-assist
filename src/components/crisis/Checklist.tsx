@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Check } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
@@ -8,6 +7,31 @@ export interface ChecklistItemLike {
   id: string;
   text: string;
   critical?: boolean;
+}
+
+/**
+ * Checked state derived from the persisted event log, so ticks survive tab switches
+ * and refreshes. Unticking logs an explicit "unchecked" entry rather than erasing history.
+ */
+export function useLoggedChecklist(category: EventCategory, prefix: string) {
+  const events = useCodeStore((s) => s.events);
+  const logEvent = useCodeStore((s) => s.logEvent);
+
+  const onLabel = (text: string) => `${prefix}: ${text}`;
+  const offLabel = (text: string) => `${prefix} (unchecked): ${text}`;
+
+  const isOn = (text: string) => {
+    let state = false;
+    for (const e of events) {
+      if (e.label === onLabel(text)) state = true;
+      else if (e.label === offLabel(text)) state = false;
+    }
+    return state;
+  };
+
+  const toggle = (text: string) => logEvent(category, isOn(text) ? offLabel(text) : onLabel(text));
+
+  return { isOn, toggle };
 }
 
 /** Interactive protocol checklist. Checking an item stamps it into the event log/SBAR. */
@@ -22,23 +46,18 @@ export function Checklist({
   prefix: string;
   icon?: LucideIcon;
 }) {
-  const logEvent = useCodeStore((s) => s.logEvent);
-  const [done, setDone] = useState<Record<string, boolean>>({});
+  const { isOn, toggle } = useLoggedChecklist(category, prefix);
 
   return (
     <ul className="space-y-1.5">
       {items.map((item) => {
-        const on = !!done[item.id];
+        const on = isOn(item.text);
         return (
           <li key={item.id}>
             <button
               type="button"
               aria-pressed={on}
-              onClick={() => {
-                const next = !on;
-                setDone((d) => ({ ...d, [item.id]: next }));
-                if (next) logEvent(category, `${prefix}: ${item.text}`);
-              }}
+              onClick={() => toggle(item.text)}
               className={[
                 'touch-hit flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-3 text-left active:scale-[0.98]',
                 on ? 'border-good bg-good/10' : item.critical ? 'border-crit/50 bg-crit/5' : 'border-line bg-panel2',

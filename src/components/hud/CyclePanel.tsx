@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { RotateCcw, Timer, Waves } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import { useNow } from '../../hooks/useNow';
@@ -31,7 +32,17 @@ const RHYTHMS: RhythmLoop[] = ['VF', 'pVT', 'PEA', 'Asystole', 'Pulse'];
  */
 export function CyclePanel() {
   const now = useNow();
-  const cyclic = useCodeStore((s) => s);
+  const cyclic = useCodeStore(
+    useShallow((s) => ({
+      status: s.status,
+      cycleIndex: s.cycleIndex,
+      startedAt: s.startedAt,
+      pausedAt: s.pausedAt,
+      pausedAccumMs: s.pausedAccumMs,
+      cycleStartedAt: s.cycleStartedAt,
+      cyclePausedAccumMs: s.cyclePausedAccumMs,
+    })),
+  );
   const resetCycle = useCodeStore((s) => s.resetCycle);
 
   const remaining = cycleRemainingMs(cyclic, now);

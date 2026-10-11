@@ -106,7 +106,7 @@ export function MetronomeCard() {
       {!hapticsSupported() ? (
         <p className="mt-1 text-[11px] text-mute">Vibration unavailable on this device (iOS) — audio cues still fire.</p>
       ) : null}
-      <p className="mt-1 text-[11px] text-mute">Accent tick every 10 beats counts down the 2-min cycle.</p>
+      <p className="mt-1 text-[11px] text-mute">Accent tick every 10 beats aids cadence counting.</p>
     </Panel>
   );
 }

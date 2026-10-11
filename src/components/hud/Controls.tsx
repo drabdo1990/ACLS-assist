@@ -30,13 +30,14 @@ export function Controls() {
 
   if (status === 'terminated') {
     return (
-      <BigButton
+      <HoldButton
         variant="outline"
         size="lg"
         icon={RotateCcw}
         label="Start new code"
-        sub="Clears this session after export"
-        onClick={reset}
+        sub="Hold 2.5 s — clears this session (export from Log first)"
+        durationMs={2500}
+        onComplete={reset}
       />
     );
   }
@@ -52,13 +53,14 @@ export function Controls() {
           sub="Resume CPR"
           onClick={reArrest}
         />
-        <BigButton
+        <HoldButton
           variant="outline"
           size="lg"
           icon={RotateCcw}
           label="End session"
-          sub="Clear after export"
-          onClick={reset}
+          sub="Hold 2.5 s — export from Log first"
+          durationMs={2500}
+          onComplete={reset}
         />
       </div>
     );

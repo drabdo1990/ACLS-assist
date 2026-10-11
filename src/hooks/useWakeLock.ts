@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useCodeStore } from '../engine/store';
+import { hasCrisisClock, useCodeStore } from '../engine/store';
 import {
   isWakeLockActive,
   isWakeLockSupported,
@@ -14,17 +14,20 @@ import {
  */
 export function useWakeLock(): { active: boolean; supported: boolean } {
   const status = useCodeStore((s) => s.status);
+  const crisisClock = useCodeStore(hasCrisisClock);
   const [active, setActive] = useState(isWakeLockActive());
 
   useEffect(() => subscribeWakeLock(setActive), []);
 
+  // Post-ROSC care (and possible re-arrest) and declared crises also need the screen awake.
+  const want = status === 'active' || status === 'paused' || status === 'rosc' || crisisClock;
   useEffect(() => {
-    if (status === 'active' || status === 'paused') {
+    if (want) {
       void requestWakeLock();
     } else {
       void releaseWakeLock();
     }
-  }, [status]);
+  }, [want]);
 
   return { active, supported: isWakeLockSupported() };
 }

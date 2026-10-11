@@ -20,7 +20,8 @@ export function useMetronome(): { beat: number; running: boolean } {
   const status = useCodeStore((s) => s.status);
 
   const [beat, setBeat] = useState(0);
-  const running = on && (status === 'active' || status === 'paused') && bpm > 0;
+  // Silent while CPR is paused — a ticking metronome during a pause invites resuming early.
+  const running = on && status === 'active' && bpm > 0;
 
   // Keep latest toggles in refs so the scheduler effect does not restart on every change.
   const audioRef = useRef(audioOn);

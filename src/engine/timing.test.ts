@@ -7,6 +7,7 @@ import {
   cyclePhase,
   cycleProgress,
   formatClock,
+  formatWallClock,
   epiLockoutRemainingMs,
   epiLockoutLabel,
 } from './timing';
@@ -121,6 +122,13 @@ describe('formatClock', () => {
 
   it('clamps negative input to 00:00', () => {
     expect(formatClock(-5000)).toBe('00:00');
+  });
+});
+
+describe('formatWallClock', () => {
+  it('renders local HH:MM:SS with zero padding', () => {
+    const d = new Date(2024, 0, 2, 3, 4, 5);
+    expect(formatWallClock(d.getTime())).toBe('03:04:05');
   });
 });
 

@@ -75,6 +75,12 @@ export function formatClock(ms: number): string {
   return `${pad2(m)}:${pad2(s)}`;
 }
 
+/** Local time-of-day HH:MM:SS for an absolute epoch timestamp (for documentation). */
+export function formatWallClock(epochMs: number): string {
+  const d = new Date(epochMs);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
+
 /** Same as formatClock; kept separate for intent (countdowns) at call sites. */
 export function formatCountdown(ms: number): string {
   return formatClock(ms);

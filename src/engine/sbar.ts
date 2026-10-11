@@ -6,7 +6,7 @@
  */
 
 import type { CauseId, CodeEvent, CrisisTimers, DoseEvent, SessionStatus, ShockEvent } from './types';
-import { formatClock, masterElapsedMs } from './timing';
+import { formatClock, formatWallClock, masterElapsedMs } from './timing';
 import { CAUSES } from '../content/causes';
 
 export interface SbarInput {
@@ -33,29 +33,52 @@ const STATUS_LABEL: Record<SessionStatus, string> = {
   terminated: 'Terminated',
 };
 
-function line(t: number, label: string, detail?: string): string {
-  const stamp = formatClock(t).padStart(6, ' ');
-  return `${stamp}  ${label}${detail ? ` — ${detail}` : ''}`;
+const CRISIS_LABEL: Record<keyof CrisisTimers, string> = {
+  lastDeclaredAt: 'Local anesthetic systemic toxicity (LAST) declared',
+  mhDeclaredAt: 'Malignant hyperthermia suspected',
+  cicoDeclaredAt: "CICO (can't intubate, can't oxygenate) declared",
+  maternalStartedAt: 'Maternal cardiac arrest — perimortem clock started',
+};
+
+/** Timeline row: elapsed arrest time (when an arrest clock exists), then wall-clock time. */
+function line(e: CodeEvent, withElapsed: boolean): string {
+  const wall = formatWallClock(e.at);
+  const stamp = withElapsed ? `${formatClock(e.t).padStart(6, ' ')}  ${wall}` : wall;
+  return `${stamp}  ${e.label}${e.detail ? ` — ${e.detail}` : ''}`;
 }
 
 export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   const total = masterElapsedMs(input, now);
   const addressed = CAUSES.filter((c) => input.causes[c.id]).map((c) => c.label);
   const rosc = input.events.find((e) => e.category === 'rosc');
+  // Crisis-only sessions (MH, LAST, CICO without arrest) never start the arrest clock.
+  const arrest = input.startedAt != null;
+  const crises = (Object.keys(CRISIS_LABEL) as Array<keyof CrisisTimers>)
+    .filter((k) => input.crisis[k] != null)
+    .sort((a, b) => (input.crisis[a] ?? 0) - (input.crisis[b] ?? 0));
 
   const out: string[] = [];
 
   out.push('CodeOR — RESUSCITATION SUMMARY');
   out.push(`Generated: ${new Date(now).toLocaleString()}`);
-  out.push(`Total arrest time: ${formatClock(total)}`);
-  out.push(`Outcome: ${STATUS_LABEL[input.status]}`);
+  if (arrest) {
+    out.push(`Total arrest time: ${formatClock(total)}`);
+    out.push(`Outcome: ${STATUS_LABEL[input.status]}`);
+  } else {
+    out.push('Outcome: No cardiac arrest recorded');
+  }
   out.push('(PHI-free — no patient identifiers recorded)');
   out.push('');
 
   out.push('=== SITUATION ===');
-  out.push('Cardiac arrest managed in the operating room / perioperative setting.');
-  out.push(`Arrest duration: ${formatClock(total)}.`);
-  if (rosc) out.push(`ROSC achieved at ${formatClock(rosc.t)}.`);
+  if (arrest) {
+    out.push('Cardiac arrest managed in the operating room / perioperative setting.');
+    out.push(`Code started at ${formatWallClock(input.startedAt!)}. Arrest duration: ${formatClock(total)}.`);
+    if (rosc) out.push(`ROSC achieved at ${formatClock(rosc.t)} (${formatWallClock(rosc.at)}).`);
+  } else {
+    out.push('Perioperative crisis managed in the operating room. No cardiac arrest recorded.');
+  }
+  for (const k of crises) out.push(`${CRISIS_LABEL[k]} at ${formatWallClock(input.crisis[k]!)}.`);
   out.push('');
 
   out.push('=== BACKGROUND ===');
@@ -89,15 +112,21 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   out.push('');
 
   out.push('=== RECOMMENDATIONS ===');
-  out.push('- Continue post-cardiac arrest care bundle: target SpO₂ 92–98%, PaCO₂ 35–45 mmHg, MAP ≥ 65 mmHg.');
-  out.push('- 12-lead ECG and consider PCI; targeted temperature management; treat precipitating cause.');
-  out.push('- Transfer to ICU / cardiac catheter lab; debrief the team.');
+  if (arrest) {
+    out.push('- Continue post-cardiac arrest care bundle: target SpO₂ 92–98%, PaCO₂ 35–45 mmHg, MAP ≥ 65 mmHg.');
+    out.push('- 12-lead ECG and consider PCI; targeted temperature management; treat precipitating cause.');
+    out.push('- Transfer to ICU / cardiac catheter lab; debrief the team.');
+  } else {
+    out.push('- Continue crisis-specific management per local protocol; reassess and escalate to ICU as indicated.');
+    out.push('- Debrief the team.');
+  }
   out.push('');
 
   out.push('=== TIMELINE ===');
-  const events = [...input.events].sort((a, b) => a.t - b.t);
+  // Absolute timestamps order correctly even while the arrest clock is frozen (pause / ROSC).
+  const events = [...input.events].sort((a, b) => a.at - b.at);
   if (!events.length) out.push('(no events)');
-  for (const e of events) out.push(line(e.t, e.label, e.detail));
+  for (const e of events) out.push(line(e, arrest));
 
   return out.join('\n');
 }

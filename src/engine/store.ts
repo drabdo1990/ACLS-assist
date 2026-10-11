@@ -202,7 +202,7 @@ export const useCodeStore = create<CodeStore>((set) => {
           pausedAt: null,
           pausedAccumMs: s.pausedAccumMs + delta,
           cyclePausedAccumMs: s.cycleStartedAt != null ? s.cyclePausedAccumMs + delta : 0,
-          events: [...s.events, mkEvent('system', 'CPR Resumed', undefined, at, el(s, at) - delta)],
+          events: [...s.events, mkEvent('system', 'CPR Resumed', undefined, at, el(s, at))],
         };
       }),
 
@@ -266,6 +266,7 @@ export const useCodeStore = create<CodeStore>((set) => {
 
     reArrest: () =>
       apply((s) => {
+        if (s.status !== 'rosc') return {};
         const at = Date.now();
         const delta = s.pausedAt != null ? at - s.pausedAt : 0;
         return {
@@ -275,7 +276,7 @@ export const useCodeStore = create<CodeStore>((set) => {
           cycleStartedAt: at,
           cyclePausedAccumMs: 0,
           cycleIndex: s.cycleIndex + 1,
-          events: [...s.events, mkEvent('system', 'Re-arrest', 'CPR resumed', at, el(s, at) - delta)],
+          events: [...s.events, mkEvent('system', 'Re-arrest', 'CPR resumed', at, el(s, at))],
         };
       }),
 
@@ -336,7 +337,7 @@ export const useCodeStore = create<CodeStore>((set) => {
           amio: [...s.amio, dose],
           events: [
             ...s.events,
-            mkEvent('drug', `Amiodarone ${mg} mg IV/IO`, count === 0 ? 'First dose' : 'Second dose', at, t),
+            mkEvent('drug', `Amiodarone ${mg} mg IV/IO`, count === 0 ? 'First dose' : count === 1 ? 'Second dose' : 'Additional dose', at, t),
           ],
         };
       }),
@@ -462,6 +463,14 @@ if (typeof window !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') writer.flush();
   });
+}
+
+/** True while any perioperative crisis clock has been started (drives the ticker and wake lock). */
+export function hasCrisisClock(s: Pick<PersistedSession, 'crisis'>): boolean {
+  const c = s.crisis;
+  return (
+    c.maternalStartedAt != null || c.cicoDeclaredAt != null || c.mhDeclaredAt != null || c.lastDeclaredAt != null
+  );
 }
 
 /** Cycle length re-exported for UI convenience. */

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Droplet, Syringe, TriangleAlert } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import { lastLipidPlan, lipidCumulative } from '../../content/calc';
@@ -7,6 +7,8 @@ import { CrisisCard, Readout } from './CrisisCard';
 import { Checklist } from './Checklist';
 import { ProgressBar } from '../ui/ProgressBar';
 import { BigButton } from '../ui/BigButton';
+
+const LIPID_CEILING_ALERT = 'ALERT — 20% lipid 12 mL/kg ceiling exceeded';
 
 /** LAST — 20% lipid emulsion therapy with live cumulative 12 mL/kg ceiling tracking. */
 export function LastCard() {
@@ -17,16 +19,17 @@ export function LastCard() {
   const logCrisisDose = useCodeStore((s) => s.logCrisisDose);
 
   const plan = lastLipidPlan(weightKg);
+  // Only boluses carry a volume; infusions are logged as a rate and are not summed here.
   const administered = doses
     .filter((d) => d.label.startsWith('20% Lipid') && d.ml != null)
     .reduce((sum, d) => sum + (d.ml ?? 0), 0);
   const cum = lipidCumulative(weightKg, administered);
 
-  const [warned, setWarned] = useState(false);
+  // Derived from the persisted log so remounting the card never re-logs the alert.
+  const warned = doses.some((d) => d.label === LIPID_CEILING_ALERT);
   useEffect(() => {
     if (cum.exceeded && !warned) {
-      setWarned(true);
-      logCrisisDose({ label: 'ALERT — 20% lipid 12 mL/kg ceiling exceeded', ml: Math.round(administered) });
+      logCrisisDose({ label: LIPID_CEILING_ALERT, ml: Math.round(administered) });
     }
   }, [cum.exceeded, warned, administered, logCrisisDose]);
 
@@ -82,8 +85,7 @@ export function LastCard() {
           label={`Start infusion ${plan.infusionMlPerMin} mL/min`}
           onClick={() =>
             logCrisisDose({
-              label: '20% Lipid Emulsion infusion 0.25 mL/kg/min',
-              ml: plan.infusionMlPerMin,
+              label: `20% Lipid Emulsion infusion started at ${plan.infusionMlPerMin} mL/min (0.25 mL/kg/min)`,
               category: 'drug',
             })
           }
@@ -94,8 +96,7 @@ export function LastCard() {
           label={`Double infusion ${plan.infusionMaxMlPerMin} mL/min`}
           onClick={() =>
             logCrisisDose({
-              label: '20% Lipid Emulsion infusion DOUBLED (0.5 mL/kg/min)',
-              ml: plan.infusionMaxMlPerMin,
+              label: `20% Lipid Emulsion infusion DOUBLED to ${plan.infusionMaxMlPerMin} mL/min (0.5 mL/kg/min)`,
               category: 'drug',
             })
           }
@@ -119,6 +120,9 @@ export function LastCard() {
             <TriangleAlert className="h-3.5 w-3.5" /> 12 mL/kg ceiling exceeded — significant overdose risk.
           </p>
         ) : null}
+        <p className="mt-1 text-[11px] text-mute">
+          Counts logged boluses only — add infused volume (rate × minutes run) when judging the ceiling.
+        </p>
       </div>
 
       <p className="mt-3 mb-1 text-xs font-bold uppercase tracking-widest text-mute">Checklist</p>

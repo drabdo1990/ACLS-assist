@@ -13,7 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
-import { formatClock } from '../../engine/timing';
+import { formatClock, formatWallClock } from '../../engine/timing';
 import type { EventCategory } from '../../engine/types';
 
 const CATEGORY: Record<EventCategory, { icon: LucideIcon; className: string }> = {
@@ -48,7 +48,7 @@ export function Timeline() {
   const shown = useMemo(() => {
     const list = filter === 'all' ? events : events.filter((e) => e.category === filter);
     const copy = [...list];
-    copy.sort((a, b) => (ascending ? a.t - b.t : b.t - a.t));
+    copy.sort((a, b) => (ascending ? a.at - b.at : b.at - a.at));
     return copy;
   }, [events, filter, ascending]);
 
@@ -92,6 +92,7 @@ export function Timeline() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2">
                     <span className="tnum font-mono text-sm font-bold text-ink">{formatClock(e.t)}</span>
+                    <span className="tnum font-mono text-[11px] text-mute">{formatWallClock(e.at)}</span>
                     <span className="text-sm font-semibold text-ink">{e.label}</span>
                   </div>
                   {e.detail ? <p className="text-xs leading-snug text-mute">{e.detail}</p> : null}
