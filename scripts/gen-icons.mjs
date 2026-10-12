@@ -1,4 +1,4 @@
-// Generates CodeOR PWA icons as PNGs with zero third-party dependencies.
+// Generates ResusCode PWA icons as PNGs with zero third-party dependencies.
 // Renders the same ECG-heartbeat mark used by favicon.svg at 4x supersampling
 // and box-downsamples for smooth edges. Run with: npm run icons
 import { deflateSync } from 'node:zlib';
@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(__dirname, '..', 'public', 'icons');
 
 const COLORS = {
-  bg: [7, 10, 17],
+  bg: [6, 8, 14],
   border: [34, 48, 73],
   red: [239, 68, 68],
   cyan: [6, 182, 212],

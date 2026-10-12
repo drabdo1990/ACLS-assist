@@ -76,15 +76,44 @@ export function playClick(accent = false): void {
   });
 }
 
-/** Three rising two-tone pulses: the 2-minute cycle has expired. */
-export function playCycleAlarm(): void {
+/** 10-second warning: three soft, evenly spaced chimes before the cycle ends. */
+export function playWarningChimes(): void {
   const ac = ensureAudio();
   if (!ac) return;
   const t = ac.currentTime;
   for (let i = 0; i < 3; i++) {
-    const at = t + i * 0.42;
-    scheduleClick(at, { freq: 1046, type: 'square', gain: 0.22, durationMs: 140 });
-    scheduleClick(at + 0.16, { freq: 1568, type: 'square', gain: 0.22, durationMs: 160 });
+    scheduleClick(t + i * 0.32, { freq: 1318.5, type: 'sine', gain: 0.18, durationMs: 220 });
+  }
+}
+
+/** One frequency-swept sawtooth "whoop" — the building block of the klaxon. */
+function sweep(ac: AudioContext, when: number, from: number, to: number, durS: number, peak: number): void {
+  const osc = ac.createOscillator();
+  const g = ac.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(from, when);
+  osc.frequency.linearRampToValueAtTime(to, when + durS);
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.linearRampToValueAtTime(peak, when + 0.02);
+  g.gain.setValueAtTime(peak, when + durS - 0.04);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + durS);
+  osc.connect(g).connect(ac.destination);
+  osc.start(when);
+  osc.stop(when + durS + 0.03);
+}
+
+/**
+ * Cycle-expiry klaxon: three harsh rising two-tone sawtooth sweeps. Deliberately
+ * timbrally distinct from the sine warning chimes so the team can tell them apart.
+ */
+export function playKlaxon(): void {
+  const ac = ensureAudio();
+  if (!ac) return;
+  const t = ac.currentTime;
+  for (let i = 0; i < 3; i++) {
+    const at = t + i * 0.62;
+    sweep(ac, at, 440, 880, 0.26, 0.2);
+    sweep(ac, at + 0.28, 587, 1175, 0.26, 0.2);
   }
 }
 

@@ -1,102 +1,47 @@
 import { describe, it, expect } from 'vitest';
 import {
-  lastLipidPlan,
-  lipidCumulative,
-  dantrolenePlan,
-  ryanodexPlan,
-  sugammadexPlan,
-  epiLastBolusCeilingMcg,
+  SHOCK_ENERGIES,
+  amiodaroneDoseMg,
+  lidocaineBudget,
+  lidocaineDose,
+  waveformFor,
+  waveformLabel,
 } from './calc';
 
-describe('LAST 20% lipid emulsion', () => {
-  it('scales the bolus at 1.5 mL/kg when below the 100 mL ceiling', () => {
-    const p = lastLipidPlan(60);
-    expect(p.bolusMl).toBe(90);
-    expect(p.bolusCapped).toBe(false);
-  });
-
-  it('caps the bolus at 100 mL per protocol (1.5 mL/kg = 105 mL at 70 kg)', () => {
-    const p = lastLipidPlan(70);
-    expect(p.bolusCapped).toBe(true);
-    expect(p.bolusMl).toBe(100);
-  });
-
-  it('caps the bolus at 100 mL for large patients', () => {
-    const p = lastLipidPlan(110);
-    expect(p.bolusCapped).toBe(true);
-    expect(p.bolusMl).toBe(100);
-  });
-
-  it('gives 0.25 mL/kg/min infusion, doubling to 0.5 for hypotension', () => {
-    const p = lastLipidPlan(80);
-    expect(p.infusionMlPerMin).toBe(20);
-    expect(p.infusionMaxMlPerMin).toBe(40);
-  });
-
-  it('computes the 12 mL/kg cumulative ceiling', () => {
-    expect(lastLipidPlan(70).cumulativeCapMl).toBe(840);
-    expect(lastLipidPlan(100).cumulativeCapMl).toBe(1200);
+describe('amiodarone sequencing', () => {
+  it('300 mg first, then 150 mg', () => {
+    expect(amiodaroneDoseMg(0)).toBe(300);
+    expect(amiodaroneDoseMg(1)).toBe(150);
+    expect(amiodaroneDoseMg(2)).toBe(150);
   });
 });
 
-describe('lipid cumulative tracking', () => {
-  it('reports percent of cap and flags exceeding it', () => {
-    const under = lipidCumulative(70, 400); // cap 840
-    expect(under.pctOfCap).toBeCloseTo(400 / 840, 5);
-    expect(under.exceeded).toBe(false);
+describe('lidocaine dosing', () => {
+  it('loading dose is 1–1.5 mg/kg', () => {
+    expect(lidocaineDose(70, 0)).toEqual({ doseNo: 1, perKgLabel: '1–1.5 mg/kg', minMg: 70, maxMg: 105 });
+  });
 
-    const over = lipidCumulative(70, 900);
-    expect(over.exceeded).toBe(true);
-    expect(over.pctOfCap).toBeCloseTo(900 / 840, 5);
-
-    // bar fill is clamped at 1.5× so the progress UI never overflows
-    expect(lipidCumulative(70, 1400).pctOfCap).toBe(1.5);
+  it('repeat doses are 0.5–0.75 mg/kg', () => {
+    expect(lidocaineDose(70, 1)).toEqual({ doseNo: 2, perKgLabel: '0.5–0.75 mg/kg', minMg: 35, maxMg: 53 });
+    expect(lidocaineDose(80, 2).doseNo).toBe(3);
   });
 });
 
-describe('malignant hyperthermia — dantrolene', () => {
-  it('2.5 mg/kg with 20 mg vials rounded up', () => {
-    const p = dantrolenePlan(70); // 175 mg target
-    expect(p.doseMg).toBe(175);
-    expect(p.vials20).toBe(9); // ceil(8.75)
-    expect(p.reconTotalMg).toBe(180);
-  });
-
-  it('uses 60 mL sterile water per vial (0.333 mg/mL) and reports admin volume', () => {
-    const p = dantrolenePlan(70);
-    expect(p.reconVolumeMl).toBe(540);
-    expect(p.concentrationMgPerMl).toBeCloseTo(0.333, 3);
-    // 175 mg at 0.333 mg/mL ≈ 525 mL
-    expect(p.adminVolumeMl).toBe(525);
-  });
-
-  it('handles small patients (never zero vials)', () => {
-    expect(dantrolenePlan(20).vials20).toBe(3); // 50 mg / 20 = 2.5 -> 3
-  });
-
-  it('Ryanodex uses 250 mg single vials at 50 mg/mL', () => {
-    const p = ryanodexPlan(70); // 175 mg
-    expect(p.doseMg).toBe(175);
-    expect(p.vials).toBe(1);
-    expect(p.concentrationMgPerMl).toBe(50);
-    expect(p.volumeMl).toBe(3.5);
-    // a 120 kg patient needs more than one 250 mg vial
-    expect(ryanodexPlan(120).vials).toBe(2);
+describe('lidocaine 3 mg/kg ceiling (SHA Table 7.1)', () => {
+  it('tracks cumulative dose against 3 mg/kg', () => {
+    expect(lidocaineBudget(70, [])).toEqual({ givenMg: 0, maxMg: 210, nextExceeds: false });
+    // 70 + 35 + 35 + 35 = 175 ≤ 210, the next 35 would reach 210 (not exceed)
+    expect(lidocaineBudget(70, [70, 35, 35, 35]).nextExceeds).toBe(false);
+    // 70 + 35×4 = 210; any further dose exceeds the ceiling
+    expect(lidocaineBudget(70, [70, 35, 35, 35, 35]).nextExceeds).toBe(true);
   });
 });
 
-describe('CICO sugammadex rescue', () => {
-  it('16 mg/kg, 100 mg/mL, with 200 mg vials', () => {
-    const p = sugammadexPlan(70);
-    expect(p.doseMg).toBe(1120);
-    expect(p.volumeMl).toBe(11.2);
-    expect(p.vials200).toBe(6);
-  });
-});
-
-describe('LAST epinephrine caution', () => {
-  it('caps individual epi boluses below 1 mcg/kg', () => {
-    expect(epiLastBolusCeilingMcg(70)).toBe(70);
-    expect(epiLastBolusCeilingMcg(55.6)).toBe(55);
+describe('defibrillation energies', () => {
+  it('offers biphasic 120/150/200 J and monophasic 360 J', () => {
+    expect(SHOCK_ENERGIES.map((e) => e.joules)).toEqual([120, 150, 200, 360]);
+    expect(waveformFor(200)).toBe('biphasic');
+    expect(waveformFor(360)).toBe('monophasic');
+    expect(waveformLabel('monophasic')).toBe('Monophasic');
   });
 });

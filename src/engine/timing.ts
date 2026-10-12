@@ -1,5 +1,5 @@
 /**
- * Pure time math for CodeOR.
+ * Pure time math for ResusCode.
  *
  * Design law: absolute timestamps are the source of truth; the render ticker only
  * repaints. This makes the master clock and the 2-minute cycle resilient to page
@@ -73,6 +73,17 @@ export function formatClock(ms: number): string {
   const s = total % 60;
   if (h > 0) return `${h}:${pad2(m)}:${pad2(s)}`;
   return `${pad2(m)}:${pad2(s)}`;
+}
+
+/** Human duration for summaries: "6m 45s", "1h 02m 05s", "45s". */
+export function formatDuration(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}h ${pad2(m)}m ${pad2(s)}s`;
+  if (m > 0) return `${m}m ${pad2(s)}s`;
+  return `${s}s`;
 }
 
 /** Local time-of-day HH:MM:SS for an absolute epoch timestamp (for documentation). */

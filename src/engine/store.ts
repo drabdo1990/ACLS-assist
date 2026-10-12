@@ -1,22 +1,36 @@
 import { create } from 'zustand';
 import type {
-  CodeEvent,
+  AirwayType,
+  Antiarrhythmic,
   CauseId,
-  CrisisTimers,
+  CodeEvent,
   DoseEvent,
   EventCategory,
   MetronomeState,
   PersistedSession,
+  PocusId,
+  RhythmBranch,
   RhythmLoop,
   SessionStatus,
   Settings,
   ShockEvent,
 } from './types';
-import { CYCLE_MS, masterElapsedMs } from './timing';
-import { createDebouncedWriter, clearPersisted, loadPersisted } from './persistence';
+import { CYCLE_MS, formatDuration, masterElapsedMs } from './timing';
+import { clockNow } from './clock';
+import { clearPersisted, createDebouncedWriter, emptySession, loadPersisted } from './persistence';
 import { playChime, playClose, playConfirm } from './audio';
 import { haptic } from './haptics';
 import { CAUSES } from '../content/causes';
+import { POCUS_ITEMS } from '../content/pocus';
+import {
+  EPINEPHRINE,
+  MAGNESIUM,
+  amiodaroneDoseMg,
+  lidocaineBudget,
+  lidocaineDose,
+  waveformFor,
+  waveformLabel,
+} from '../content/calc';
 
 let idCounter = 0;
 function uid(): string {
@@ -34,52 +48,13 @@ function mkEvent(
   return { id: uid(), at, t, category, label, detail };
 }
 
-const DEFAULT_SETTINGS: Settings = {
-  epiLockoutMs: 180_000, // 3:00 (AHA range 3–5 min)
-  defaultJoules: 200,
+const BRANCH_LABEL: Record<RhythmBranch, string> = {
+  shockable: 'Shockable (VF / pVT)',
+  nonshockable: 'Non-shockable (Asystole / PEA)',
 };
-
-const DEFAULT_METRONOME: MetronomeState = {
-  on: false,
-  audio: true,
-  haptic: true,
-  bpm: 110,
-};
-
-const DEFAULT_CRISIS: CrisisTimers = {
-  maternalStartedAt: null,
-  cicoDeclaredAt: null,
-  mhDeclaredAt: null,
-  lastDeclaredAt: null,
-};
-
-const DEFAULT_WEIGHT_KG = 70;
-
-function emptySession(): PersistedSession {
-  return {
-    version: 1,
-    status: 'idle',
-    startedAt: null,
-    pausedAt: null,
-    pausedAccumMs: 0,
-    cycleStartedAt: null,
-    cyclePausedAccumMs: 0,
-    cycleIndex: 1,
-    events: [],
-    shocks: [],
-    epi: [],
-    amio: [],
-    crisisDoses: [],
-    airwayPlaced: false,
-    ventilationStarted: false,
-    causes: {},
-    metronome: { ...DEFAULT_METRONOME },
-    weightKg: DEFAULT_WEIGHT_KG,
-    crisis: { ...DEFAULT_CRISIS },
-    settings: { ...DEFAULT_SETTINGS },
-    savedAt: 0,
-  };
-}
+const BRANCH_EVENT_PREFIX = 'Rhythm branch: ';
+const AIRWAY_EVENT_PREFIX = 'Advanced airway placed';
+const AIRWAY_LABEL: Record<AirwayType, string> = { ETT: 'ETT', SGA: 'Supraglottic airway' };
 
 export interface CodeStore extends PersistedSession {
   /** ticker-driven clock value; excluded from persistence */
@@ -101,32 +76,27 @@ export interface CodeStore extends PersistedSession {
   reArrest: () => void;
 
   logEvent: (category: EventCategory, label: string, detail?: string) => void;
-  administerEpi: (mcg?: number) => void;
-  deliverShock: (joules: number, shockable: boolean) => void;
+  setRhythmBranch: (branch: RhythmBranch) => void;
+  administerEpi: () => void;
+  deliverShock: (joules: number) => void;
+  setAntiarrhythmic: (drug: Antiarrhythmic) => void;
+  administerAntiarrhythmic: () => void;
   administerAmiodarone: () => void;
-  markAirwayPlaced: () => void;
+  administerLidocaine: () => void;
+  administerMagnesium: () => void;
+  markAirwayPlaced: (type?: AirwayType) => void;
   toggleCause: (id: CauseId) => void;
+  togglePocus: (id: PocusId) => void;
   setWeight: (kg: number) => void;
   setMetronome: (patch: Partial<MetronomeState>) => void;
   setSetting: (patch: Partial<Settings>) => void;
-  declareCrisis: (kind: 'last' | 'mh' | 'cico' | 'maternal') => void;
-  resolveCrisis: (kind: 'last' | 'mh' | 'cico' | 'maternal') => void;
-  logCrisisDose: (dose: { label: string; mg?: number; ml?: number; category?: EventCategory }) => void;
   undoLastEvent: () => void;
   reset: () => void;
 }
 
-/** True while any perioperative crisis clock has been started (drives the ticker and wake lock). */
-export function hasCrisisClock(s: Pick<PersistedSession, 'crisis'>): boolean {
-  const c = s.crisis;
-  return (
-    c.maternalStartedAt != null || c.cicoDeclaredAt != null || c.mhDeclaredAt != null || c.lastDeclaredAt != null
-  );
-}
-
 function toPersisted(s: CodeStore): PersistedSession {
   return {
-    version: 1,
+    version: 2,
     status: s.status,
     startedAt: s.startedAt,
     pausedAt: s.pausedAt,
@@ -138,25 +108,41 @@ function toPersisted(s: CodeStore): PersistedSession {
     shocks: s.shocks,
     epi: s.epi,
     amio: s.amio,
-    crisisDoses: s.crisisDoses,
+    lido: s.lido,
+    rhythmBranch: s.rhythmBranch,
+    antiarrhythmic: s.antiarrhythmic,
     airwayPlaced: s.airwayPlaced,
-    ventilationStarted: s.ventilationStarted,
+    airwayType: s.airwayType,
     causes: s.causes,
+    pocus: s.pocus,
     metronome: s.metronome,
     weightKg: s.weightKg,
-    crisis: s.crisis,
     settings: s.settings,
     savedAt: Date.now(),
   };
 }
 
+/** Total epinephrine in mg. */
+export function totalEpiMg(epi: DoseEvent[]): number {
+  return Math.round(epi.reduce((sum, d) => sum + (d.mg ?? 0), 0) * 100) / 100;
+}
+
+/** Branch implied by the most recent branch event (used to roll back on undo). */
+function branchFromEvents(events: CodeEvent[]): RhythmBranch | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.category === 'rhythm' && e.label.startsWith(BRANCH_EVENT_PREFIX)) {
+      return e.label.includes('Non-shockable') ? 'nonshockable' : 'shockable';
+    }
+  }
+  return null;
+}
+
 const persisted = loadPersisted();
 const bootSession: PersistedSession = persisted ?? emptySession();
-const wasRestored =
-  persisted != null &&
-  (persisted.status !== 'idle' || hasCrisisClock(persisted) || persisted.events.length > 0);
+const wasRestored = persisted != null && (persisted.status !== 'idle' || persisted.events.length > 0);
 
-export const useCodeStore = create<CodeStore>((set) => {
+export const useCodeStore = create<CodeStore>((set, get) => {
   /** Merge a mutation, bumping the persistence revision. */
   const apply = (fn: (s: CodeStore) => Partial<CodeStore>) => {
     set((s) => ({ ...fn(s), rev: s.rev + 1 }));
@@ -166,7 +152,7 @@ export const useCodeStore = create<CodeStore>((set) => {
 
   return {
     ...bootSession,
-    now: Date.now(),
+    now: clockNow(),
     rev: 0,
     restored: wasRestored,
 
@@ -176,7 +162,7 @@ export const useCodeStore = create<CodeStore>((set) => {
     startCode: () =>
       apply((s) => {
         if (s.status !== 'idle') return {};
-        const at = Date.now();
+        const at = clockNow();
         return {
           status: 'active' as SessionStatus,
           startedAt: at,
@@ -187,8 +173,8 @@ export const useCodeStore = create<CodeStore>((set) => {
           cycleIndex: 1,
           events: [
             ...s.events,
-            mkEvent('system', 'Code Initiated', 'Cardiac arrest recognised — CPR started', at, 0),
-            mkEvent('cpr', 'Chest Compressions Started', 'Target 100–120/min, depth 5–6 cm', at, 0),
+            mkEvent('system', 'Code Blue activated', 'Cardiac arrest recognised — CPR started', at, 0),
+            mkEvent('cpr', 'Chest compressions started', 'Rate 100–120/min, depth 5–6 cm, full recoil', at, 0),
           ],
         };
       }),
@@ -196,48 +182,46 @@ export const useCodeStore = create<CodeStore>((set) => {
     pauseCode: () =>
       apply((s) => {
         if (s.status !== 'active') return {};
-        const at = Date.now();
+        const at = clockNow();
         return {
           status: 'paused' as SessionStatus,
           pausedAt: at,
-          events: [...s.events, mkEvent('system', 'CPR Paused', undefined, at, el(s, at))],
+          events: [...s.events, mkEvent('system', 'CPR paused', undefined, at, el(s, at))],
         };
       }),
 
     resumeCode: () =>
       apply((s) => {
         if (s.status !== 'paused') return {};
-        const at = Date.now();
+        const at = clockNow();
         const delta = s.pausedAt != null ? at - s.pausedAt : 0;
         return {
           status: 'active' as SessionStatus,
           pausedAt: null,
           pausedAccumMs: s.pausedAccumMs + delta,
           cyclePausedAccumMs: s.cycleStartedAt != null ? s.cyclePausedAccumMs + delta : 0,
-          events: [...s.events, mkEvent('system', 'CPR Resumed', undefined, at, el(s, at))],
+          events: [...s.events, mkEvent('system', 'CPR resumed', undefined, at, el(s, at))],
         };
       }),
 
     resetCycle: (rhythm) =>
       apply((s) => {
         if (s.status !== 'active' && s.status !== 'paused') return {};
-        const at = Date.now();
+        const at = clockNow();
         const ref = s.pausedAt ?? at;
         const completed = s.cycleIndex;
-        const events: CodeEvent[] = [...s.events];
         const t = el(s, at);
-        events.push(
+        const events: CodeEvent[] = [
+          ...s.events,
           mkEvent(
             'cycle',
-            `Cycle ${completed} complete`,
-            'Rhythm check / switch compressor',
+            `Cycle ${completed} completed`,
+            rhythm ? `Rhythm: ${rhythm} · switch compressors` : 'Rhythm check / switch compressors',
             at,
             t,
           ),
-        );
-        if (rhythm) {
-          events.push(mkEvent('rhythm', `Rhythm check — ${rhythm}`, undefined, at, t));
-        }
+        ];
+        if (rhythm) events.push(mkEvent('rhythm', `Rhythm check — ${rhythm}`, undefined, at, t));
         return {
           cycleStartedAt: ref,
           cyclePausedAccumMs: 0,
@@ -249,7 +233,8 @@ export const useCodeStore = create<CodeStore>((set) => {
     declareRosc: () =>
       apply((s) => {
         if (s.status !== 'active' && s.status !== 'paused') return {};
-        const at = Date.now();
+        const at = clockNow();
+        const t = el(s, at);
         playChime();
         haptic.rosc();
         return {
@@ -258,7 +243,13 @@ export const useCodeStore = create<CodeStore>((set) => {
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
-            mkEvent('rosc', 'ROSC Achieved', 'Return of spontaneous circulation — begin post-arrest care', at, el(s, at)),
+            mkEvent(
+              'rosc',
+              'ROSC declared',
+              `Total arrest duration: ${formatDuration(t)}. Total shocks: ${s.shocks.length}. Total epi: ${totalEpiMg(s.epi)} mg.`,
+              at,
+              t,
+            ),
           ],
         };
       }),
@@ -266,20 +257,24 @@ export const useCodeStore = create<CodeStore>((set) => {
     terminateCode: () =>
       apply((s) => {
         if (s.status === 'idle' || s.status === 'terminated') return {};
-        const at = Date.now();
+        const at = clockNow();
+        const t = el(s, at);
         playClose();
         return {
           status: 'terminated' as SessionStatus,
           pausedAt: s.pausedAt ?? at,
           metronome: { ...s.metronome, on: false },
-          events: [...s.events, mkEvent('system', 'Code Terminated', 'Resuscitation ceased', at, el(s, at))],
+          events: [
+            ...s.events,
+            mkEvent('system', 'Code ended', `Resuscitation ceased · total duration ${formatDuration(t)}`, at, t),
+          ],
         };
       }),
 
     reArrest: () =>
       apply((s) => {
         if (s.status !== 'rosc') return {};
-        const at = Date.now();
+        const at = clockNow();
         const delta = s.pausedAt != null ? at - s.pausedAt : 0;
         return {
           status: 'active' as SessionStatus,
@@ -294,36 +289,49 @@ export const useCodeStore = create<CodeStore>((set) => {
 
     logEvent: (category, label, detail) =>
       apply((s) => {
-        const at = Date.now();
+        const at = clockNow();
         return { events: [...s.events, mkEvent(category, label, detail, at, el(s, at))] };
       }),
 
-    administerEpi: (mcg) =>
+    setRhythmBranch: (branch) =>
       apply((s) => {
-        const at = Date.now();
-        const t = el(s, at);
-        const isLowDose = mcg != null && mcg > 0;
-        const mg = isLowDose ? mcg / 1000 : 1;
-        const label = isLowDose ? `Epinephrine ${mcg} mcg IV/IO` : 'Epinephrine 1 mg IV/IO';
-        const detail = isLowDose ? 'LAST low-dose bolus (< 1 mcg/kg)' : 'Repeat every 3–5 min';
-        const dose: DoseEvent = { at, t, label, mg };
-        playConfirm();
+        if (s.rhythmBranch === branch) return {};
+        const at = clockNow();
         haptic.confirm();
         return {
-          epi: [...s.epi, dose],
+          rhythmBranch: branch,
           events: [
             ...s.events,
-            mkEvent('drug', label, detail, at, t),
+            mkEvent('rhythm', `${BRANCH_EVENT_PREFIX}${BRANCH_LABEL[branch]}`, undefined, at, el(s, at)),
           ],
         };
       }),
 
-    deliverShock: (joules, shockable) =>
+    administerEpi: () =>
       apply((s) => {
-        const at = Date.now();
+        const at = clockNow();
+        const t = el(s, at);
+        const n = s.epi.length + 1;
+        const label = 'Epinephrine 1 mg IV/IO';
+        playConfirm();
+        haptic.confirm();
+        return {
+          epi: [...s.epi, { at, t, label, mg: 1 }],
+          events: [
+            ...s.events,
+            mkEvent('drug', label, `Dose #${n} · ${EPINEPHRINE.flush} · repeat every 3–5 min`, at, t),
+          ],
+        };
+      }),
+
+    deliverShock: (joules) =>
+      apply((s) => {
+        const at = clockNow();
         const t = el(s, at);
         const n = s.shocks.length + 1;
-        const shock: ShockEvent = { at, t, joules, shockable };
+        const waveform = waveformFor(joules);
+        const shockable = s.rhythmBranch !== 'nonshockable';
+        const shock: ShockEvent = { at, t, joules, shockable, waveform };
         haptic.confirm();
         return {
           shocks: [...s.shocks, shock],
@@ -331,8 +339,8 @@ export const useCodeStore = create<CodeStore>((set) => {
             ...s.events,
             mkEvent(
               'shock',
-              `Defibrillation ${joules} J`,
-              `Shock #${n}${shockable ? '' : ' (unshockable rhythm)'}`,
+              `Defibrillation: Shock #${n} (${joules}J ${waveformLabel(waveform)})`,
+              shockable ? undefined : 'Logged while on non-shockable branch',
               at,
               t,
             ),
@@ -340,52 +348,90 @@ export const useCodeStore = create<CodeStore>((set) => {
         };
       }),
 
+    setAntiarrhythmic: (drug) => apply(() => ({ antiarrhythmic: drug })),
+
+    administerAntiarrhythmic: () => {
+      if (get().antiarrhythmic === 'lidocaine') get().administerLidocaine();
+      else get().administerAmiodarone();
+    },
+
     administerAmiodarone: () =>
       apply((s) => {
-        const at = Date.now();
+        const at = clockNow();
         const t = el(s, at);
         const count = s.amio.length;
-        const mg = count === 0 ? 300 : 150;
-        const dose: DoseEvent = { at, t, label: `Amiodarone ${mg} mg IV/IO`, mg };
+        const mg = amiodaroneDoseMg(count);
+        const label = `Amiodarone ${mg} mg IV/IO`;
         playConfirm();
         haptic.confirm();
         return {
-          amio: [...s.amio, dose],
+          amio: [...s.amio, { at, t, label, mg }],
           events: [
             ...s.events,
-            mkEvent('drug', `Amiodarone ${mg} mg IV/IO`, count === 0 ? 'First dose' : count === 1 ? 'Second dose' : 'Additional dose', at, t),
+            mkEvent('drug', label, count === 0 ? 'First dose' : count === 1 ? 'Second dose' : 'Additional dose', at, t),
           ],
         };
       }),
 
-    markAirwayPlaced: () =>
+    administerLidocaine: () =>
       apply((s) => {
-        const at = Date.now();
+        const at = clockNow();
+        const t = el(s, at);
+        const d = lidocaineDose(s.weightKg, s.lido.length);
+        const budget = lidocaineBudget(s.weightKg, s.lido.map((x) => x.mg ?? 0));
+        const label = `Lidocaine ${d.minMg}–${d.maxMg} mg IV/IO`;
+        const cumulative = `cumulative ≥ ${budget.givenMg + d.minMg} of max ${budget.maxMg} mg (3 mg/kg)`;
+        playConfirm();
+        haptic.confirm();
+        return {
+          lido: [...s.lido, { at, t, label, mg: d.minMg }],
+          events: [
+            ...s.events,
+            mkEvent(
+              'drug',
+              label,
+              `Dose #${d.doseNo} · ${d.perKgLabel} (${s.weightKg} kg) · ${cumulative}${
+                budget.nextExceeds ? ' · EXCEEDS 3 mg/kg' : ''
+              }`,
+              at,
+              t,
+            ),
+          ],
+        };
+      }),
+
+    administerMagnesium: () =>
+      apply((s) => {
+        const at = clockNow();
+        playConfirm();
+        haptic.confirm();
+        return {
+          events: [...s.events, mkEvent('drug', MAGNESIUM.label, MAGNESIUM.indication, at, el(s, at))],
+        };
+      }),
+
+    markAirwayPlaced: (type = 'ETT') =>
+      apply((s) => {
+        const at = clockNow();
         haptic.confirm();
         if (s.airwayPlaced) {
           return {
             airwayPlaced: false,
-            ventilationStarted: false,
+            airwayType: null,
             events: [
               ...s.events,
-              mkEvent(
-                'airway',
-                'Advanced Airway Unmarked',
-                'Returned to 30:2 compression-ventilation ratio',
-                at,
-                el(s, at),
-              ),
+              mkEvent('airway', 'Advanced airway unmarked', 'Returned to 30:2 compression-ventilation', at, el(s, at)),
             ],
           };
         }
         return {
           airwayPlaced: true,
-          ventilationStarted: true,
+          airwayType: type,
           events: [
             ...s.events,
             mkEvent(
               'airway',
-              'Advanced Airway Placed',
+              `${AIRWAY_EVENT_PREFIX} — ${AIRWAY_LABEL[type]}`,
               'Continuous compressions + 1 breath every 6 s (10/min)',
               at,
               el(s, at),
@@ -397,24 +443,35 @@ export const useCodeStore = create<CodeStore>((set) => {
     toggleCause: (id) =>
       apply((s) => {
         const next = { ...s.causes, [id]: !s.causes[id] };
-        if (!s.causes[id]) {
-          const cause = CAUSES.find((c) => c.id === id);
-          const at = Date.now();
-          haptic.warn();
-          return {
-            causes: next,
-            events: [
-              ...s.events,
-              mkEvent('cause', `Cause addressed — ${cause?.label ?? id}`, cause?.hint, at, el(s, at)),
-            ],
-          };
-        }
-        return { causes: next };
+        if (s.causes[id]) return { causes: next };
+        const cause = CAUSES.find((c) => c.id === id);
+        const at = clockNow();
+        haptic.warn();
+        return {
+          causes: next,
+          events: [
+            ...s.events,
+            mkEvent('cause', `Cause addressed — ${cause?.label ?? id}`, cause?.action, at, el(s, at)),
+          ],
+        };
+      }),
+
+    togglePocus: (id) =>
+      apply((s) => {
+        const next = { ...s.pocus, [id]: !s.pocus[id] };
+        if (s.pocus[id]) return { pocus: next };
+        const item = POCUS_ITEMS.find((p) => p.id === id);
+        const at = clockNow();
+        haptic.confirm();
+        return {
+          pocus: next,
+          events: [...s.events, mkEvent('pocus', `POCUS — ${item?.label ?? id}`, item?.meaning, at, el(s, at))],
+        };
       }),
 
     setWeight: (kg) =>
       apply(() => {
-        const clamped = Math.max(10, Math.min(250, Math.round(kg)));
+        const clamped = Math.max(30, Math.min(250, Math.round(kg)));
         return { weightKg: clamped };
       }),
 
@@ -422,146 +479,44 @@ export const useCodeStore = create<CodeStore>((set) => {
 
     setSetting: (patch) => apply((s) => ({ settings: { ...s.settings, ...patch } })),
 
-    declareCrisis: (kind) =>
-      apply((s) => {
-        const at = Date.now();
-        const t = el(s, at);
-        const crisis = { ...s.crisis };
-        let label = '';
-        let detail = '';
-        switch (kind) {
-          case 'last':
-            crisis.lastDeclaredAt = at;
-            label = 'LAST Declared';
-            detail = 'Local anesthetic systemic toxicity — start 20% lipid emulsion';
-            break;
-          case 'mh':
-            crisis.mhDeclaredAt = at;
-            label = 'Malignant Hyperthermia suspected';
-            detail = 'Stop triggers, hyperventilate 100% O₂, give dantrolene';
-            break;
-          case 'cico':
-            crisis.cicoDeclaredAt = at;
-            label = 'CICO Declared';
-            detail = 'Front-of-neck access (eFONA) — scalpel-bougie-tube';
-            break;
-          case 'maternal':
-            crisis.maternalStartedAt = at;
-            label = 'Maternal cardiac arrest';
-            detail = '4-minute rule started — begin resuscitative hysterotomy by minute 4';
-            break;
-        }
-        haptic.warn();
-        const nextEvents = [...s.events];
-        const autoStartArrest = kind === 'maternal' && s.status === 'idle';
-        if (autoStartArrest) {
-          nextEvents.push(
-            mkEvent('system', 'Code Initiated', 'Maternal cardiac arrest — CPR started', at, 0),
-          );
-        }
-        nextEvents.push(mkEvent('crisis', label, detail, at, autoStartArrest ? 0 : t));
-        return {
-          ...(autoStartArrest
-            ? {
-                status: 'active' as SessionStatus,
-                startedAt: at,
-                pausedAt: null,
-                pausedAccumMs: 0,
-                cycleStartedAt: at,
-                cyclePausedAccumMs: 0,
-                cycleIndex: 1,
-              }
-            : {}),
-          crisis,
-          events: nextEvents,
-        };
-      }),
-
-    resolveCrisis: (kind) =>
-      apply((s) => {
-        const at = Date.now();
-        const t = el(s, at);
-        const crisis = { ...s.crisis };
-        let label = '';
-        switch (kind) {
-          case 'last':
-            crisis.lastDeclaredAt = null;
-            label = 'LAST resolved';
-            break;
-          case 'mh':
-            crisis.mhDeclaredAt = null;
-            label = 'Malignant Hyperthermia resolved';
-            break;
-          case 'cico':
-            crisis.cicoDeclaredAt = null;
-            label = 'CICO resolved — airway secured';
-            break;
-          case 'maternal':
-            crisis.maternalStartedAt = null;
-            label = 'Maternal perimortem timer resolved';
-            break;
-        }
-        playConfirm();
-        return { crisis, events: [...s.events, mkEvent('crisis', label, undefined, at, t)] };
-      }),
-
-    logCrisisDose: ({ label, mg, ml, category = 'crisis' }) =>
-      apply((s) => {
-        const at = Date.now();
-        const t = el(s, at);
-        const dose: DoseEvent = { at, t, label, mg, ml };
-        playConfirm();
-        haptic.confirm();
-        const detail = [mg != null ? `${mg} mg` : null, ml != null ? `${ml} mL` : null]
-          .filter(Boolean)
-          .join(' · ');
-        return {
-          crisisDoses: [...s.crisisDoses, dose],
-          events: [...s.events, mkEvent(category, label, detail || undefined, at, t)],
-        };
-      }),
-
     undoLastEvent: () =>
       apply((s) => {
         if (s.events.length === 0) return {};
         const last = s.events[s.events.length - 1];
-        // Never undo the initial Code Initiated / Chest Compressions Started events via quick undo
-        if (last.category === 'system' && last.label === 'Code Initiated') return {};
+        // Lifecycle events (start, pause, ROSC, end) are never quick-undone.
+        if (last.category === 'system' || last.category === 'cpr' || last.category === 'rosc') return {};
         const events = s.events.slice(0, -1);
-        const epi =
-          last.category === 'drug' && last.label.startsWith('Epinephrine') && s.epi.length > 0
-            ? s.epi.slice(0, -1)
-            : s.epi;
-        const amio =
-          last.category === 'drug' && last.label.startsWith('Amiodarone') && s.amio.length > 0
-            ? s.amio.slice(0, -1)
-            : s.amio;
-        const shocks =
-          last.category === 'shock' && s.shocks.length > 0 ? s.shocks.slice(0, -1) : s.shocks;
-        const crisisDoses =
-          s.crisisDoses.length > 0 && s.crisisDoses[s.crisisDoses.length - 1].at === last.at
-            ? s.crisisDoses.slice(0, -1)
-            : s.crisisDoses;
-        const airwayPlaced =
-          last.label === 'Advanced Airway Placed'
-            ? false
-            : last.label === 'Advanced Airway Unmarked'
-              ? true
-              : s.airwayPlaced;
-        return {
-          events,
-          epi,
-          amio,
-          shocks,
-          crisisDoses,
-          airwayPlaced,
-          ventilationStarted: airwayPlaced,
-        };
+        const isDrug = (prefix: string) => last.category === 'drug' && last.label.startsWith(prefix);
+        const patch: Partial<CodeStore> = { events };
+
+        if (isDrug('Epinephrine') && s.epi.length) patch.epi = s.epi.slice(0, -1);
+        if (isDrug('Amiodarone') && s.amio.length) patch.amio = s.amio.slice(0, -1);
+        if (isDrug('Lidocaine') && s.lido.length) patch.lido = s.lido.slice(0, -1);
+        if (last.category === 'shock' && s.shocks.length) patch.shocks = s.shocks.slice(0, -1);
+
+        if (last.category === 'airway') {
+          // Undoing a placement un-places it; undoing an un-mark restores it.
+          const placed = !last.label.startsWith(AIRWAY_EVENT_PREFIX);
+          patch.airwayPlaced = placed;
+          patch.airwayType = placed ? (s.airwayType ?? 'ETT') : null;
+        }
+        if (last.category === 'rhythm' && last.label.startsWith(BRANCH_EVENT_PREFIX)) {
+          patch.rhythmBranch = branchFromEvents(events);
+        }
+        if (last.category === 'cause') {
+          const cause = CAUSES.find((c) => last.label.endsWith(c.label));
+          if (cause) patch.causes = { ...s.causes, [cause.id]: false };
+        }
+        if (last.category === 'pocus') {
+          const item = POCUS_ITEMS.find((p) => last.label.endsWith(p.label));
+          if (item) patch.pocus = { ...s.pocus, [item.id]: false };
+        }
+        return patch;
       }),
 
     reset: () => {
       clearPersisted();
-      set({ ...emptySession(), now: Date.now(), rev: 0, restored: false });
+      set({ ...emptySession(), now: clockNow(), rev: 0, restored: false });
     },
   };
 });

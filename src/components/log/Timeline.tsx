@@ -6,8 +6,9 @@ import {
   Radio,
   RotateCcw,
   Siren,
+  ScanLine,
+  Search,
   Syringe,
-  TriangleAlert,
   Wind,
   Zap,
   type LucideIcon,
@@ -24,8 +25,8 @@ const CATEGORY: Record<EventCategory, { icon: LucideIcon; className: string }> =
   drug: { icon: Syringe, className: 'text-warn border-warn/50' },
   shock: { icon: Zap, className: 'text-crit border-crit/50' },
   rhythm: { icon: Activity, className: 'text-good border-good/50' },
-  cause: { icon: HeartPulse, className: 'text-warn border-warn/50' },
-  crisis: { icon: TriangleAlert, className: 'text-crit border-crit/50' },
+  cause: { icon: Search, className: 'text-warn border-warn/50' },
+  pocus: { icon: ScanLine, className: 'text-cyber border-cyber/50' },
   rosc: { icon: Radio, className: 'text-good border-good/50' },
   post: { icon: Check, className: 'text-good border-good/50' },
 };
@@ -35,8 +36,9 @@ const FILTERS: Array<{ id: 'all' | EventCategory; label: string }> = [
   { id: 'drug', label: 'Drugs' },
   { id: 'shock', label: 'Shocks' },
   { id: 'cycle', label: 'Cycles' },
-  { id: 'crisis', label: 'Crisis' },
   { id: 'rhythm', label: 'Rhythm' },
+  { id: 'airway', label: 'Airway' },
+  { id: 'cause', label: "H's & T's" },
 ];
 
 /** Chronological event timeline (newest first) with category filtering. */

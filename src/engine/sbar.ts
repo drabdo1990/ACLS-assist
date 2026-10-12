@@ -1,13 +1,24 @@
 /**
  * SBAR resuscitation summary — the plain-text debrief that gets pasted into the
- * EMR/EHR after a code. Pure and unit-tested so the output stays stable.
+ * EMR/EHR code documentation note. Pure and unit-tested so the output stays stable.
  *
  * Contains no patient identifiers by design (PHI-free).
  */
 
-import type { CauseId, CodeEvent, CrisisTimers, DoseEvent, SessionStatus, ShockEvent } from './types';
-import { formatClock, formatWallClock, masterElapsedMs } from './timing';
+import type {
+  AirwayType,
+  CauseId,
+  CodeEvent,
+  DoseEvent,
+  PocusId,
+  RhythmBranch,
+  SessionStatus,
+  ShockEvent,
+} from './types';
+import { formatClock, formatDuration, formatWallClock, masterElapsedMs } from './timing';
 import { CAUSES } from '../content/causes';
+import { POCUS_ITEMS } from '../content/pocus';
+import { waveformFor, waveformLabel } from '../content/calc';
 
 export interface SbarInput {
   status: SessionStatus;
@@ -18,51 +29,51 @@ export interface SbarInput {
   shocks: ShockEvent[];
   epi: DoseEvent[];
   amio: DoseEvent[];
-  crisisDoses?: DoseEvent[];
+  lido: DoseEvent[];
+  rhythmBranch: RhythmBranch | null;
   airwayPlaced: boolean;
+  airwayType: AirwayType | null;
   causes: Partial<Record<CauseId, boolean>>;
+  pocus: Partial<Record<PocusId, boolean>>;
   weightKg: number;
-  crisis: CrisisTimers;
 }
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
   idle: 'Not started',
   active: 'In progress — CPR ongoing',
-  paused: 'Paused',
+  paused: 'In progress — CPR paused',
   rosc: 'ROSC achieved',
-  terminated: 'Terminated',
+  terminated: 'Resuscitation terminated',
 };
 
-const CRISIS_LABEL: Record<keyof CrisisTimers, string> = {
-  lastDeclaredAt: 'Local anesthetic systemic toxicity (LAST) declared',
-  mhDeclaredAt: 'Malignant hyperthermia suspected',
-  cicoDeclaredAt: "CICO (can't intubate, can't oxygenate) declared",
-  maternalStartedAt: 'Maternal cardiac arrest — perimortem clock started',
+const BRANCH_LABEL: Record<RhythmBranch, string> = {
+  shockable: 'Shockable (VF / pulseless VT)',
+  nonshockable: 'Non-shockable (Asystole / PEA)',
 };
 
-/** Timeline row: elapsed arrest time (when an arrest clock exists), then wall-clock time. */
-function line(e: CodeEvent, withElapsed: boolean): string {
-  const wall = formatWallClock(e.at);
-  const stamp = withElapsed ? `${formatClock(e.t).padStart(6, ' ')}  ${wall}` : wall;
-  return `${stamp}  ${e.label}${e.detail ? ` — ${e.detail}` : ''}`;
+/** Timeline row: `[MM:SS] HH:MM:SS  Label — detail`. */
+function line(e: CodeEvent): string {
+  return `[${formatClock(e.t)}] ${formatWallClock(e.at)}  ${e.label}${e.detail ? ` — ${e.detail}` : ''}`;
 }
 
 export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   const total = masterElapsedMs(input, now);
-  const addressed = CAUSES.filter((c) => input.causes[c.id]).map((c) => c.label);
-  const rosc = input.events.find((e) => e.category === 'rosc');
-  // Crisis-only sessions (MH, LAST, CICO without arrest) never start the arrest clock.
   const arrest = input.startedAt != null;
-  const crises = (Object.keys(CRISIS_LABEL) as Array<keyof CrisisTimers>)
-    .filter((k) => input.crisis[k] != null)
-    .sort((a, b) => (input.crisis[a] ?? 0) - (input.crisis[b] ?? 0));
+  const rosc = input.events.find((e) => e.category === 'rosc');
+  const addressed = CAUSES.filter((c) => input.causes[c.id]).map((c) => c.label);
+  const pocus = POCUS_ITEMS.filter((p) => input.pocus[p.id]).map((p) => p.label);
+  const epiMg = Math.round(input.epi.reduce((s, d) => s + (d.mg ?? 0), 0) * 100) / 100;
+  const cycles = input.events.filter((e) => e.category === 'cycle').length;
+  const rhythms = input.events
+    .filter((e) => e.category === 'rhythm' && e.label.startsWith('Rhythm check — '))
+    .map((e) => e.label.replace('Rhythm check — ', ''));
 
   const out: string[] = [];
 
-  out.push('CodeOR — RESUSCITATION SUMMARY');
+  out.push('ResusCode — RESUSCITATION SUMMARY');
   out.push(`Generated: ${new Date(now).toLocaleString()}`);
   if (arrest) {
-    out.push(`Total arrest time: ${formatClock(total)}`);
+    out.push(`Total arrest time: ${formatClock(total)} (${formatDuration(total)})`);
     out.push(`Outcome: ${STATUS_LABEL[input.status]}`);
   } else {
     out.push('Outcome: No cardiac arrest recorded');
@@ -72,53 +83,58 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
 
   out.push('=== SITUATION ===');
   if (arrest) {
-    out.push('Cardiac arrest managed in the operating room / perioperative setting.');
-    out.push(`Code started at ${formatWallClock(input.startedAt!)}. Arrest duration: ${formatClock(total)}.`);
-    if (rosc) out.push(`ROSC achieved at ${formatClock(rosc.t)} (${formatWallClock(rosc.at)}).`);
+    out.push('Adult in-hospital cardiac arrest — Code Blue resuscitation per SHA ACLS 2024 (AHA/ERC-aligned).');
+    out.push(`Code activated at ${formatWallClock(input.startedAt!)}. Arrest duration: ${formatDuration(total)}.`);
+    if (rosc) out.push(`ROSC achieved at [${formatClock(rosc.t)}] (${formatWallClock(rosc.at)}).`);
   } else {
-    out.push('Perioperative crisis managed in the operating room. No cardiac arrest recorded.');
+    out.push('No cardiac arrest recorded.');
   }
-  for (const k of crises) out.push(`${CRISIS_LABEL[k]} at ${formatWallClock(input.crisis[k]!)}.`);
   out.push('');
 
   out.push('=== BACKGROUND ===');
-  out.push(`Protocol weight used: ${input.weightKg} kg`);
-  out.push(`CPR cycles completed: ${input.events.filter((e) => e.category === 'cycle').length}`);
+  out.push(`Rhythm branch: ${input.rhythmBranch ? BRANCH_LABEL[input.rhythmBranch] : 'not selected'}`);
+  out.push(`CPR cycles completed: ${cycles}`);
   out.push(
-    `Advanced airway: ${input.airwayPlaced ? 'placed (continuous compressions + 1 breath/6 s)' : 'not placed'}`,
+    `Advanced airway: ${
+      input.airwayPlaced
+        ? `${input.airwayType === 'SGA' ? 'supraglottic airway' : 'ETT'} placed (continuous compressions + 1 breath/6 s)`
+        : 'not placed (30:2)'
+    }`,
   );
   out.push(`Shocks delivered: ${input.shocks.length}`);
-  out.push(`Epinephrine doses: ${input.epi.length}`);
-  out.push(`Amiodarone doses: ${input.amio.length}`);
-  if (input.crisisDoses?.length) {
-    out.push(`Crisis drugs: ${input.crisisDoses.map((d) => d.label).join('; ')}`);
-  }
+  out.push(`Epinephrine: ${input.epi.length} dose${input.epi.length === 1 ? '' : 's'} (total ${epiMg} mg)`);
+  out.push(
+    `Amiodarone doses: ${input.amio.length}${
+      input.amio.length ? ` (${input.amio.map((d) => `${d.mg} mg`).join(', ')})` : ''
+    }`,
+  );
+  out.push(`Lidocaine doses: ${input.lido.length}${input.lido.length ? ` (dosing weight ${input.weightKg} kg)` : ''}`);
+  const mg = input.events.filter((e) => e.category === 'drug' && e.label.startsWith('Magnesium')).length;
+  if (mg) out.push(`Magnesium sulfate doses: ${mg}`);
   out.push('');
 
   out.push('=== ASSESSMENT ===');
-  out.push(
-    `Rhythms documented: ${
-      input.events
-        .filter((e) => e.category === 'rhythm')
-        .map((e) => e.label.replace('Rhythm check — ', ''))
-        .join(', ') || 'none recorded'
-    }`,
-  );
-  out.push(`Reversible causes addressed: ${addressed.length ? addressed.join(', ') : 'none recorded'}`);
+  out.push(`Rhythms documented: ${rhythms.join(', ') || 'none recorded'}`);
   if (input.shocks.length) {
-    const energies = input.shocks.map((s) => `${s.joules} J`).join(', ');
+    const energies = input.shocks
+      .map((s) => `${s.joules}J ${waveformLabel(s.waveform ?? waveformFor(s.joules))}`)
+      .join(', ');
     out.push(`Defibrillation energies: ${energies}`);
   }
+  out.push(`Reversible causes addressed: ${addressed.length ? addressed.join(', ') : 'none recorded'}`);
+  out.push(`POCUS findings: ${pocus.length ? pocus.join(', ') : 'none recorded'}`);
   out.push('');
 
   out.push('=== RECOMMENDATIONS ===');
-  if (arrest) {
-    out.push('- Continue post-cardiac arrest care bundle: target SpO₂ 92–98%, PaCO₂ 35–45 mmHg, MAP ≥ 65 mmHg.');
-    out.push('- 12-lead ECG and consider PCI; targeted temperature management; treat precipitating cause.');
-    out.push('- Transfer to ICU / cardiac catheter lab; debrief the team.');
+  if (input.status === 'rosc') {
+    out.push('- Post-ROSC bundle: secure airway (ETT), SpO₂ 92–98%, avoid hyperventilation.');
+    out.push('- Hypotension: IV fluid up to 2 L, then dopamine 5–10 mcg/kg/min (or norepinephrine/epinephrine); MAP ≥ 65 mmHg.');
+    out.push('- 12-lead ECG — Cath Lab for STEMI; if unresponsive, temperature control 32–37.5 °C for 12–24 h.');
+    out.push('- Correct glucose > 10 mmol/L, electrolytes and acidosis; transfer to ICU/CCU; team debrief.');
+  } else if (arrest) {
+    out.push('- Document time of termination / handover; family communication; team debrief.');
   } else {
-    out.push('- Continue crisis-specific management per local protocol; reassess and escalate to ICU as indicated.');
-    out.push('- Debrief the team.');
+    out.push('- No resuscitation recorded.');
   }
   out.push('');
 
@@ -126,7 +142,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   // Absolute timestamps order correctly even while the arrest clock is frozen (pause / ROSC).
   const events = [...input.events].sort((a, b) => a.at - b.at);
   if (!events.length) out.push('(no events)');
-  for (const e of events) out.push(line(e, arrest));
+  for (const e of events) out.push(line(e));
 
   return out.join('\n');
 }
@@ -135,7 +151,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
 export function sbarFilename(now: number = Date.now()): string {
   const d = new Date(now);
   const p = (n: number) => String(n).padStart(2, '0');
-  return `codeor-sbar-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(
+  return `resuscode-sbar-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(
     d.getMinutes(),
   )}.txt`;
 }

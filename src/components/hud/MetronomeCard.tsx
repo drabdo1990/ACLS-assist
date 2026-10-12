@@ -8,7 +8,7 @@ import { Panel } from '../ui/Panel';
 const MIN_BPM = 100;
 const MAX_BPM = 110;
 
-/** CPR metronome: blinking visual beat + synthesized audio tick + optional haptics. */
+/** CPR metronome: LED-style visual beacon + synthesized audio tick + optional haptics. */
 export function MetronomeCard() {
   const metronome = useCodeStore((s) => s.metronome);
   const setMetronome = useCodeStore((s) => s.setMetronome);
@@ -46,10 +46,14 @@ export function MetronomeCard() {
             !canRun ? 'opacity-40' : '',
           ].join(' ')}
         >
+          {/* LED-style beacon: flashes on every beat, brighter on the accented 10th. */}
           <span
             key={running ? beat : 'idle'}
-            className={`inline-block h-4 w-4 rounded-full ${
-              running ? 'animate-beat bg-cyber' : 'bg-mute'
+            aria-hidden
+            className={`inline-block h-6 w-6 rounded-full border-2 ${
+              running
+                ? 'animate-led border-cyber bg-cyber shadow-[0_0_14px_4px_rgba(6,182,212,0.75)]'
+                : 'border-line bg-panel2'
             }`}
             style={running ? { animationDuration: `${60 / metronome.bpm}s` } : undefined}
           />

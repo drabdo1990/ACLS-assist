@@ -1,7 +1,7 @@
 /**
- * CodeOR domain types.
+ * ResusCode domain types.
  * PHI-free by construction: no fields exist for patient identity, MRN, or demographics.
- * Weight is a protocol input only and is not linked to any identifier.
+ * Weight is a dosing input only (lidocaine mg/kg) and is not linked to any identifier.
  */
 
 export type SessionStatus = 'idle' | 'active' | 'paused' | 'rosc' | 'terminated';
@@ -15,7 +15,7 @@ export type EventCategory =
   | 'shock'
   | 'rhythm'
   | 'cause'
-  | 'crisis'
+  | 'pocus'
   | 'rosc'
   | 'post';
 
@@ -32,12 +32,22 @@ export interface CodeEvent {
 
 export type RhythmLoop = 'VF' | 'pVT' | 'PEA' | 'Asystole' | 'Pulse';
 
+/** AHA/ERC algorithm branch selected by the team leader. */
+export type RhythmBranch = 'shockable' | 'nonshockable';
+
+export type Antiarrhythmic = 'amiodarone' | 'lidocaine';
+
+export type AirwayType = 'ETT' | 'SGA';
+
+export type WaveformType = 'biphasic' | 'monophasic';
+
 export interface ShockEvent {
   at: number;
   t: number;
   joules: number;
   /** true when the shock was delivered for a shockable rhythm (VF/pVT). */
   shockable: boolean;
+  waveform?: WaveformType;
 }
 
 export interface DoseEvent {
@@ -45,18 +55,22 @@ export interface DoseEvent {
   t: number;
   label: string;
   mg?: number;
-  ml?: number;
 }
 
 export type CauseId =
-  | 'hypoxia'
   | 'hypovolemia'
+  | 'hypoxia'
+  | 'hydrogen_ion'
   | 'hypo_hyperkalemia'
   | 'hypothermia'
+  | 'hypoglycemia'
   | 'tension_ptx'
   | 'tamponade'
   | 'toxins'
-  | 'thrombosis';
+  | 'thrombosis_pulmonary'
+  | 'thrombosis_coronary';
+
+export type PocusId = 'effusion' | 'rv_strain' | 'contractility' | 'standstill' | 'lung_sliding';
 
 export interface MetronomeState {
   on: boolean;
@@ -65,19 +79,8 @@ export interface MetronomeState {
   bpm: number;
 }
 
-export interface CrisisTimers {
-  /** epoch ms when the perinatal code clock was started (maternal 4-min rule). */
-  maternalStartedAt: number | null;
-  /** epoch ms when CICO was declared. */
-  cicoDeclaredAt: number | null;
-  /** epoch ms when MH was suspected/declared. */
-  mhDeclaredAt: number | null;
-  /** epoch ms when LAST was suspected/declared. */
-  lastDeclaredAt: number | null;
-}
-
 export interface Settings {
-  /** Epinephrine re-dose lockout window in ms (AHA 3–5 min). Default 3:00. */
+  /** Epinephrine re-dose interval in ms (AHA 3–5 min). Default 3:00. */
   epiLockoutMs: number;
   /** Default shock energy in J. */
   defaultJoules: number;
@@ -85,7 +88,7 @@ export interface Settings {
 
 /** The serializable slice persisted to localStorage. */
 export interface PersistedSession {
-  version: 1;
+  version: 2;
   status: SessionStatus;
   startedAt: number | null;
   pausedAt: number | null;
@@ -97,15 +100,16 @@ export interface PersistedSession {
   shocks: ShockEvent[];
   epi: DoseEvent[];
   amio: DoseEvent[];
-  /** Crisis-calculator doses (lipid, dantrolene, sugammadex, ...) — persists across refresh. */
-  crisisDoses: DoseEvent[];
+  lido: DoseEvent[];
+  rhythmBranch: RhythmBranch | null;
+  antiarrhythmic: Antiarrhythmic;
   airwayPlaced: boolean;
-  ventilationStarted: boolean;
+  airwayType: AirwayType | null;
   causes: Partial<Record<CauseId, boolean>>;
+  pocus: Partial<Record<PocusId, boolean>>;
   metronome: MetronomeState;
   weightKg: number;
-  crisis: CrisisTimers;
   settings: Settings;
-  /** epoch ms of the most recent "heartbeat" write, for stale-session detection. */
+  /** epoch ms of the most recent write, for stale-session detection. */
   savedAt: number;
 }

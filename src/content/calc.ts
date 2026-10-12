@@ -1,144 +1,17 @@
 /**
- * Weight-scaled perioperative crisis dose calculators.
+ * ACLS dose references and pure dose calculators.
+ * Benchmark: SHA ACLS Provider Manual 2024, Table 7.1 "Drugs for Resuscitation";
+ * consistent with AHA 2020/2023 and ERC 2021.
  *
- * All formulas follow the referenced source protocols and are pure functions so
- * they can be unit-tested exhaustively (see calc.test.ts). These are decision
- * SUPPORT figures — the clinician verifies every dose against local protocol.
- *
- * Sources encoded below:
- *  - LAST: ASRA 2020 checklist / 20% lipid emulsion therapy.
- *  - MH:   MHAUS dantrolene dosing (both legacy 20 mg vials and Ryanodex).
- *  - CICO: DAS 2025 extubation/airway failure guidance; sugammadex 16 mg/kg rescue.
+ * Pure functions so they can be unit-tested exhaustively (see calc.test.ts). These are
+ * decision SUPPORT figures — the clinician verifies every dose against local protocol.
  */
 
-export interface DantrolenePlan {
-  doseMg: number;
-  /** number of 20 mg dantrolene (Dantrium) vials to reconstitute */
-  vials20: number;
-  /** total mg actually reconstituted once vials are rounded up */
-  reconTotalMg: number;
-  /** volume of sterile water required (60 mL per 20 mg vial) */
-  reconVolumeMl: number;
-  /** concentration of the reconstituted solution, mg/mL */
-  concentrationMgPerMl: number;
-  /** volume of reconstituted solution to administer for the target dose */
-  adminVolumeMl: number;
-}
-
-export interface RyanodexPlan {
-  doseMg: number;
-  /** number of 250 mg single-dose vials */
-  vials: number;
-  /** concentration after reconstitution with 5 mL sterile water (50 mg/mL) */
-  concentrationMgPerMl: number;
-  /** volume to draw for the target dose */
-  volumeMl: number;
-}
-
-export interface LipidPlan {
-  bolusMl: number;
-  /** true when the 100 mL bolus ceiling governed the dose */
-  bolusCapped: boolean;
-  infusionMlPerMin: number;
-  infusionMaxMlPerMin: number;
-  /** maximum cumulative 20% lipid dose (12 mL/kg) */
-  cumulativeCapMl: number;
-  /** bolus interval guidance */
-  bolusDurationLabel: string;
-}
-
-export interface SugammadexPlan {
-  doseMg: number;
-  volumeMl: number;
-  vials200: number;
-}
-
-const LAST_BOLUS_ML_PER_KG = 1.5;
-const LAST_BOLUS_CAP_ML = 100;
-const LAST_INFUSION_ML_PER_KG_PER_MIN = 0.25;
-const LAST_CUMULATIVE_ML_PER_KG = 12;
-
-const DANTROLENE_MG_PER_KG = 2.5;
-const DANTROLENE_MG_PER_VIAL = 20;
-const DANTROLENE_WATER_ML_PER_VIAL = 60;
-
-const RYANODEX_MG_PER_VIAL = 250;
-const RYANODEX_WATER_ML_PER_VIAL = 5;
-const RYANODEX_CONCENTRATION = RYANODEX_MG_PER_VIAL / RYANODEX_WATER_ML_PER_VIAL; // 50 mg/mL
-
-const SUGAMMADEX_MG_PER_KG = 16;
-const SUGAMMADEX_CONCENTRATION = 100; // Bridion 100 mg/mL
+import type { WaveformType } from '../engine/types';
 
 export function round(value: number, decimals = 1): number {
   const f = 10 ** decimals;
   return Math.round(value * f) / f;
-}
-
-/** 20% lipid emulsion resuscitation plan for LAST. */
-export function lastLipidPlan(kg: number): LipidPlan {
-  const rawBolus = LAST_BOLUS_ML_PER_KG * kg;
-  const capped = rawBolus > LAST_BOLUS_CAP_ML;
-  return {
-    bolusMl: round(capped ? LAST_BOLUS_CAP_ML : rawBolus, 1),
-    bolusCapped: capped,
-    infusionMlPerMin: round(LAST_INFUSION_ML_PER_KG_PER_MIN * kg, 2),
-    infusionMaxMlPerMin: round(LAST_INFUSION_ML_PER_KG_PER_MIN * 2 * kg, 2),
-    cumulativeCapMl: round(LAST_CUMULATIVE_ML_PER_KG * kg, 0),
-    bolusDurationLabel: 'over 2–3 min',
-  };
-}
-
-/** Cumulative 20% lipid given so far, plus whether the 12 mL/kg ceiling is approached/exceeded. */
-export function lipidCumulative(
-  kg: number,
-  adminMl: number,
-): { totalMl: number; capMl: number; pctOfCap: number; exceeded: boolean } {
-  const capMl = LAST_CUMULATIVE_ML_PER_KG * kg;
-  const pct = capMl > 0 ? adminMl / capMl : 0;
-  return {
-    totalMl: round(adminMl, 0),
-    capMl: round(capMl, 0),
-    pctOfCap: Math.min(1.5, pct),
-    exceeded: adminMl > capMl,
-  };
-}
-
-/** Legacy dantrolene (20 mg vials) reconstitution plan for malignant hyperthermia. */
-export function dantrolenePlan(kg: number): DantrolenePlan {
-  const doseMg = DANTROLENE_MG_PER_KG * kg;
-  const vials20 = Math.max(1, Math.ceil(doseMg / DANTROLENE_MG_PER_VIAL));
-  const reconTotalMg = vials20 * DANTROLENE_MG_PER_VIAL;
-  const reconVolumeMl = vials20 * DANTROLENE_WATER_ML_PER_VIAL;
-  const concentrationMgPerMl = DANTROLENE_MG_PER_VIAL / DANTROLENE_WATER_ML_PER_VIAL; // 0.333
-  return {
-    doseMg: round(doseMg, 1),
-    vials20,
-    reconTotalMg,
-    reconVolumeMl,
-    concentrationMgPerMl: round(concentrationMgPerMl, 3),
-    adminVolumeMl: Math.min(reconVolumeMl, round(doseMg / concentrationMgPerMl, 0)),
-  };
-}
-
-/** Ryanodex (250 mg single-vial) plan for malignant hyperthermia. */
-export function ryanodexPlan(kg: number): RyanodexPlan {
-  const doseMg = DANTROLENE_MG_PER_KG * kg;
-  return {
-    doseMg: round(doseMg, 1),
-    vials: Math.max(1, Math.ceil(doseMg / RYANODEX_MG_PER_VIAL)),
-    concentrationMgPerMl: RYANODEX_CONCENTRATION,
-    volumeMl: round(doseMg / RYANODEX_CONCENTRATION, 1),
-  };
-}
-
-/** Sugammadex 16 mg/kg immediate rescue dose (CICO / cannot-intubate rescue). */
-export function sugammadexPlan(kg: number): SugammadexPlan {
-  const doseMg = SUGAMMADEX_MG_PER_KG * kg;
-  return {
-    doseMg: Math.round(doseMg),
-    volumeMl: round(doseMg / SUGAMMADEX_CONCENTRATION, 1),
-    vials200: Math.ceil(doseMg / 200),
-  };
 }
 
 /** Epinephrine ACLS dose reference. */
@@ -146,10 +19,16 @@ export const EPINEPHRINE = {
   label: 'Epinephrine',
   dose: '1 mg',
   route: 'IV / IO',
-  detail: '1 mg = 10 mL of 1:10,000 (0.1 mg/mL)',
+  detail: '1 mg = 10 mL of 0.1 mg/mL',
+  /** SHA Table 7.1: flush with 20 mL NS and elevate the arm 10–20 s. */
+  flush: '20 mL NS flush, elevate arm 10–20 s',
   intervalLabel: 'repeat every 3–5 min',
-  /** LAST caution: reduce individual epi boluses to < 1 mcg/kg. */
-  lastCaution: '< 1 mcg/kg boluses',
+} as const;
+
+/** Magnesium sulfate for Torsades de pointes (SHA Table 7.1). */
+export const MAGNESIUM = {
+  label: 'Magnesium sulfate 1–2 g IV/IO',
+  indication: 'Torsades de pointes',
 } as const;
 
 export const AMIODARONE = {
@@ -157,12 +36,74 @@ export const AMIODARONE = {
   second: 150,
   label: 'Amiodarone',
   route: 'IV / IO',
-  detail: '300 mg first dose → 150 mg second dose',
 } as const;
 
-export const DEFAULT_SHOCK_JOULES = [120, 150, 200] as const;
+/** Amiodarone dose (mg) for the n-th administration (0-based). */
+export function amiodaroneDoseMg(doseIndex: number): number {
+  return doseIndex === 0 ? AMIODARONE.first : AMIODARONE.second;
+}
 
-/** Displays weight-dependent epinephrine caution for LAST. */
-export function epiLastBolusCeilingMcg(kg: number): number {
-  return Math.floor(kg);
+export interface LidocaineDose {
+  /** 1 = loading dose, 2+ = repeat dose */
+  doseNo: number;
+  perKgLabel: string;
+  minMg: number;
+  maxMg: number;
+}
+
+/**
+ * Lidocaine (replaces amiodarone in VF/pVT): 1–1.5 mg/kg first, then 0.5–0.75 mg/kg
+ * every 5–10 min, cumulative max 3 mg/kg (SHA Table 7.1). Rounded to whole mg.
+ */
+export function lidocaineDose(kg: number, doseIndex: number): LidocaineDose {
+  if (doseIndex === 0) {
+    return { doseNo: 1, perKgLabel: '1–1.5 mg/kg', minMg: Math.round(kg * 1), maxMg: Math.round(kg * 1.5) };
+  }
+  return {
+    doseNo: doseIndex + 1,
+    perKgLabel: '0.5–0.75 mg/kg',
+    minMg: Math.round(kg * 0.5),
+    maxMg: Math.round(kg * 0.75),
+  };
+}
+
+export const LIDOCAINE_MAX_MG_PER_KG = 3;
+
+export interface LidocaineBudget {
+  givenMg: number;
+  maxMg: number;
+  /** true when the next dose's lower bound would exceed the 3 mg/kg ceiling */
+  nextExceeds: boolean;
+}
+
+/** Cumulative lidocaine against the 3 mg/kg ceiling, using the logged (minimum) doses. */
+export function lidocaineBudget(kg: number, givenMg: number[]): LidocaineBudget {
+  const total = givenMg.reduce((s, mg) => s + mg, 0);
+  const maxMg = Math.round(kg * LIDOCAINE_MAX_MG_PER_KG);
+  const next = lidocaineDose(kg, givenMg.length).minMg;
+  return { givenMg: total, maxMg, nextExceeds: total + next > maxMg };
+}
+
+export interface ShockEnergy {
+  joules: number;
+  waveform: WaveformType;
+}
+
+/**
+ * Biphasic 120/150/200 J or monophasic 360 J. SHA (Ch. 5): initial and subsequent
+ * energy doses follow the defibrillator manufacturer's recommendation.
+ */
+export const SHOCK_ENERGIES: readonly ShockEnergy[] = [
+  { joules: 120, waveform: 'biphasic' },
+  { joules: 150, waveform: 'biphasic' },
+  { joules: 200, waveform: 'biphasic' },
+  { joules: 360, waveform: 'monophasic' },
+];
+
+export function waveformFor(joules: number): WaveformType {
+  return SHOCK_ENERGIES.find((e) => e.joules === joules)?.waveform ?? 'biphasic';
+}
+
+export function waveformLabel(w: WaveformType): string {
+  return w === 'monophasic' ? 'Monophasic' : 'Biphasic';
 }

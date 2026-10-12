@@ -1,121 +1,153 @@
-import { useState } from 'react';
-import { Syringe, Pill, Wind, Zap, Check, TriangleAlert, Undo2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, Pill, Syringe, Undo2, Wind, Zap } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import { useNow } from '../../hooks/useNow';
 import { epiLockoutLabel } from '../../engine/timing';
-import { DEFAULT_SHOCK_JOULES, EPINEPHRINE, epiLastBolusCeilingMcg } from '../../content/calc';
+import { playConfirm } from '../../engine/audio';
+import { haptic } from '../../engine/haptics';
+import {
+  SHOCK_ENERGIES,
+  amiodaroneDoseMg,
+  lidocaineBudget,
+  lidocaineDose,
+  waveformFor,
+  waveformLabel,
+} from '../../content/calc';
+import { nextAclsStep, type StepFocus } from '../../content/algorithm';
 import { BigButton } from '../ui/BigButton';
 import { Chip } from '../ui/Chip';
 import { Panel } from '../ui/Panel';
+import { WeightControl } from '../ui/WeightControl';
 
-const OR_QUICK_DRUGS = [
-  { label: 'Calcium chloride 1 g IV', short: 'CaCl₂ 1 g', mg: 1000 },
-  { label: 'Sodium bicarbonate 50 mEq IV', short: 'NaHCO₃ 50 mEq' },
-  { label: 'Magnesium sulfate 2 g IV', short: 'MgSO₄ 2 g', mg: 2000 },
-  { label: 'Lidocaine 100 mg IV', short: 'Lido 100 mg', mg: 100 },
-  { label: 'Atropine 0.5 mg IV', short: 'Atropine 0.5 mg', mg: 0.5 },
-  { label: 'Epinephrine 20 mcg IV (titrated)', short: 'Epi 20 mcg', mg: 0.02 },
-] as const;
+/** Ring that marks the button the algorithm expects next. */
+const FOCUS_RING = 'ring-4 ring-warn/70 ring-offset-2 ring-offset-bg';
 
 /**
- * One-tap ACLS intervention log. Every press is auto-timestamped by the store.
- * Nothing here blocks the clinician: dose-guidance timers are advisory, never gates.
+ * One-tap ACLS intervention grid. Every press is auto-timestamped by the store.
+ * Nothing here blocks the clinician: dose timers and algorithm hints are advisory.
  */
 export function InterventionGrid() {
   const now = useNow();
+  const status = useCodeStore((s) => s.status);
   const shocks = useCodeStore((s) => s.shocks);
   const epi = useCodeStore((s) => s.epi);
   const amio = useCodeStore((s) => s.amio);
+  const lido = useCodeStore((s) => s.lido);
+  const antiarrhythmic = useCodeStore((s) => s.antiarrhythmic);
   const airwayPlaced = useCodeStore((s) => s.airwayPlaced);
+  const airwayType = useCodeStore((s) => s.airwayType);
+  const branch = useCodeStore((s) => s.rhythmBranch);
+  const causesChecked = useCodeStore((s) => Object.values(s.causes).filter(Boolean).length);
+  const weightKg = useCodeStore((s) => s.weightKg);
   const lockoutMs = useCodeStore((s) => s.settings.epiLockoutMs);
   const defaultJoules = useCodeStore((s) => s.settings.defaultJoules);
-  const setSetting = useCodeStore((s) => s.setSetting);
-  const status = useCodeStore((s) => s.status);
-  const canLog = status === 'active' || status === 'paused';
-  const weightKg = useCodeStore((s) => s.weightKg);
-  const lastDeclared = useCodeStore((s) => s.crisis.lastDeclaredAt != null);
   const eventCount = useCodeStore((s) => s.events.length);
 
   const administerEpi = useCodeStore((s) => s.administerEpi);
-  const administerAmiodarone = useCodeStore((s) => s.administerAmiodarone);
   const deliverShock = useCodeStore((s) => s.deliverShock);
+  const setAntiarrhythmic = useCodeStore((s) => s.setAntiarrhythmic);
+  const administerAntiarrhythmic = useCodeStore((s) => s.administerAntiarrhythmic);
   const markAirwayPlaced = useCodeStore((s) => s.markAirwayPlaced);
+  const setSetting = useCodeStore((s) => s.setSetting);
   const logEvent = useCodeStore((s) => s.logEvent);
-  const logCrisisDose = useCodeStore((s) => s.logCrisisDose);
+  const administerMagnesium = useCodeStore((s) => s.administerMagnesium);
   const undoLastEvent = useCodeStore((s) => s.undoLastEvent);
 
   const [showEnergy, setShowEnergy] = useState(false);
   const [joules, setJoules] = useState<number>(defaultJoules);
-  const [shockable, setShockable] = useState(true);
 
+  const canLog = status === 'active' || status === 'paused';
   const lastEpi = epi[epi.length - 1];
   const lockout = epiLockoutLabel(lastEpi?.at, lockoutMs, now);
-  const epiDueNow = epi.length > 0 && !lockout && status === 'active';
-  const nextAmio = amio.length === 0 ? 300 : 150;
-  const lastMaxMcg = epiLastBolusCeilingMcg(weightKg);
+  const epiEligible = epi.length > 0 && !lockout && canLog;
+
+  // Audible + haptic nudge the moment the re-dose interval elapses (once per dose).
+  const nudgedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (epiEligible && lastEpi && nudgedFor.current !== lastEpi.at) {
+      nudgedFor.current = lastEpi.at;
+      playConfirm();
+      haptic.warn();
+    }
+  }, [epiEligible, lastEpi]);
+
+  const focus: StepFocus | null = canLog
+    ? nextAclsStep({
+        branch,
+        shocks: shocks.length,
+        epi: epi.length,
+        antiarrhythmic: amio.length + lido.length,
+        causesChecked,
+      }).focus
+    : null;
+  const ring = (f: StepFocus) => (focus === f ? FOCUS_RING : '');
+
+  const isLido = antiarrhythmic === 'lidocaine';
+  const lidoNext = lidocaineDose(weightKg, lido.length);
+  const lidoBudget = lidocaineBudget(
+    weightKg,
+    lido.map((d) => d.mg ?? 0),
+  );
+  const aaLabel = isLido
+    ? `Lidocaine ${lidoNext.minMg}–${lidoNext.maxMg} mg`
+    : `Amiodarone ${amiodaroneDoseMg(amio.length)} mg`;
+  const aaCount = isLido ? lido.length : amio.length;
+  const aaSub = isLido
+    ? lidoBudget.nextExceeds
+      ? `⚠ Exceeds 3 mg/kg max (${lidoBudget.givenMg}/${lidoBudget.maxMg} mg given)`
+      : `Dose ${lido.length + 1} · ${lidoNext.perKgLabel}${lido.length ? ' q5–10 min' : ''} @ ${weightKg} kg`
+    : amio.length === 0
+      ? 'Dose 1 → next 150 mg'
+      : amio.length === 1
+        ? 'Dose 2 (final bolus)'
+        : 'Max 2 boluses given';
 
   return (
     <Panel title="ACLS interventions" icon={Syringe} accent="none">
-      {lastDeclared ? (
-        <div className="mb-2 rounded-xl border border-crit bg-crit/15 p-2.5">
-          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-crit">
-            <TriangleAlert className="h-4 w-4 shrink-0" /> LAST active — Epinephrine caution ({EPINEPHRINE.lastCaution})
-          </p>
-          <p className="mt-0.5 text-xs text-ink">
-            Avoid standard 1 mg boluses. Max individual bolus for {weightKg} kg is{' '}
-            <strong className="font-mono text-crit">&le;{lastMaxMcg} mcg</strong>.
-          </p>
-          <BigButton
-            className="mt-2"
-            variant="warn"
-            icon={Syringe}
-            label={`Epi ${lastMaxMcg} mcg IV (LAST <1 mcg/kg)`}
-            sub="Logs weight-capped low-dose bolus"
-            disabled={!canLog}
-            onClick={() => administerEpi(lastMaxMcg)}
-          />
-        </div>
-      ) : null}
+      {/* Ventilation guidance banner */}
+      <div
+        className={[
+          'mb-3 flex items-center gap-2 rounded-xl border px-3 py-2.5',
+          airwayPlaced ? 'border-good/60 bg-good/10 text-good' : 'border-cyber/50 bg-cyber/10 text-cyber',
+        ].join(' ')}
+      >
+        <Wind className="h-5 w-5 shrink-0" />
+        <p className="text-sm font-bold leading-tight">
+          {airwayPlaced
+            ? 'Continuous compressions + 1 breath every 6 seconds (10 breaths/min)'
+            : 'Compressions 30 : 2 ventilations — pause only for breaths'}
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
+        {/* Epinephrine */}
         <BigButton
-          variant={lastDeclared ? 'outline' : 'crit'}
+          variant="crit"
           icon={Syringe}
-          label={`Epi 1 mg IV/IO${epi.length ? ` · ×${epi.length}` : ''}`}
+          label={`Epi 1 mg${epi.length ? ` · ×${epi.length}` : ''}`}
           sub={
-            lastDeclared
-              ? 'Caution: 1 mg exceeds LAST <1 mcg/kg cap'
-              : lockout
-                ? `Next dose in ${lockout}`
-                : epiDueNow
-                  ? 'DUE NOW — Tap to log'
-                  : 'Tap to log'
+            lockout
+              ? `Next Epi eligible in ${lockout}`
+              : epiEligible
+                ? 'ELIGIBLE NOW — tap to log'
+                : 'IV/IO + 20 mL NS flush'
           }
-          className={epiDueNow && !lastDeclared ? 'animate-flash-bg border-crit text-white' : ''}
+          className={[epiEligible ? 'animate-flash-bg' : '', ring('epi')].join(' ')}
           disabled={!canLog}
-          onClick={() => administerEpi()}
+          onClick={administerEpi}
         />
-        <BigButton
-          variant="warn"
-          icon={Pill}
-          label={`Amiodarone ${nextAmio} mg${amio.length ? ` · ×${amio.length}` : ''}`}
-          sub={amio.length === 0 ? 'First dose' : amio.length === 1 ? 'Second dose' : 'Additional'}
-          disabled={!canLog}
-          onClick={administerAmiodarone}
-        />
-        <BigButton
-          variant={airwayPlaced ? 'good' : 'neutral'}
-          icon={airwayPlaced ? Check : Wind}
-          label={airwayPlaced ? 'Airway placed' : 'Advanced airway'}
-          sub={airwayPlaced ? 'Continuous + 1 breath/6 s (tap to undo)' : 'Tap when secured'}
-          disabled={!canLog}
-          onClick={markAirwayPlaced}
-        />
+
+        {/* Defibrillation */}
         <BigButton
           variant="cyber"
           icon={Zap}
           label={`Shock${shocks.length ? ` · ×${shocks.length}` : ''}`}
-          sub={shocks.length ? `Last ${shocks[shocks.length - 1].joules} J` : 'Select energy'}
+          sub={
+            shocks.length
+              ? `Last: #${shocks.length} ${shocks[shocks.length - 1].joules}J`
+              : 'Select energy'
+          }
+          className={ring('shock')}
           disabled={!canLog}
           onClick={() => setShowEnergy((v) => !v)}
         />
@@ -124,50 +156,90 @@ export function InterventionGrid() {
       {showEnergy ? (
         <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">Defibrillation energy</p>
-          <div className="grid grid-cols-3 gap-2">
-            {DEFAULT_SHOCK_JOULES.map((j) => (
-              <Chip key={j} selected={joules === j} onClick={() => setJoules(j)}>
-                {j} J
+          <div className="grid grid-cols-4 gap-1.5">
+            {SHOCK_ENERGIES.map((e) => (
+              <Chip
+                key={e.joules}
+                selected={joules === e.joules}
+                onClick={() => setJoules(e.joules)}
+                className="min-w-0 flex-col px-1 leading-tight"
+              >
+                <span>{e.joules}J</span>
+                <span className="text-[10px] font-semibold opacity-70">{e.waveform === 'monophasic' ? 'Mono' : 'Bi'}</span>
               </Chip>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setShockable((v) => !v)}
-            className="touch-hit mt-2 flex min-h-[56px] w-full items-center justify-between rounded-xl border border-line bg-panel2 px-4 text-sm font-bold active:scale-[0.98]"
-          >
-            <span>Rhythm shockable (VF / pVT)</span>
-            <span className={shockable ? 'text-good' : 'text-mute'}>{shockable ? 'YES' : 'NO'}</span>
-          </button>
           <BigButton
             className="mt-2"
             variant="crit"
             icon={Zap}
-            label={`Deliver shock ${joules} J`}
-            sub={`Logs shock #${shocks.length + 1}`}
+            label={`Deliver Shock #${shocks.length + 1} · ${joules}J`}
+            sub={`${waveformLabel(waveformFor(joules))} — logs and timestamps`}
             onClick={() => {
-              deliverShock(joules, shockable);
+              deliverShock(joules);
               setShowEnergy(false);
             }}
           />
         </div>
       ) : null}
 
-      <div className="mt-3 border-t border-line pt-3">
-        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-mute">OR perioperative drugs</p>
-        <div className="grid grid-cols-3 gap-1.5">
-          {OR_QUICK_DRUGS.map((d) => (
-            <button
-              key={d.short}
-              type="button"
-              disabled={!canLog}
-              onClick={() => logCrisisDose({ label: d.label, mg: 'mg' in d ? d.mg : undefined, category: 'drug' })}
-              className="touch-hit min-h-[52px] rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-ink active:scale-[0.97] disabled:opacity-40"
-            >
-              {d.short}
-            </button>
-          ))}
+      {/* Antiarrhythmic */}
+      <div className={`mt-2 rounded-xl border border-warn/40 bg-warn/5 p-2 ${ring('antiarrhythmic')}`}>
+        <div className="mb-2 grid grid-cols-2 gap-1.5">
+          <Chip selected={!isLido} onClick={() => setAntiarrhythmic('amiodarone')}>
+            Amiodarone{amio.length ? ` ×${amio.length}` : ''}
+          </Chip>
+          <Chip selected={isLido} onClick={() => setAntiarrhythmic('lidocaine')}>
+            Lidocaine{lido.length ? ` ×${lido.length}` : ''}
+          </Chip>
         </div>
+        <BigButton
+          variant="warn"
+          icon={Pill}
+          label={`${aaLabel}${aaCount ? ` · ×${aaCount}` : ''}`}
+          sub={aaSub}
+          className={isLido && lidoBudget.nextExceeds ? 'border-crit text-crit' : ''}
+          disabled={!canLog}
+          onClick={administerAntiarrhythmic}
+        />
+        {isLido ? (
+          <div className="mt-2">
+            <WeightControl />
+          </div>
+        ) : null}
+      </div>
+
+      {/* Advanced airway */}
+      <div className="mt-2">
+        {airwayPlaced ? (
+          <BigButton
+            variant="good"
+            icon={Check}
+            label={`${airwayType === 'SGA' ? 'Supraglottic' : 'ETT'} airway placed`}
+            sub="Continuous compressions active · tap to unmark"
+            disabled={!canLog}
+            onClick={() => markAirwayPlaced()}
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <BigButton
+              variant="neutral"
+              icon={Wind}
+              label="ETT placed"
+              sub="Advanced airway"
+              disabled={!canLog}
+              onClick={() => markAirwayPlaced('ETT')}
+            />
+            <BigButton
+              variant="neutral"
+              icon={Wind}
+              label="SGA placed"
+              sub="Supraglottic"
+              disabled={!canLog}
+              onClick={() => markAirwayPlaced('SGA')}
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-3 border-t border-line pt-3">
@@ -176,22 +248,27 @@ export function InterventionGrid() {
           {[3, 4, 5].map((min) => {
             const ms = min * 60_000;
             return (
-              <Chip
-                key={min}
-                selected={lockoutMs === ms}
-                onClick={() => setSetting({ epiLockoutMs: ms })}
-              >
+              <Chip key={min} selected={lockoutMs === ms} onClick={() => setSetting({ epiLockoutMs: ms })}>
                 {min} min
               </Chip>
             );
           })}
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={administerMagnesium}
+            disabled={!canLog}
+            className="touch-hit min-h-[64px] w-full rounded-xl border border-warn/50 bg-warn/10 px-1 text-xs font-bold leading-tight text-warn active:scale-[0.98] disabled:opacity-40"
+          >
+            Mg 1–2 g
+            <span className="block text-[10px] font-semibold opacity-80">Torsades</span>
+          </button>
           <button
             type="button"
             onClick={() => logEvent('rhythm', 'Pulse check — no pulse', 'Continue CPR')}
             disabled={!canLog}
-            className="touch-hit min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-sm font-bold active:scale-[0.98] disabled:opacity-40"
+            className="touch-hit min-h-[64px] w-full rounded-xl border border-line bg-panel2 px-2 text-sm font-bold active:scale-[0.98] disabled:opacity-40"
           >
             Log no pulse
           </button>
@@ -199,7 +276,7 @@ export function InterventionGrid() {
             type="button"
             onClick={undoLastEvent}
             disabled={eventCount <= 2}
-            className="touch-hit flex min-h-[56px] w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-panel2 px-2 text-sm font-bold text-mute active:scale-[0.98] disabled:opacity-40"
+            className="touch-hit flex min-h-[64px] w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-panel2 px-2 text-sm font-bold text-mute active:scale-[0.98] disabled:opacity-40"
           >
             <Undo2 className="h-4 w-4" /> Undo last log
           </button>
@@ -208,4 +285,3 @@ export function InterventionGrid() {
     </Panel>
   );
 }
-

@@ -1,22 +1,20 @@
 import { useEffect } from 'react';
-import { hasCrisisClock, useCodeStore } from '../engine/store';
+import { useCodeStore } from '../engine/store';
+import { clockNow, resyncClock } from '../engine/clock';
 
 /**
  * Single app-wide render ticker. Updates `now` in the store so every clock
- * re-derives from real timestamps. rAF-based (throttled to ~5 Hz) and paused
- * entirely when there is no running code, which keeps the battery cost low.
+ * re-derives from real timestamps. rAF-based (throttled to ~5 Hz) on the monotonic
+ * hybrid clock, and paused entirely when there is no running code (battery).
  */
 export function useTicker(): void {
   const status = useCodeStore((s) => s.status);
   const tick = useCodeStore((s) => s.tick);
   const metronomeOn = useCodeStore((s) => s.metronome.on);
-  const crisisClock = useCodeStore(hasCrisisClock);
 
   useEffect(() => {
-    // Keep the clock fresh for a running/paused code, a live metronome, or a declared
-    // crisis (maternal / CICO countdowns run independently of the arrest clock).
-    const live = status === 'active' || status === 'paused' || crisisClock;
-    tick(Date.now());
+    const live = status === 'active' || status === 'paused';
+    tick(clockNow());
     if (!live && !metronomeOn) return;
 
     let raf = 0;
@@ -24,15 +22,16 @@ export function useTicker(): void {
     const loop = (t: number) => {
       if (t - last >= 200) {
         last = t;
-        tick(Date.now());
+        tick(clockNow());
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
 
     const onVisible = () => {
+      resyncClock();
       last = 0;
-      tick(Date.now());
+      tick(clockNow());
     };
     document.addEventListener('visibilitychange', onVisible);
 
@@ -40,7 +39,7 @@ export function useTicker(): void {
       cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [status, metronomeOn, crisisClock, tick]);
+  }, [status, metronomeOn, tick]);
 }
 
 /** Current ticker value. Only components that need live time should use this. */

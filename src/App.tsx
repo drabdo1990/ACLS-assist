@@ -1,18 +1,18 @@
-import { useEffect, useState } from 'react';
-import { ListOrdered, Lock, LockOpen, Siren, TriangleAlert, WifiOff } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { HeartPulse, ListOrdered, Lock, LockOpen, Search, Siren, WifiOff } from 'lucide-react';
 import { useCodeStore } from './engine/store';
 import { useTicker } from './hooks/useNow';
 import { useWakeLock } from './hooks/useWakeLock';
 import { HudScreen } from './screens/HudScreen';
-import { CrisisScreen } from './screens/CrisisScreen';
+import { CausesScreen } from './screens/CausesScreen';
 import { LogScreen } from './screens/LogScreen';
 
-type Tab = 'hud' | 'crisis' | 'log';
+type Tab = 'hud' | 'causes' | 'log';
 
 const TABS: Array<{ id: Tab; label: string; icon: typeof Siren }> = [
-  { id: 'hud', label: 'Code HUD', icon: Siren },
-  { id: 'crisis', label: 'Crisis', icon: TriangleAlert },
-  { id: 'log', label: 'Log', icon: ListOrdered },
+  { id: 'hud', label: 'ACLS HUD', icon: Siren },
+  { id: 'causes', label: "H's & T's", icon: Search },
+  { id: 'log', label: 'Log / SBAR', icon: ListOrdered },
 ];
 
 function useOnline(): boolean {
@@ -39,15 +39,27 @@ export default function App() {
   const restored = useCodeStore((s) => s.restored);
   const dismissRestored = useCodeStore((s) => s.dismissRestored);
 
+  // The post-ROSC bundle opens automatically on the transition into ROSC
+  // (not on a refresh that restores an already-ROSC session).
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    if (status === 'rosc' && prevStatus.current !== 'rosc') setTab('causes');
+    prevStatus.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [tab]);
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-bg">
       {/* Header */}
       <header className="safe-top sticky top-0 z-20 border-b border-line bg-bg/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center gap-2 px-3 py-2">
-          <Siren className="h-5 w-5 text-crit" />
+          <HeartPulse className="h-5 w-5 text-crit" />
           <div className="leading-tight">
-            <h1 className="font-mono text-base font-bold tracking-tight text-ink">CodeOR</h1>
-            <p className="text-[10px] uppercase tracking-widest text-mute">Crisis &amp; Resuscitation</p>
+            <h1 className="font-mono text-base font-bold tracking-tight text-ink">ResusCode</h1>
+            <p className="text-[10px] uppercase tracking-widest text-mute">Adult ACLS Command</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <span
@@ -90,11 +102,17 @@ export default function App() {
           </div>
         ) : null}
 
-        {tab === 'hud' ? <HudScreen /> : tab === 'crisis' ? <CrisisScreen /> : <LogScreen />}
+        {tab === 'hud' ? (
+          <HudScreen onEnd={() => setTab('log')} onOpenCauses={() => setTab('causes')} />
+        ) : tab === 'causes' ? (
+          <CausesScreen />
+        ) : (
+          <LogScreen />
+        )}
 
         <p className="mt-4 text-center text-[10px] leading-relaxed text-mute">
-          Clinical decision-support aid only. Verify every dose against your local protocol. Not a substitute for
-          clinical judgement. PHI-free — no identifiers stored; no data leaves this device.
+          Clinical decision-support aid only, benchmarked to the SHA ACLS Provider Manual 2024 (AHA/ERC-aligned). Verify every dose against your local protocol.
+          Not a substitute for clinical judgement. PHI-free — no identifiers stored; no data leaves this device.
         </p>
       </main>
 
@@ -104,6 +122,8 @@ export default function App() {
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.id;
+            const badge =
+              (t.id === 'log' && status !== 'idle') || (t.id === 'causes' && status === 'rosc');
             return (
               <button
                 key={t.id}
@@ -111,14 +131,16 @@ export default function App() {
                 onClick={() => setTab(t.id)}
                 aria-current={active ? 'page' : undefined}
                 className={[
-                  'touch-hit flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border text-xs font-bold active:scale-[0.97]',
+                  'touch-hit relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border text-xs font-bold active:scale-[0.97]',
                   active ? 'border-cyber bg-cyber/15 text-cyber' : 'border-line bg-panel2 text-mute',
                 ].join(' ')}
               >
                 <Icon className="h-6 w-6" strokeWidth={2.3} />
                 {t.label}
-                {t.id === 'log' && status !== 'idle' ? (
-                  <span className="absolute mt-[-38px] ml-[34px] h-2 w-2 rounded-full bg-crit" />
+                {badge ? (
+                  <span
+                    className={`absolute top-2 right-3 h-2 w-2 rounded-full ${t.id === 'causes' ? 'bg-good' : 'bg-crit'}`}
+                  />
                 ) : null}
               </button>
             );

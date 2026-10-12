@@ -5,9 +5,9 @@ import type { SessionStatus } from '../../engine/types';
 
 const STATUS_STYLE: Record<SessionStatus, { label: string; className: string }> = {
   idle: { label: 'STANDBY', className: 'text-mute border-line' },
-  active: { label: 'CODE ACTIVE', className: 'text-crit border-crit animate-pulse' },
-  paused: { label: 'PAUSED', className: 'text-warn border-warn' },
-  rosc: { label: 'ROSC', className: 'text-good border-good' },
+  active: { label: 'ACTIVE ARREST', className: 'text-crit border-crit bg-crit/10 animate-pulse' },
+  paused: { label: 'ACTIVE ARREST · PAUSED', className: 'text-warn border-warn bg-warn/10' },
+  rosc: { label: 'ROSC ACHIEVED', className: 'text-good border-good bg-good/10' },
   terminated: { label: 'TERMINATED', className: 'text-mute border-line' },
 };
 
@@ -28,7 +28,7 @@ export function MasterClock() {
   return (
     <div className="flex flex-col items-center gap-1 py-2">
       <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-mute">
-        Arrest Elapsed
+        Total Arrest Time
       </span>
       <div
         className={[

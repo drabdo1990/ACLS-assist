@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// CodeOR build config.
+// ResusCode build config.
 // - No external runtime assets: fonts are a system stack, audio is synthesized (Web Audio API),
 //   icons are generated PNGs served from /icons. Everything is precached by Workbox for offline use.
 //
@@ -22,12 +22,12 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['icons/*.png', 'favicon.svg'],
       manifest: {
-        name: 'CodeOR — Crisis & Resuscitation Engine',
-        short_name: 'CodeOR',
+        name: 'ResusCode — Adult ACLS Code Blue Command',
+        short_name: 'ResusCode',
         description:
-          'Operating-room cardiac arrest, perioperative crisis, and ACLS event logging. PHI-free and offline-first.',
-        theme_color: '#070a11',
-        background_color: '#070a11',
+          'Universal adult ACLS Code Blue command HUD: CPR cycle timer, interventions, H’s & T’s, post-ROSC and SBAR export. PHI-free and offline-first.',
+        theme_color: '#06080e',
+        background_color: '#06080e',
         display: 'standalone',
         display_override: ['standalone', 'fullscreen'],
         orientation: 'any',

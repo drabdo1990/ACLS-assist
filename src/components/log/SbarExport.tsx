@@ -56,8 +56,8 @@ export function SbarExport() {
         variant={copied ? 'good' : 'cyber'}
         size="xl"
         icon={copied ? Check : ClipboardCopy}
-        label={copied ? 'Copied to clipboard' : 'Copy SBAR summary'}
-        sub="Plain-text debrief for the EMR/EHR"
+        label={copied ? 'Copied to clipboard' : 'Copy SBAR Resuscitation Summary'}
+        sub="Plain-text note ready to paste into the EHR/EMR"
         disabled={eventCount === 0}
         onClick={copy}
       />

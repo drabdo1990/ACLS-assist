@@ -6,6 +6,9 @@ vi.mock('./audio', () => ({
   playConfirm: vi.fn(),
 }));
 
+// Pin the hybrid clock to the (faked) wall clock so elapsed times are exact.
+vi.mock('./clock', () => ({ clockNow: () => Date.now(), resyncClock: () => {} }));
+
 import { useCodeStore } from './store';
 
 const T0 = 1_700_000_000_000;
@@ -24,18 +27,17 @@ afterEach(() => {
 });
 
 describe('pause / resume timestamps', () => {
-  it('logs "CPR Resumed" at the frozen elapsed time, not before the pause', () => {
+  it('logs "CPR resumed" at the frozen elapsed time, not before the pause', () => {
     s().startCode();
     at(60_000);
     s().pauseCode();
     at(200_000);
     s().resumeCode();
 
-    const paused = s().events.find((e) => e.label === 'CPR Paused')!;
-    const resumed = lastEvent();
+    const paused = s().events.find((e) => e.label === 'CPR paused')!;
     expect(paused.t).toBe(60_000);
-    expect(resumed.label).toBe('CPR Resumed');
-    expect(resumed.t).toBe(60_000);
+    expect(lastEvent().label).toBe('CPR resumed');
+    expect(lastEvent().t).toBe(60_000);
   });
 
   it('excludes the paused interval from later events', () => {
@@ -50,7 +52,33 @@ describe('pause / resume timestamps', () => {
   });
 });
 
+describe('cycle reset', () => {
+  it('logs the completed cycle with the rhythm and keeps the master clock running', () => {
+    s().startCode();
+    at(120_000);
+    s().resetCycle('VF');
+    const cycle = s().events.find((e) => e.category === 'cycle')!;
+    expect(cycle.label).toBe('Cycle 1 completed');
+    expect(cycle.detail).toContain('Rhythm: VF');
+    expect(s().cycleIndex).toBe(2);
+    expect(s().cycleStartedAt).toBe(T0 + 120_000);
+    expect(s().startedAt).toBe(T0);
+  });
+});
+
 describe('ROSC / re-arrest', () => {
+  it('summarises duration, shocks and total epi in the ROSC event', () => {
+    s().startCode();
+    at(45_000);
+    s().deliverShock(200);
+    at(70_000);
+    s().administerEpi();
+    at(405_000);
+    s().declareRosc();
+    expect(lastEvent().label).toBe('ROSC declared');
+    expect(lastEvent().detail).toBe('Total arrest duration: 6m 45s. Total shocks: 1. Total epi: 1 mg.');
+  });
+
   it('logs re-arrest at the ROSC elapsed time and resumes the clock from there', () => {
     s().startCode();
     at(300_000);
@@ -70,20 +98,60 @@ describe('ROSC / re-arrest', () => {
     s().reArrest();
     expect(s().status).toBe('idle');
     expect(s().events).toHaveLength(0);
-
-    s().startCode();
-    const n = s().events.length;
-    s().reArrest();
-    expect(s().events).toHaveLength(n);
   });
 });
 
-describe('amiodarone', () => {
-  it('labels first, second and additional doses', () => {
+describe('defibrillation', () => {
+  it('tallies shocks with energy and waveform', () => {
     s().startCode();
-    s().administerAmiodarone();
-    s().administerAmiodarone();
-    s().administerAmiodarone();
+    s().deliverShock(200);
+    s().deliverShock(360);
+    expect(s().shocks).toHaveLength(2);
+    const labels = s().events.filter((e) => e.category === 'shock').map((e) => e.label);
+    expect(labels).toEqual([
+      'Defibrillation: Shock #1 (200J Biphasic)',
+      'Defibrillation: Shock #2 (360J Monophasic)',
+    ]);
+    expect(s().shocks[1].waveform).toBe('monophasic');
+  });
+
+  it('flags shocks logged on the non-shockable branch', () => {
+    s().startCode();
+    s().setRhythmBranch('nonshockable');
+    s().deliverShock(200);
+    expect(s().shocks[0].shockable).toBe(false);
+  });
+});
+
+describe('epinephrine', () => {
+  it('numbers each dose', () => {
+    s().startCode();
+    s().administerEpi();
+    at(180_000);
+    s().administerEpi();
+    expect(s().epi).toHaveLength(2);
+    expect(lastEvent().detail).toContain('Dose #2');
+    expect(lastEvent().detail).toContain('20 mL NS flush');
+  });
+});
+
+describe('magnesium', () => {
+  it('logs magnesium for Torsades and can be undone', () => {
+    s().startCode();
+    s().administerMagnesium();
+    expect(lastEvent().label).toBe('Magnesium sulfate 1–2 g IV/IO');
+    expect(lastEvent().detail).toBe('Torsades de pointes');
+    s().undoLastEvent();
+    expect(s().events.some((e) => e.label.startsWith('Magnesium'))).toBe(false);
+  });
+});
+
+describe('antiarrhythmics', () => {
+  it('auto-sequences amiodarone 300 → 150 mg', () => {
+    s().startCode();
+    s().administerAntiarrhythmic();
+    s().administerAntiarrhythmic();
+    s().administerAntiarrhythmic();
     const details = s()
       .events.filter((e) => e.label.startsWith('Amiodarone'))
       .map((e) => [e.label, e.detail]);
@@ -93,54 +161,107 @@ describe('amiodarone', () => {
       ['Amiodarone 150 mg IV/IO', 'Additional dose'],
     ]);
   });
-});
 
-describe('maternal arrest & crisis resolution', () => {
-  it('automatically starts the master arrest clock when maternal arrest is declared from idle', () => {
-    expect(s().status).toBe('idle');
-    s().declareCrisis('maternal');
-    expect(s().status).toBe('active');
-    expect(s().startedAt).toBe(T0);
-    expect(s().crisis.maternalStartedAt).toBe(T0);
-  });
-
-  it('resolves an active crisis timer and logs the resolution', () => {
-    s().declareCrisis('cico');
-    expect(s().crisis.cicoDeclaredAt).toBe(T0);
-    at(45_000);
-    s().resolveCrisis('cico');
-    expect(s().crisis.cicoDeclaredAt).toBeNull();
-    expect(lastEvent().label).toContain('CICO resolved');
-  });
-});
-
-describe('airway toggle & LAST low-dose epinephrine', () => {
-  it('allows unmarking advanced airway if tapped by mistake', () => {
+  it('auto-sequences weight-based lidocaine when selected', () => {
     s().startCode();
-    s().markAirwayPlaced();
+    s().setWeight(80);
+    s().setAntiarrhythmic('lidocaine');
+    s().administerAntiarrhythmic();
+    s().administerAntiarrhythmic();
+    expect(s().lido).toHaveLength(2);
+    expect(s().amio).toHaveLength(0);
+    const labels = s().events.filter((e) => e.label.startsWith('Lidocaine')).map((e) => e.label);
+    expect(labels).toEqual(['Lidocaine 80–120 mg IV/IO', 'Lidocaine 40–60 mg IV/IO']);
+    expect(lastEvent().detail).toContain('cumulative ≥ 120 of max 240 mg (3 mg/kg)');
+  });
+
+  it('flags a lidocaine dose that exceeds the 3 mg/kg ceiling', () => {
+    s().startCode();
+    s().setWeight(40); // max 120 mg; doses 40, 20, 20, 20, 20 → 120, the 6th exceeds
+    s().setAntiarrhythmic('lidocaine');
+    for (let i = 0; i < 5; i++) s().administerAntiarrhythmic();
+    expect(lastEvent().detail).not.toContain('EXCEEDS');
+    s().administerAntiarrhythmic();
+    expect(lastEvent().detail).toContain('EXCEEDS 3 mg/kg');
+  });
+});
+
+describe('rhythm branch', () => {
+  it('logs a branch change once and ignores re-selecting the same branch', () => {
+    s().startCode();
+    s().setRhythmBranch('shockable');
+    s().setRhythmBranch('shockable');
+    expect(s().rhythmBranch).toBe('shockable');
+    expect(s().events.filter((e) => e.label.startsWith('Rhythm branch'))).toHaveLength(1);
+  });
+
+  it('undo restores the previous branch', () => {
+    s().startCode();
+    s().setRhythmBranch('shockable');
+    s().setRhythmBranch('nonshockable');
+    s().undoLastEvent();
+    expect(s().rhythmBranch).toBe('shockable');
+  });
+});
+
+describe('advanced airway', () => {
+  it('records the airway type and toggles back to 30:2', () => {
+    s().startCode();
+    s().markAirwayPlaced('SGA');
     expect(s().airwayPlaced).toBe(true);
+    expect(s().airwayType).toBe('SGA');
+    expect(lastEvent().label).toBe('Advanced airway placed — Supraglottic airway');
     s().markAirwayPlaced();
     expect(s().airwayPlaced).toBe(false);
-    expect(lastEvent().label).toContain('Airway');
+    expect(s().airwayType).toBeNull();
   });
 
-  it('supports logging weight-scaled low-dose epinephrine (mcg) during LAST', () => {
+  it('undo of a placement un-places the airway', () => {
     s().startCode();
-    s().declareCrisis('last');
-    s().administerEpi(50);
-    expect(s().epi).toHaveLength(1);
-    expect(s().epi[0].mg).toBeCloseTo(0.05, 4);
-    expect(lastEvent().label).toBe('Epinephrine 50 mcg IV/IO');
+    s().markAirwayPlaced('ETT');
+    s().undoLastEvent();
+    expect(s().airwayPlaced).toBe(false);
+  });
+});
+
+describe('causes & POCUS', () => {
+  it('stamps an addressed cause and clears it on undo', () => {
+    s().startCode();
+    s().toggleCause('tension_ptx');
+    expect(s().causes.tension_ptx).toBe(true);
+    expect(lastEvent().label).toBe('Cause addressed — Tension pneumothorax');
+    s().undoLastEvent();
+    expect(s().causes.tension_ptx).toBe(false);
   });
 
-  it('undoes the most recent intervention and removes its dose record', () => {
+  it('includes SHA hypoglycaemia as a reversible cause', () => {
+    s().startCode();
+    s().toggleCause('hypoglycemia');
+    expect(lastEvent().label).toBe('Cause addressed — Hypoglycaemia');
+  });
+
+  it('logs POCUS findings', () => {
+    s().startCode();
+    s().togglePocus('effusion');
+    expect(s().pocus.effusion).toBe(true);
+    expect(lastEvent().category).toBe('pocus');
+  });
+});
+
+describe('undo', () => {
+  it('removes the most recent dose record with its event', () => {
     s().startCode();
     at(10_000);
     s().administerEpi();
-    expect(s().epi).toHaveLength(1);
     s().undoLastEvent();
     expect(s().epi).toHaveLength(0);
     expect(s().events.some((e) => e.label.startsWith('Epinephrine'))).toBe(false);
   });
-});
 
+  it('never undoes lifecycle events', () => {
+    s().startCode();
+    const n = s().events.length;
+    s().undoLastEvent();
+    expect(s().events).toHaveLength(n);
+  });
+});

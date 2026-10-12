@@ -59,7 +59,7 @@ export function Checklist({
               aria-pressed={on}
               onClick={() => toggle(item.text)}
               className={[
-                'touch-hit flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-3 text-left active:scale-[0.98]',
+                'touch-hit flex min-h-[64px] w-full items-center gap-3 rounded-xl border px-3 text-left active:scale-[0.98]',
                 on ? 'border-good bg-good/10' : item.critical ? 'border-crit/50 bg-crit/5' : 'border-line bg-panel2',
               ].join(' ')}
             >

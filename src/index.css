@@ -1,12 +1,13 @@
 @import 'tailwindcss';
 
 /* ---------------------------------------------------------------------------
-   CodeOR design tokens.
-   Dark slate base (#070a11) with high-visibility acuity colors.
+   ResusCode design tokens.
+   Night-mode base (#06080e) with high-visibility acuity colors:
+   Code Red #ef4444 · Warning Amber #f59e0b · Pulse Cyan #06b6d4 · ROSC Emerald #10b981.
    Monospace is a system stack — nothing loads from the network (offline-safe).
 --------------------------------------------------------------------------- */
 @theme {
-  --color-bg: #070a11;
+  --color-bg: #06080e;
   --color-panel: #0d1320;
   --color-panel2: #131c2c;
   --color-line: #223049;
@@ -100,7 +101,7 @@
 
 /* Cycle clock < 10 s: flashing red is a safety signal and is intentionally
    not removed under prefers-reduced-motion, only softened in rate. */
-@keyframes codeor-flash {
+@keyframes rc-flash {
   0%,
   49% {
     opacity: 1;
@@ -111,10 +112,10 @@
   }
 }
 .animate-flash {
-  animation: codeor-flash 0.6s steps(1, end) infinite;
+  animation: rc-flash 0.6s steps(1, end) infinite;
 }
 
-@keyframes codeor-flash-bg {
+@keyframes rc-flash-bg {
   0%,
   49% {
     background-color: var(--color-crit);
@@ -125,10 +126,10 @@
   }
 }
 .animate-flash-bg {
-  animation: codeor-flash-bg 0.6s steps(1, end) infinite;
+  animation: rc-flash-bg 0.6s steps(1, end) infinite;
 }
 
-@keyframes codeor-beat {
+@keyframes rc-beat {
   0% {
     transform: scale(1);
     opacity: 0.55;
@@ -143,10 +144,10 @@
   }
 }
 .animate-beat {
-  animation: codeor-beat 0.545s ease-out infinite;
+  animation: rc-beat 0.545s ease-out infinite;
 }
 
-@keyframes codeor-ping {
+@keyframes rc-ping {
   0% {
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
   }
@@ -155,7 +156,26 @@
   }
 }
 .animate-ping-crit {
-  animation: codeor-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  animation: rc-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Metronome LED: hard on at the beat, decays to dark before the next one. */
+@keyframes rc-led {
+  0% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+}
+.animate-led {
+  animation: rc-led 0.545s ease-out 1 forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
