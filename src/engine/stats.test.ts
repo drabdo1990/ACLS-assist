@@ -128,3 +128,38 @@ describe('computeCodeStats', () => {
     expect(computeCodeStats(legacy, T0 + 1000)!.shocks.count).toBe(0);
   });
 });
+
+describe('epinephrine intervals across ROSC (review fix)', () => {
+  it('excludes time spent in ROSC from the interval between doses', () => {
+    const st = computeCodeStats(
+      started({
+        epi: [dose(0), dose(2_400_000)],
+        roscAccumMs: 1_800_000,
+        events: [
+          ev(0, 'system', 'Code Blue activated'),
+          ev(600_000, 'rosc', 'ROSC declared'),
+          ev(2_400_000, 'system', 'Re-arrest'),
+        ],
+      }),
+      T0 + 2_500_000,
+    )!;
+    expect(st.epi.longestIntervalMs).toBe(600_000);
+    expect(st.epi.meanIntervalMs).toBe(600_000);
+  });
+
+  it('works on a v1-migrated session (spec §4.2)', async () => {
+    const { migrateV1 } = await import('./persistence');
+    const m = migrateV1({
+      version: 1, status: 'active', startedAt: T0, pausedAt: null, pausedAccumMs: 0, cycleStartedAt: T0,
+      cyclePausedAccumMs: 0, cycleIndex: 1,
+      events: [{ id: 'a', at: T0, t: 0, category: 'system', label: 'Code Initiated' }],
+      shocks: [{ at: T0 + 45_000, t: 45_000, joules: 200, shockable: true }],
+      epi: [{ at: T0 + 70_000, t: 70_000, label: 'Epinephrine 1 mg IV/IO', mg: 1 }],
+    })!;
+    const st = computeCodeStats(m, T0 + 100_000)!;
+    expect(st.firstShockMs).toBe(45_000);
+    expect(st.firstEpiMs).toBe(70_000);
+    expect(st.outcome).toBe('incomplete');
+    expect(st.arrestMs).toBe(100_000);
+  });
+});

@@ -10,6 +10,7 @@ import {
   AIRWAY_EVENT_PREFIX,
   MAGNESIUM_PREFIX,
   POST_ROSC_PREFIX,
+  REARREST_LABEL,
   RHYTHM_CHECK_PREFIX,
   airwayTypeFromLabel,
   branchFromEvents,
@@ -99,7 +100,21 @@ export function computeCodeStats(s: StatsInput, now: number): CodeStats | null {
           : 'terminated'
         : 'incomplete';
 
-  const intervals = epiTimes.slice(1).map((t, i) => t - epiTimes[i]);
+  // ROSC periods (ROSC → Re-arrest, or still open) are not arrest time: an epi interval that spans
+  // one must not read as a delayed dose in the debrief.
+  const roscPeriods: Array<[number, number]> = [];
+  let roscOpen: number | null = null;
+  for (const e of events) {
+    if (e.category === 'rosc') roscOpen = e.at;
+    else if (e.category === 'system' && e.label === REARREST_LABEL && roscOpen != null) {
+      roscPeriods.push([roscOpen, e.at]);
+      roscOpen = null;
+    }
+  }
+  if (roscOpen != null) roscPeriods.push([roscOpen, Math.max(roscOpen, now)]);
+  const roscOverlap = (a: number, b: number) =>
+    roscPeriods.reduce((sum, [start, end]) => sum + Math.max(0, Math.min(b, end) - Math.max(a, start)), 0);
+  const intervals = epiTimes.slice(1).map((t, i) => t - epiTimes[i] - roscOverlap(epiTimes[i], t));
   const longest = intervals.length ? Math.max(...intervals) : null;
   const firstEpiAt = epiTimes.length ? epiTimes[0] : null;
   const airwayEvent = events.find((e) => e.category === 'airway' && e.label.startsWith(AIRWAY_EVENT_PREFIX));

@@ -143,8 +143,13 @@ export function deriveClockFromEvents(
       codeEnded = e.at;
     }
   }
+  // A code terminated while still in ROSC (no Re-arrest after the last ROSC) froze at ROSC, not at "Code ended".
   const endedAt =
-    status === 'rosc' ? (lastRosc ?? pausedAt) : status === 'terminated' ? (codeEnded ?? pausedAt) : null;
+    status === 'rosc'
+      ? (lastRosc ?? pausedAt)
+      : status === 'terminated'
+        ? (open ?? codeEnded ?? pausedAt)
+        : null;
   return { roscAccumMs, endedAt };
 }
 

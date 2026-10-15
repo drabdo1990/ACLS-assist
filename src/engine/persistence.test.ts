@@ -275,3 +275,45 @@ describe('v2 → v3 migration', () => {
     expect(sanitizeSession({ ...good(), status: 'rosc', pausedAt: T0 + 1, endedAt: null })).toBeNull();
   });
 });
+
+describe('migration — code terminated straight from ROSC (review fix)', () => {
+  const ev = (at: number, category: string, label: string) => ({ id: `${at}`, at: T0 + at, t: at, category, label });
+
+  it('freezes at the open ROSC, not at Code ended', () => {
+    const events = [ev(0, 'system', 'Code Blue activated'), ev(100_000, 'rosc', 'ROSC declared'), ev(400_000, 'system', 'Code ended')];
+    expect(deriveClockFromEvents(events as never, 'terminated', T0 + 100_000)).toEqual({ roscAccumMs: 0, endedAt: T0 + 100_000 });
+  });
+
+  it('handles ROSC → Re-arrest → ROSC → Code ended', () => {
+    const events = [
+      ev(0, 'system', 'Code Blue activated'),
+      ev(100_000, 'rosc', 'ROSC declared'),
+      ev(160_000, 'system', 'Re-arrest'),
+      ev(300_000, 'rosc', 'ROSC declared'),
+      ev(900_000, 'system', 'Code ended'),
+    ];
+    expect(deriveClockFromEvents(events as never, 'terminated', T0 + 300_000)).toEqual({ roscAccumMs: 60_000, endedAt: T0 + 300_000 });
+  });
+
+  it('v1 path: migrateV1 of a code terminated from ROSC keeps the ROSC freeze point', () => {
+    const m = migrateV1({
+      ...v1,
+      status: 'terminated',
+      pausedAt: T0 + 100_000,
+      events: [
+        { id: 'a', at: T0, t: 0, category: 'system', label: 'Code Initiated' },
+        { id: 'b', at: T0 + 100_000, t: 100_000, category: 'rosc', label: 'ROSC declared' },
+        { id: 'c', at: T0 + 400_000, t: 100_000, category: 'system', label: 'Code ended' },
+      ],
+    })!;
+    expect(m.endedAt).toBe(T0 + 100_000);
+  });
+});
+
+describe('training / voided persistence round-trip (spec §4.3)', () => {
+  it('keeps true flags through sanitizeSession', () => {
+    const s = sanitizeSession(JSON.parse(JSON.stringify({ ...good(), training: true, voided: true })))!;
+    expect(s.training).toBe(true);
+    expect(s.voided).toBe(true);
+  });
+});

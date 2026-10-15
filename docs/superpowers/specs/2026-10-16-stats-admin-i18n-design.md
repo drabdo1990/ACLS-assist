@@ -59,7 +59,7 @@ Session schema **v3** (`PersistedSession.version: 3`):
 - Find the ROSC intervals: each `rosc` event ("ROSC declared") is paired with the next `system` "Re-arrest" event. `roscAccumMs` is the sum of the closed pairs.
 - `endedAt`:
   - status `rosc` → `at` of the last ROSC event;
-  - status `terminated` → `at` of the "Code ended" event (fall back to `pausedAt`);
+  - status `terminated` → the last ROSC time if that ROSC was never followed by "Re-arrest" (terminated straight from ROSC); otherwise `at` of the "Code ended" event (fall back to `pausedAt`);
   - otherwise `null`.
 - `pausedAccumMs_v3 = max(0, pausedAccumMs_v2 − roscAccumMs)`.
 - v1 → v2 → v3 chains through the existing `migrateV1`.
@@ -109,6 +109,7 @@ function computeCodeStats(session: PersistedSession, now: number): CodeStats | n
 
 **Rules:**
 - "From activation" means `event.at − startedAt` in wall-clock time, labelled **"from activation, as logged"** wherever it is shown.
+- Epinephrine intervals exclude any ROSC period (ROSC → Re-arrest, or still open) between the two doses, so time with a pulse never reads as a delayed dose.
 - Outcome:
   - `rosc` — final status is `rosc`.
   - `rosc_then_terminated` — status `terminated` with `roscCount > 0` (re-arrest or terminated straight from ROSC).
