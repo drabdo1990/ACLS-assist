@@ -16,6 +16,21 @@ function getAudioCtor(): AudioCtor | null {
   return w.AudioContext ?? w.webkitAudioContext ?? null;
 }
 
+const audioListeners = new Set<() => void>();
+const notifyAudio = () => audioListeners.forEach((fn) => fn());
+
+/** Subscribe to AudioContext creation / state changes (for the "sound off" hint). */
+export function subscribeAudioState(fn: () => void): () => void {
+  audioListeners.add(fn);
+  return () => {
+    audioListeners.delete(fn);
+  };
+}
+
+export function isAudioSupported(): boolean {
+  return getAudioCtor() != null;
+}
+
 /** Create/resume the shared AudioContext. Safe to call repeatedly. Returns null when unsupported. */
 export function ensureAudio(): AudioContext | null {
   const Ctor = getAudioCtor();
@@ -23,6 +38,8 @@ export function ensureAudio(): AudioContext | null {
   if (!ctx) {
     try {
       ctx = new Ctor();
+      ctx.addEventListener('statechange', notifyAudio);
+      notifyAudio();
     } catch {
       return null;
     }

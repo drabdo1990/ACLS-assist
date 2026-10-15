@@ -6,6 +6,7 @@ import { useWakeLock } from './hooks/useWakeLock';
 import { HudScreen } from './screens/HudScreen';
 import { CausesScreen } from './screens/CausesScreen';
 import { LogScreen } from './screens/LogScreen';
+import { AudioHint, SaveFailedChip } from './components/ui/StatusChips';
 
 type Tab = 'hud' | 'causes' | 'log';
 
@@ -38,6 +39,8 @@ export default function App() {
   const status = useCodeStore((s) => s.status);
   const restored = useCodeStore((s) => s.restored);
   const dismissRestored = useCodeStore((s) => s.dismissRestored);
+  const staleAgeMs = useCodeStore((s) => s.staleAgeMs);
+  const reset = useCodeStore((s) => s.reset);
 
   // The post-ROSC bundle opens automatically on the transition into ROSC
   // (not on a refresh that restores an already-ROSC session).
@@ -62,6 +65,8 @@ export default function App() {
             <p className="text-[10px] uppercase tracking-widest text-mute">Adult ACLS Command</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <SaveFailedChip />
+            <AudioHint />
             <span
               title={
                 wakeSupported
@@ -91,7 +96,20 @@ export default function App() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-3 pt-3 pb-appbar">
         {restored ? (
           <div className="mb-3 flex items-center gap-2 rounded-xl border border-warn/60 bg-warn/10 p-3 text-xs font-semibold text-warn">
-            <span className="flex-1">Session restored from this device — timers continued from saved timestamps.</span>
+            <span className="flex-1">
+              {staleAgeMs != null
+                ? `Saved session is ${Math.floor(staleAgeMs / 3_600_000)} h old — probably a previous code. Start fresh, or keep it to review.`
+                : 'Session restored from this device — timers continued from saved timestamps.'}
+            </span>
+            {staleAgeMs != null ? (
+              <button
+                type="button"
+                onClick={reset}
+                className="touch-hit rounded-lg border border-warn bg-warn/20 px-3 py-2 font-bold"
+              >
+                Start fresh
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={dismissRestored}

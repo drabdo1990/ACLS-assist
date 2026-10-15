@@ -6,9 +6,13 @@
  * event labels. Nothing ever leaves the device.
  */
 
-import type { CauseId, PersistedSession } from './types';
+import type { CauseId, EventCategory, MetronomeState, PersistedSession, Settings } from './types';
 
 export const STORAGE_KEY = 'resuscode.session.v2';
+/** Where an unreadable payload is parked so it is never silently destroyed. */
+export const CORRUPT_STORAGE_KEY = 'resuscode.session.v2.corrupt';
+/** A saved active/paused/ROSC session older than this is probably a previous code. */
+export const STALE_SESSION_MS = 6 * 3_600_000;
 /** Pre-rename (CodeOR) key — migrated once on load, then removed. */
 export const LEGACY_STORAGE_KEY = 'codeor.session.v1';
 
@@ -106,14 +110,173 @@ function isBrowser(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
+const STATUSES: ReadonlySet<string> = new Set(['idle', 'active', 'paused', 'rosc', 'terminated']);
+const CATEGORIES: ReadonlySet<string> = new Set<EventCategory>([
+  'system',
+  'cycle',
+  'cpr',
+  'airway',
+  'drug',
+  'shock',
+  'rhythm',
+  'cause',
+  'pocus',
+  'rosc',
+  'post',
+]);
+
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+const validEvent = (e: unknown) =>
+  isObj(e) &&
+  typeof e.id === 'string' &&
+  isNum(e.at) &&
+  isNum(e.t) &&
+  typeof e.category === 'string' &&
+  CATEGORIES.has(e.category) &&
+  typeof e.label === 'string' &&
+  (e.detail === undefined || typeof e.detail === 'string');
+const validDose = (e: unknown) =>
+  isObj(e) && isNum(e.at) && isNum(e.t) && typeof e.label === 'string' && (e.mg === undefined || isNum(e.mg));
+const validShock = (e: unknown) =>
+  isObj(e) && isNum(e.at) && isNum(e.t) && isNum(e.joules) && typeof e.shockable === 'boolean';
+const validFlagMap = (v: unknown) => isObj(v) && Object.values(v).every((x) => typeof x === 'boolean');
+
+/** Missing -> default; present and valid -> value; present and invalid -> undefined (reject). */
+function field<T>(v: unknown, ok: (x: unknown) => boolean, fallback: T): T | undefined {
+  if (v === undefined) return fallback;
+  return ok(v) ? (v as T) : undefined;
+}
+const arrayOf = (fn: (x: unknown) => boolean) => (v: unknown) => Array.isArray(v) && v.every(fn);
+
+/**
+ * Runtime validation of a stored v2 snapshot. Clinical / time / event structure that is
+ * malformed rejects the whole payload (so it is never presented as a trustworthy session);
+ * cosmetic preferences (metronome, settings) fall back to defaults field by field.
+ */
+export function sanitizeSession(raw: unknown): PersistedSession | null {
+  if (!isObj(raw) || raw.version !== 2) return null;
+  const base = emptySession();
+
+  if (typeof raw.status !== 'string' || !STATUSES.has(raw.status)) return null;
+  const status = raw.status as PersistedSession['status'];
+
+  const events = field(raw.events, arrayOf(validEvent), base.events);
+  const shocks = field(raw.shocks, arrayOf(validShock), base.shocks);
+  const epi = field(raw.epi, arrayOf(validDose), base.epi);
+  const amio = field(raw.amio, arrayOf(validDose), base.amio);
+  const lido = field(raw.lido, arrayOf(validDose), base.lido);
+  const causes = field(raw.causes, validFlagMap, base.causes);
+  const pocus = field(raw.pocus, validFlagMap, base.pocus);
+  const nullableNum = (x: unknown) => x === null || isNum(x);
+  const startedAt = field<number | null>(raw.startedAt, nullableNum, null);
+  const pausedAt = field<number | null>(raw.pausedAt, nullableNum, null);
+  const cycleStartedAt = field<number | null>(raw.cycleStartedAt, nullableNum, null);
+  const nonNegative = (x: unknown) => isNum(x) && x >= 0;
+  const pausedAccumMs = field(raw.pausedAccumMs, nonNegative, 0);
+  const cyclePausedAccumMs = field(raw.cyclePausedAccumMs, nonNegative, 0);
+  const rhythmBranch = field<PersistedSession['rhythmBranch']>(
+    raw.rhythmBranch,
+    (x) => x === null || x === 'shockable' || x === 'nonshockable',
+    null,
+  );
+  const antiarrhythmic = field<PersistedSession['antiarrhythmic']>(
+    raw.antiarrhythmic,
+    (x) => x === 'amiodarone' || x === 'lidocaine',
+    base.antiarrhythmic,
+  );
+  const airwayType = field<PersistedSession['airwayType']>(
+    raw.airwayType,
+    (x) => x === null || x === 'ETT' || x === 'SGA',
+    null,
+  );
+  const airwayPlaced = field(raw.airwayPlaced, (x) => typeof x === 'boolean', false);
+
+  if (
+    events === undefined || shocks === undefined || epi === undefined || amio === undefined ||
+    lido === undefined || causes === undefined || pocus === undefined || startedAt === undefined ||
+    pausedAt === undefined || cycleStartedAt === undefined || pausedAccumMs === undefined ||
+    cyclePausedAccumMs === undefined || rhythmBranch === undefined || antiarrhythmic === undefined ||
+    airwayType === undefined || airwayPlaced === undefined
+  ) {
+    return null;
+  }
+
+  // Cross-field invariants: a running / frozen clock needs its anchors.
+  if (status !== 'idle' && startedAt == null) return null;
+  if ((status === 'paused' || status === 'rosc' || status === 'terminated') && pausedAt == null) return null;
+
+  const metro = isObj(raw.metronome) ? raw.metronome : {};
+  const metronome: MetronomeState = {
+    on: typeof metro.on === 'boolean' ? metro.on : base.metronome.on,
+    audio: typeof metro.audio === 'boolean' ? metro.audio : base.metronome.audio,
+    haptic: typeof metro.haptic === 'boolean' ? metro.haptic : base.metronome.haptic,
+    bpm: isNum(metro.bpm) && metro.bpm > 0 ? metro.bpm : base.metronome.bpm,
+  };
+  const set = isObj(raw.settings) ? raw.settings : {};
+  const settings: Settings = {
+    epiLockoutMs: isNum(set.epiLockoutMs) && set.epiLockoutMs > 0 ? set.epiLockoutMs : base.settings.epiLockoutMs,
+    defaultJoules: isNum(set.defaultJoules) && set.defaultJoules > 0 ? set.defaultJoules : base.settings.defaultJoules,
+  };
+
+  return {
+    version: 2,
+    status,
+    startedAt,
+    pausedAt,
+    pausedAccumMs,
+    cycleStartedAt,
+    cyclePausedAccumMs,
+    cycleIndex: isNum(raw.cycleIndex) && raw.cycleIndex >= 1 ? Math.floor(raw.cycleIndex) : base.cycleIndex,
+    events,
+    shocks,
+    epi,
+    amio,
+    lido,
+    rhythmBranch,
+    antiarrhythmic,
+    airwayPlaced,
+    airwayType,
+    causes,
+    pocus,
+    metronome,
+    weightKg: isNum(raw.weightKg) ? raw.weightKg : base.weightKg,
+    settings,
+    savedAt: isNum(raw.savedAt) ? raw.savedAt : 0,
+  };
+}
+
+/** True when a saved in-progress session is old enough to be a previous code, not this one. */
+export function isStaleSession(s: Pick<PersistedSession, 'status' | 'savedAt'>, now: number): boolean {
+  const inProgress = s.status === 'active' || s.status === 'paused' || s.status === 'rosc';
+  return inProgress && s.savedAt > 0 && now - s.savedAt > STALE_SESSION_MS;
+}
+
+/** Park an unreadable payload under a separate key and clear the live one so boot cannot loop on it. */
+function quarantine(raw: string): void {
+  try {
+    window.localStorage.setItem(CORRUPT_STORAGE_KEY, raw);
+  } catch {
+    /* nothing more we can do */
+  }
+  window.localStorage.removeItem(STORAGE_KEY);
+}
+
 export function loadPersisted(): PersistedSession | null {
   if (!isBrowser()) return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as PersistedSession;
-      if (!parsed || parsed.version !== 2 || !Array.isArray(parsed.events)) return null;
-      return { ...emptySession(), ...parsed };
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        /* truncated / not JSON — handled below */
+      }
+      const session = sanitizeSession(parsed);
+      if (!session) quarantine(raw);
+      return session;
     }
     const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!legacy) return null;
@@ -126,12 +289,34 @@ export function loadPersisted(): PersistedSession | null {
   }
 }
 
-export function writePersisted(session: PersistedSession): void {
-  if (!isBrowser()) return;
+// --- Save status -------------------------------------------------------------
+// The in-memory session keeps working when storage fails, so the UI must be able to say
+// "not saved" instead of letting the clinician assume the latest state is durable.
+let saveOk = true;
+const saveListeners = new Set<() => void>();
+export const getSaveOk = (): boolean => saveOk;
+export function subscribeSaveStatus(fn: () => void): () => void {
+  saveListeners.add(fn);
+  return () => {
+    saveListeners.delete(fn);
+  };
+}
+function setSaveOk(ok: boolean): void {
+  if (ok === saveOk) return;
+  saveOk = ok;
+  saveListeners.forEach((fn) => fn());
+}
+
+/** Returns whether the write succeeded (quota / blocked storage -> false). */
+export function writePersisted(session: PersistedSession): boolean {
+  if (!isBrowser()) return true;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    setSaveOk(true);
+    return true;
   } catch {
-    /* quota or private-mode failure — the in-memory session still works */
+    setSaveOk(false);
+    return false;
   }
 }
 

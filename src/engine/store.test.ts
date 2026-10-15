@@ -265,3 +265,94 @@ describe('undo', () => {
     expect(s().events).toHaveLength(n);
   });
 });
+
+describe('undo consistency (audit fixes)', () => {
+  it('undoing an airway un-mark restores the SAME airway type (SGA stays SGA)', () => {
+    s().startCode();
+    s().markAirwayPlaced('SGA');
+    s().markAirwayPlaced(); // un-mark
+    expect(s().airwayType).toBeNull();
+    s().undoLastEvent();
+    expect(s().airwayPlaced).toBe(true);
+    expect(s().airwayType).toBe('SGA');
+  });
+
+  it('restores the most recent placement type across several place/unmark cycles', () => {
+    s().startCode();
+    s().markAirwayPlaced('ETT');
+    s().markAirwayPlaced();
+    s().markAirwayPlaced('SGA');
+    s().markAirwayPlaced();
+    s().undoLastEvent();
+    expect(s().airwayType).toBe('SGA');
+  });
+
+  it('never undoes a cycle reset or rhythm check, so cycleIndex stays in step with the log', () => {
+    s().startCode();
+    at(120_000);
+    s().resetCycle(); // plain reset: last event is the cycle event
+    expect(s().cycleIndex).toBe(2);
+    const n = s().events.length;
+    s().undoLastEvent();
+    expect(s().events).toHaveLength(n);
+    expect(s().cycleIndex).toBe(2);
+    expect(s().events.filter((e) => e.category === 'cycle')).toHaveLength(1);
+  });
+
+  it('records an un-check of a cause/POCUS item instead of leaving a stale "addressed" entry', () => {
+    s().startCode();
+    s().toggleCause('hypoxia');
+    s().toggleCause('hypoxia');
+    expect(s().causes.hypoxia).toBe(false);
+    expect(lastEvent().label).toBe('Cause unchecked — Hypoxia');
+    s().togglePocus('effusion');
+    s().togglePocus('effusion');
+    expect(s().pocus.effusion).toBe(false);
+    expect(lastEvent().label.startsWith('POCUS unchecked — ')).toBe(true);
+  });
+
+  it('undoing an un-check re-checks the item; undoing a check un-checks it', () => {
+    s().startCode();
+    s().toggleCause('hypoxia');
+    s().toggleCause('hypoxia'); // un-check
+    s().undoLastEvent();
+    expect(s().causes.hypoxia).toBe(true);
+    s().undoLastEvent(); // undo the original check
+    expect(s().causes.hypoxia).toBe(false);
+  });
+});
+
+describe('rhythm check keeps the algorithm branch in step', () => {
+  it('VF / pVT select the shockable branch; PEA / Asystole the non-shockable branch', () => {
+    s().startCode();
+    at(120_000);
+    s().resetCycle('PEA');
+    expect(s().rhythmBranch).toBe('nonshockable');
+    at(240_000);
+    s().resetCycle('VF');
+    expect(s().rhythmBranch).toBe('shockable');
+    expect(lastEvent().label).toBe('Rhythm branch: Shockable (VF / pVT)');
+  });
+
+  it('does not add a branch event when the branch is unchanged, and Pulse leaves it alone', () => {
+    s().startCode();
+    s().setRhythmBranch('shockable');
+    const before = s().events.filter((e) => e.label.startsWith('Rhythm branch')).length;
+    at(120_000);
+    s().resetCycle('pVT');
+    expect(s().events.filter((e) => e.label.startsWith('Rhythm branch'))).toHaveLength(before);
+    at(240_000);
+    s().resetCycle('Pulse');
+    expect(s().rhythmBranch).toBe('shockable');
+  });
+
+  it('a mis-tapped rhythm can be corrected with Undo (branch rolls back)', () => {
+    s().startCode();
+    s().setRhythmBranch('shockable');
+    at(120_000);
+    s().resetCycle('PEA'); // mis-tap: meant VF
+    expect(s().rhythmBranch).toBe('nonshockable');
+    s().undoLastEvent();
+    expect(s().rhythmBranch).toBe('shockable');
+  });
+});

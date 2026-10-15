@@ -1,5 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import { emptySession, migrateV1 } from './persistence';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import {
+  CORRUPT_STORAGE_KEY,
+  STALE_SESSION_MS,
+  STORAGE_KEY,
+  emptySession,
+  getSaveOk,
+  isStaleSession,
+  loadPersisted,
+  migrateV1,
+  sanitizeSession,
+  writePersisted,
+} from './persistence';
 
 const T0 = 1_700_000_000_000;
 
@@ -75,5 +86,134 @@ describe('emptySession', () => {
     expect(e.status).toBe('idle');
     expect(e.metronome.bpm).toBe(110);
     expect(e.settings.epiLockoutMs).toBe(180_000);
+  });
+});
+
+/** A valid mid-code v2 snapshot. */
+function good() {
+  return {
+    ...emptySession(),
+    status: 'active' as const,
+    startedAt: T0,
+    cycleStartedAt: T0,
+    events: [{ id: 'a', at: T0, t: 0, category: 'system' as const, label: 'Code Blue activated' }],
+    savedAt: T0 + 1000,
+  };
+}
+
+describe('sanitizeSession', () => {
+  it('accepts a valid snapshot unchanged', () => {
+    expect(sanitizeSession(JSON.parse(JSON.stringify(good())))).toEqual(good());
+  });
+
+  it('rejects wrong version, non-objects and bad status', () => {
+    expect(sanitizeSession(null)).toBeNull();
+    expect(sanitizeSession([])).toBeNull();
+    expect(sanitizeSession({ ...good(), version: 3 })).toBeNull();
+    expect(sanitizeSession({ ...good(), status: 'exploding' })).toBeNull();
+  });
+
+  it('rejects malformed events, timestamps and doses', () => {
+    expect(sanitizeSession({ ...good(), events: [null] })).toBeNull();
+    expect(sanitizeSession({ ...good(), events: [{ id: 'x', at: 'now', t: 0, category: 'system', label: 'x' }] })).toBeNull();
+    expect(sanitizeSession({ ...good(), events: [{ id: 'x', at: T0, t: 0, category: 'bogus', label: 'x' }] })).toBeNull();
+    expect(sanitizeSession({ ...good(), epi: [{ at: T0, t: 0 }] })).toBeNull();
+    expect(sanitizeSession({ ...good(), startedAt: Number.NaN })).toBeNull();
+    expect(sanitizeSession({ ...good(), pausedAccumMs: -5 })).toBeNull();
+    expect(sanitizeSession({ ...good(), causes: { hypoxia: 'yes' } })).toBeNull();
+  });
+
+  it('rejects broken clock invariants', () => {
+    expect(sanitizeSession({ ...good(), startedAt: null })).toBeNull();
+    expect(sanitizeSession({ ...good(), status: 'paused', pausedAt: null })).toBeNull();
+  });
+
+  it('fills missing optional fields and falls back per-field for preferences', () => {
+    const { lido: _l, pocus: _p, ...rest } = good();
+    const s = sanitizeSession({ ...rest, metronome: { bpm: 'fast', audio: false }, settings: { epiLockoutMs: 240_000 } })!;
+    expect(s.lido).toEqual([]);
+    expect(s.pocus).toEqual({});
+    expect(s.metronome.bpm).toBe(110);
+    expect(s.metronome.audio).toBe(false);
+    expect(s.settings).toEqual({ epiLockoutMs: 240_000, defaultJoules: 200 });
+  });
+});
+
+describe('loadPersisted / writePersisted', () => {
+  const store = new Map<string, string>();
+  const fakeStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+  };
+
+  afterEach(() => {
+    store.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it('loads a valid session', () => {
+    vi.stubGlobal('window', { localStorage: fakeStorage });
+    store.set(STORAGE_KEY, JSON.stringify(good()));
+    expect(loadPersisted()?.status).toBe('active');
+  });
+
+  it('boots idle (null) on truncated JSON and parks the payload instead of destroying it', () => {
+    vi.stubGlobal('window', { localStorage: fakeStorage });
+    const truncated = JSON.stringify(good()).slice(0, 40);
+    store.set(STORAGE_KEY, truncated);
+    expect(loadPersisted()).toBeNull();
+    expect(store.has(STORAGE_KEY)).toBe(false);
+    expect(store.get(CORRUPT_STORAGE_KEY)).toBe(truncated);
+  });
+
+  it('boots idle on structurally invalid events', () => {
+    vi.stubGlobal('window', { localStorage: fakeStorage });
+    store.set(STORAGE_KEY, JSON.stringify({ ...good(), events: [{ nope: true }] }));
+    expect(loadPersisted()).toBeNull();
+    expect(store.has(CORRUPT_STORAGE_KEY)).toBe(true);
+  });
+
+  it('does not throw when storage itself throws', () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: () => {
+          throw new Error('blocked');
+        },
+      },
+    });
+    expect(loadPersisted()).toBeNull();
+  });
+
+  it('reports a failed write (quota) via the return value and save status, then recovers', () => {
+    let full = true;
+    vi.stubGlobal('window', {
+      localStorage: {
+        ...fakeStorage,
+        setItem: (k: string, v: string) => {
+          if (full) throw new Error('QuotaExceededError');
+          store.set(k, v);
+        },
+      },
+    });
+    expect(writePersisted(good())).toBe(false);
+    expect(getSaveOk()).toBe(false);
+    full = false;
+    expect(writePersisted(good())).toBe(true);
+    expect(getSaveOk()).toBe(true);
+  });
+});
+
+describe('isStaleSession', () => {
+  const now = T0 + STALE_SESSION_MS + 1;
+  it('flags an in-progress session older than the threshold', () => {
+    expect(isStaleSession({ status: 'active', savedAt: T0 }, now)).toBe(true);
+    expect(isStaleSession({ status: 'rosc', savedAt: T0 }, now)).toBe(true);
+  });
+  it('does not flag recent, finished or never-saved sessions', () => {
+    expect(isStaleSession({ status: 'active', savedAt: T0 + 60_000 }, T0 + 120_000)).toBe(false);
+    expect(isStaleSession({ status: 'terminated', savedAt: T0 }, now)).toBe(false);
+    expect(isStaleSession({ status: 'idle', savedAt: T0 }, now)).toBe(false);
+    expect(isStaleSession({ status: 'active', savedAt: 0 }, now)).toBe(false);
   });
 });

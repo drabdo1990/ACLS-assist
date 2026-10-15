@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useCodeStore } from './engine/store';
 
 // Ensure PWA updates apply immediately when no code is actively running.
@@ -26,7 +27,9 @@ const root = document.getElementById('root');
 if (root) {
   createRoot(root).render(
     <StrictMode>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </StrictMode>,
   );
 }

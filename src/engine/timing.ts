@@ -97,7 +97,15 @@ export function formatCountdown(ms: number): string {
   return formatClock(ms);
 }
 
-/** Milliseconds remaining until epinephrine may be re-dosed (0 when eligible). */
+/**
+ * Milliseconds remaining until epinephrine may be re-dosed (0 when eligible).
+ *
+ * Clock model — which clock governs what:
+ * - Audit timestamps (`CodeEvent.at`) and this drug re-dose interval use real wall-clock time:
+ *   a drug's interval keeps running while CPR is paused, so it is deliberately NOT pause-aware.
+ * - `CodeEvent.t` / the master clock are pause-aware elapsed arrest time (display only).
+ * - The 2-minute cycle has its own pause-aware clock, independent of the master clock.
+ */
 export function epiLockoutRemainingMs(
   lastDoseAt: number | null | undefined,
   lockoutMs: number,

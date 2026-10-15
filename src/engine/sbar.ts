@@ -19,6 +19,8 @@ import { formatClock, formatDuration, formatWallClock, masterElapsedMs } from '.
 import { CAUSES } from '../content/causes';
 import { POCUS_ITEMS } from '../content/pocus';
 import { waveformFor, waveformLabel } from '../content/calc';
+import { POST_ROSC_BUNDLE } from '../content/protocols';
+import { isChecklistItemOn } from './checklist';
 
 export interface SbarInput {
   status: SessionStatus;
@@ -124,6 +126,20 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   out.push(`Reversible causes addressed: ${addressed.length ? addressed.join(', ') : 'none recorded'}`);
   out.push(`POCUS findings: ${pocus.length ? pocus.join(', ') : 'none recorded'}`);
   out.push('');
+
+  // Only meaningful once ROSC has occurred; otherwise every item would read as "pending".
+  if (rosc) {
+    const done = POST_ROSC_BUNDLE.filter((i) => isChecklistItemOn(input.events, 'Post-ROSC', i.text));
+    const pending = POST_ROSC_BUNDLE.filter((i) => !done.includes(i));
+    out.push('=== POST-ROSC CARE ===');
+    out.push(`Completed (${done.length}/${POST_ROSC_BUNDLE.length}):`);
+    for (const i of done) out.push(`  [x] ${i.text}`);
+    if (!done.length) out.push('  (none recorded)');
+    out.push('Not yet recorded:');
+    for (const i of pending) out.push(`  [ ] ${i.text}`);
+    if (!pending.length) out.push('  (none)');
+    out.push('');
+  }
 
   out.push('=== RECOMMENDATIONS ===');
   if (input.status === 'rosc') {

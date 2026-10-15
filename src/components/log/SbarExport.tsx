@@ -27,8 +27,10 @@ export function SbarExport() {
         ta.style.opacity = '0';
         document.body.appendChild(ta);
         ta.select();
-        document.execCommand('copy');
+        const ok = document.execCommand('copy');
         document.body.removeChild(ta);
+        // A failed legacy copy must not report success; the catch below shows the manual-copy preview.
+        if (!ok) throw new Error('copy command failed');
       }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -47,7 +49,8 @@ export function SbarExport() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Revoke after the browser has had time to start the download (immediate revoke is flaky on some mobile browsers).
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (

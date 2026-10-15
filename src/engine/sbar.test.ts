@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildSbar, sbarFilename, type SbarInput } from './sbar';
 import type { CodeEvent } from './types';
 import { formatWallClock } from './timing';
+import { POST_ROSC_BUNDLE } from '../content/protocols';
 
 const T0 = 1_700_000_000_000;
 
@@ -91,6 +92,35 @@ describe('buildSbar', () => {
     const ended = buildSbar({ ...base, status: 'terminated' }, T0 + 500_000);
     expect(ended).toContain('Outcome: Resuscitation terminated');
     expect(ended).not.toContain('Post-ROSC bundle');
+  });
+});
+
+describe('post-ROSC care section', () => {
+  const [first, second] = POST_ROSC_BUNDLE;
+
+  it('lists completed vs not-yet-recorded bundle items after ROSC', () => {
+    const events = [
+      ...base.events,
+      ev(410_000, 'post', `Post-ROSC: ${first.text}`),
+      ev(420_000, 'post', `Post-ROSC: ${second.text}`),
+      ev(430_000, 'post', `Post-ROSC (unchecked): ${second.text}`),
+    ];
+    const text = buildSbar({ ...base, events }, T0 + 500_000);
+    expect(text).toContain('=== POST-ROSC CARE ===');
+    expect(text).toContain(`Completed (1/${POST_ROSC_BUNDLE.length}):`);
+    expect(text).toContain(`[x] ${first.text}`);
+    expect(text).toContain(`[ ] ${second.text}`); // un-ticked again, so pending
+  });
+
+  it('says nothing was recorded when no item is ticked', () => {
+    const text = buildSbar(base, T0 + 500_000);
+    expect(text).toContain('(none recorded)');
+  });
+
+  it('is omitted when ROSC never occurred (no misleading "all pending" list)', () => {
+    const events = base.events.filter((e) => e.category !== 'rosc');
+    const text = buildSbar({ ...base, status: 'terminated', events }, T0 + 500_000);
+    expect(text).not.toContain('POST-ROSC CARE');
   });
 });
 

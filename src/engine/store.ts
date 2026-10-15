@@ -17,7 +17,13 @@ import type {
 } from './types';
 import { CYCLE_MS, formatDuration, masterElapsedMs } from './timing';
 import { clockNow } from './clock';
-import { clearPersisted, createDebouncedWriter, emptySession, loadPersisted } from './persistence';
+import {
+  clearPersisted,
+  createDebouncedWriter,
+  emptySession,
+  isStaleSession,
+  loadPersisted,
+} from './persistence';
 import { playChime, playClose, playConfirm } from './audio';
 import { haptic } from './haptics';
 import { CAUSES } from '../content/causes';
@@ -63,6 +69,8 @@ export interface CodeStore extends PersistedSession {
   rev: number;
   /** true when a previous in-progress session was reloaded from disk */
   restored: boolean;
+  /** age (ms) of a restored session that looks like a previous code; null when not stale */
+  staleAgeMs: number | null;
 
   tick: (now: number) => void;
   dismissRestored: () => void;
@@ -138,9 +146,45 @@ function branchFromEvents(events: CodeEvent[]): RhythmBranch | null {
   return null;
 }
 
+/** Airway type implied by the most recent placement event (used to roll back an un-mark on undo). */
+function airwayFromEvents(events: CodeEvent[]): AirwayType {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.category === 'airway' && e.label.startsWith(AIRWAY_EVENT_PREFIX)) {
+      return e.label.includes(AIRWAY_LABEL.SGA) ? 'SGA' : 'ETT';
+    }
+  }
+  return 'ETT';
+}
+
+const RHYTHM_CHECK_PREFIX = 'Rhythm check — ';
+const CAUSE_UNCHECK_PREFIX = 'Cause unchecked — ';
+const POCUS_UNCHECK_PREFIX = 'POCUS unchecked — ';
+
+/** Branch a logged rhythm check implies; `Pulse` implies none. */
+const RHYTHM_BRANCH: Record<RhythmLoop, RhythmBranch | null> = {
+  VF: 'shockable',
+  pVT: 'shockable',
+  PEA: 'nonshockable',
+  Asystole: 'nonshockable',
+  Pulse: null,
+};
+
+/**
+ * Lifecycle and time-based events are never quick-undone: undo cannot restore the
+ * cycle timer or the arrest clock, so a partial undo would leave log and state disagreeing.
+ */
+export function isUndoable(e: CodeEvent): boolean {
+  if (e.category === 'system' || e.category === 'cpr' || e.category === 'rosc' || e.category === 'cycle') return false;
+  if (e.category === 'rhythm' && e.label.startsWith(RHYTHM_CHECK_PREFIX)) return false;
+  return true;
+}
+
 const persisted = loadPersisted();
 const bootSession: PersistedSession = persisted ?? emptySession();
 const wasRestored = persisted != null && (persisted.status !== 'idle' || persisted.events.length > 0);
+const bootStaleAgeMs =
+  persisted != null && wasRestored && isStaleSession(persisted, Date.now()) ? Date.now() - persisted.savedAt : null;
 
 export const useCodeStore = create<CodeStore>((set, get) => {
   /** Merge a mutation, bumping the persistence revision. */
@@ -155,9 +199,10 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     now: clockNow(),
     rev: 0,
     restored: wasRestored,
+    staleAgeMs: bootStaleAgeMs,
 
     tick: (now) => set({ now }),
-    dismissRestored: () => apply(() => ({ restored: false })),
+    dismissRestored: () => apply(() => ({ restored: false, staleAgeMs: null })),
 
     startCode: () =>
       apply((s) => {
@@ -221,12 +266,21 @@ export const useCodeStore = create<CodeStore>((set, get) => {
             t,
           ),
         ];
-        if (rhythm) events.push(mkEvent('rhythm', `Rhythm check — ${rhythm}`, undefined, at, t));
+        if (rhythm) events.push(mkEvent('rhythm', `${RHYTHM_CHECK_PREFIX}${rhythm}`, undefined, at, t));
+        // Keep the algorithm branch in step with the rhythm just logged. The branch event is
+        // appended last so a mis-tapped rhythm can be corrected with Undo.
+        const branch = rhythm ? RHYTHM_BRANCH[rhythm] : null;
+        const branchPatch: Partial<CodeStore> = {};
+        if (branch && branch !== s.rhythmBranch) {
+          events.push(mkEvent('rhythm', `${BRANCH_EVENT_PREFIX}${BRANCH_LABEL[branch]}`, undefined, at, t));
+          branchPatch.rhythmBranch = branch;
+        }
         return {
           cycleStartedAt: ref,
           cyclePausedAccumMs: 0,
           cycleIndex: completed + 1,
           events,
+          ...branchPatch,
         };
       }),
 
@@ -443,9 +497,15 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     toggleCause: (id) =>
       apply((s) => {
         const next = { ...s.causes, [id]: !s.causes[id] };
-        if (s.causes[id]) return { causes: next };
         const cause = CAUSES.find((c) => c.id === id);
         const at = clockNow();
+        if (s.causes[id]) {
+          // Unticking is recorded, not erased, so the timeline stays an honest audit trail.
+          return {
+            causes: next,
+            events: [...s.events, mkEvent('cause', `${CAUSE_UNCHECK_PREFIX}${cause?.label ?? id}`, undefined, at, el(s, at))],
+          };
+        }
         haptic.warn();
         return {
           causes: next,
@@ -459,9 +519,14 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     togglePocus: (id) =>
       apply((s) => {
         const next = { ...s.pocus, [id]: !s.pocus[id] };
-        if (s.pocus[id]) return { pocus: next };
         const item = POCUS_ITEMS.find((p) => p.id === id);
         const at = clockNow();
+        if (s.pocus[id]) {
+          return {
+            pocus: next,
+            events: [...s.events, mkEvent('pocus', `${POCUS_UNCHECK_PREFIX}${item?.label ?? id}`, undefined, at, el(s, at))],
+          };
+        }
         haptic.confirm();
         return {
           pocus: next,
@@ -483,8 +548,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       apply((s) => {
         if (s.events.length === 0) return {};
         const last = s.events[s.events.length - 1];
-        // Lifecycle events (start, pause, ROSC, end) are never quick-undone.
-        if (last.category === 'system' || last.category === 'cpr' || last.category === 'rosc') return {};
+        // Lifecycle and cycle/rhythm-check events are never quick-undone (see isUndoable).
+        if (!isUndoable(last)) return {};
         const events = s.events.slice(0, -1);
         const isDrug = (prefix: string) => last.category === 'drug' && last.label.startsWith(prefix);
         const patch: Partial<CodeStore> = { events };
@@ -498,25 +563,28 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           // Undoing a placement un-places it; undoing an un-mark restores it.
           const placed = !last.label.startsWith(AIRWAY_EVENT_PREFIX);
           patch.airwayPlaced = placed;
-          patch.airwayType = placed ? (s.airwayType ?? 'ETT') : null;
+          patch.airwayType = placed ? airwayFromEvents(events) : null;
         }
         if (last.category === 'rhythm' && last.label.startsWith(BRANCH_EVENT_PREFIX)) {
           patch.rhythmBranch = branchFromEvents(events);
         }
         if (last.category === 'cause') {
+          // Undoing a check un-checks it; undoing an un-check restores it.
+          const wasUncheck = last.label.startsWith(CAUSE_UNCHECK_PREFIX);
           const cause = CAUSES.find((c) => last.label.endsWith(c.label));
-          if (cause) patch.causes = { ...s.causes, [cause.id]: false };
+          if (cause) patch.causes = { ...s.causes, [cause.id]: wasUncheck };
         }
         if (last.category === 'pocus') {
+          const wasUncheck = last.label.startsWith(POCUS_UNCHECK_PREFIX);
           const item = POCUS_ITEMS.find((p) => last.label.endsWith(p.label));
-          if (item) patch.pocus = { ...s.pocus, [item.id]: false };
+          if (item) patch.pocus = { ...s.pocus, [item.id]: wasUncheck };
         }
         return patch;
       }),
 
     reset: () => {
       clearPersisted();
-      set({ ...emptySession(), now: clockNow(), rev: 0, restored: false });
+      set({ ...emptySession(), now: clockNow(), rev: 0, restored: false, staleAgeMs: null });
     },
   };
 });

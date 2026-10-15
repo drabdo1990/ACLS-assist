@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import type { EventCategory } from '../../engine/types';
+import { checklistOffLabel, checklistOnLabel, isChecklistItemOn } from '../../engine/checklist';
 
 export interface ChecklistItemLike {
   id: string;
@@ -17,19 +18,10 @@ export function useLoggedChecklist(category: EventCategory, prefix: string) {
   const events = useCodeStore((s) => s.events);
   const logEvent = useCodeStore((s) => s.logEvent);
 
-  const onLabel = (text: string) => `${prefix}: ${text}`;
-  const offLabel = (text: string) => `${prefix} (unchecked): ${text}`;
+  const isOn = (text: string) => isChecklistItemOn(events, prefix, text);
 
-  const isOn = (text: string) => {
-    let state = false;
-    for (const e of events) {
-      if (e.label === onLabel(text)) state = true;
-      else if (e.label === offLabel(text)) state = false;
-    }
-    return state;
-  };
-
-  const toggle = (text: string) => logEvent(category, isOn(text) ? offLabel(text) : onLabel(text));
+  const toggle = (text: string) =>
+    logEvent(category, isOn(text) ? checklistOffLabel(prefix, text) : checklistOnLabel(prefix, text));
 
   return { isOn, toggle };
 }

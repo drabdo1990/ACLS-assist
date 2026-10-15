@@ -8,6 +8,14 @@ const SCHEDULER_MS = 25; // how often the scheduler wakes
 const ACCENT_EVERY = 10; // accent the down-beat every 10th tick (~every 6 s)
 
 /**
+ * If the scheduler fell far behind the audio clock (throttled background timer, tab restore),
+ * skip the missed beats instead of firing them all at once as one loud burst.
+ */
+export function catchUpNext(next: number, currentTime: number): number {
+  return next < currentTime - LOOKAHEAD_S ? currentTime + 0.02 : next;
+}
+
+/**
  * CPR metronome. Uses a lookahead scheduler on a single shared AudioContext so
  * the cadence is rock-steady at 110 bpm (naive setInterval drifts audibly).
  * Returns a beat counter so the visual indicator can pulse in lock-step.
@@ -40,6 +48,7 @@ export function useMetronome(): { beat: number; running: boolean } {
 
     const schedule = () => {
       if (!ac || stopped) return;
+      next = catchUpNext(next, ac.currentTime);
       while (next < ac.currentTime + LOOKAHEAD_S) {
         const accent = count % ACCENT_EVERY === 0;
         if (audioRef.current) {
