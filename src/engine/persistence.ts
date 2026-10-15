@@ -6,7 +6,16 @@
  * event labels. Nothing ever leaves the device.
  */
 
-import type { CauseId, EventCategory, MetronomeState, PersistedSession, Settings } from './types';
+import type {
+  CauseId,
+  CodeEvent,
+  EventCategory,
+  MetronomeState,
+  PersistedSession,
+  SessionStatus,
+  Settings,
+} from './types';
+import { CODE_ENDED_LABEL, REARREST_LABEL } from './eventQueries';
 
 export const STORAGE_KEY = 'resuscode.session.v2';
 /** Where an unreadable payload is parked so it is never silently destroyed. */
@@ -20,11 +29,15 @@ export const DEFAULT_WEIGHT_KG = 70;
 
 export function emptySession(): PersistedSession {
   return {
-    version: 2,
+    version: 3,
     status: 'idle',
     startedAt: null,
     pausedAt: null,
     pausedAccumMs: 0,
+    endedAt: null,
+    roscAccumMs: 0,
+    training: false,
+    voided: false,
     cycleStartedAt: null,
     cyclePausedAccumMs: 0,
     cycleIndex: 1,
@@ -83,7 +96,7 @@ export function migrateV1(raw: unknown): PersistedSession | null {
     (e.category as string) === 'crisis' ? { ...e, category: 'system' as const } : e,
   );
 
-  return {
+  const session: PersistedSession = {
     ...base,
     status: (v1.status as PersistedSession['status']) ?? base.status,
     startedAt: (v1.startedAt as number | null) ?? null,
@@ -104,6 +117,35 @@ export function migrateV1(raw: unknown): PersistedSession | null {
     settings: { ...base.settings, ...((v1.settings as object) ?? {}) },
     savedAt: (v1.savedAt as number) ?? 0,
   };
+  const clock = deriveClockFromEvents(session.events, session.status, session.pausedAt);
+  return { ...session, ...clock, pausedAccumMs: Math.max(0, session.pausedAccumMs - clock.roscAccumMs) };
+}
+
+/** Clock fields derived from the event log — upgrades v1/v2 snapshots (whose pausedAccumMs mixed ROSC time in). */
+export function deriveClockFromEvents(
+  events: CodeEvent[],
+  status: SessionStatus,
+  pausedAt: number | null,
+): { roscAccumMs: number; endedAt: number | null } {
+  const sorted = [...events].sort((a, b) => a.at - b.at);
+  let open: number | null = null;
+  let lastRosc: number | null = null;
+  let codeEnded: number | null = null;
+  let roscAccumMs = 0;
+  for (const e of sorted) {
+    if (e.category === 'rosc') {
+      open = e.at;
+      lastRosc = e.at;
+    } else if (e.category === 'system' && e.label === REARREST_LABEL && open != null) {
+      roscAccumMs += Math.max(0, e.at - open);
+      open = null;
+    } else if (e.category === 'system' && e.label === CODE_ENDED_LABEL) {
+      codeEnded = e.at;
+    }
+  }
+  const endedAt =
+    status === 'rosc' ? (lastRosc ?? pausedAt) : status === 'terminated' ? (codeEnded ?? pausedAt) : null;
+  return { roscAccumMs, endedAt };
 }
 
 function isBrowser(): boolean {
@@ -151,12 +193,12 @@ function field<T>(v: unknown, ok: (x: unknown) => boolean, fallback: T): T | und
 const arrayOf = (fn: (x: unknown) => boolean) => (v: unknown) => Array.isArray(v) && v.every(fn);
 
 /**
- * Runtime validation of a stored v2 snapshot. Clinical / time / event structure that is
- * malformed rejects the whole payload (so it is never presented as a trustworthy session);
- * cosmetic preferences (metronome, settings) fall back to defaults field by field.
+ * Runtime validation of a stored v2/v3 snapshot (v2 is upgraded to v3). Clinical / time / event
+ * structure that is malformed rejects the whole payload (so it is never presented as a trustworthy
+ * session); cosmetic preferences (metronome, settings) fall back to defaults field by field.
  */
 export function sanitizeSession(raw: unknown): PersistedSession | null {
-  if (!isObj(raw) || raw.version !== 2) return null;
+  if (!isObj(raw) || (raw.version !== 2 && raw.version !== 3)) return null;
   const base = emptySession();
 
   if (typeof raw.status !== 'string' || !STATUSES.has(raw.status)) return null;
@@ -176,6 +218,11 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
   const nonNegative = (x: unknown) => isNum(x) && x >= 0;
   const pausedAccumMs = field(raw.pausedAccumMs, nonNegative, 0);
   const cyclePausedAccumMs = field(raw.cyclePausedAccumMs, nonNegative, 0);
+  const isBool = (x: unknown) => typeof x === 'boolean';
+  const endedAtRaw = field<number | null>(raw.endedAt, nullableNum, null);
+  const roscAccumRaw = field(raw.roscAccumMs, nonNegative, 0);
+  const training = field(raw.training, isBool, false);
+  const voided = field(raw.voided, isBool, false);
   const rhythmBranch = field<PersistedSession['rhythmBranch']>(
     raw.rhythmBranch,
     (x) => x === null || x === 'shockable' || x === 'nonshockable',
@@ -198,7 +245,8 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
     lido === undefined || causes === undefined || pocus === undefined || startedAt === undefined ||
     pausedAt === undefined || cycleStartedAt === undefined || pausedAccumMs === undefined ||
     cyclePausedAccumMs === undefined || rhythmBranch === undefined || antiarrhythmic === undefined ||
-    airwayType === undefined || airwayPlaced === undefined
+    airwayType === undefined || airwayPlaced === undefined || endedAtRaw === undefined ||
+    roscAccumRaw === undefined || training === undefined || voided === undefined
   ) {
     return null;
   }
@@ -206,6 +254,19 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
   // Cross-field invariants: a running / frozen clock needs its anchors.
   if (status !== 'idle' && startedAt == null) return null;
   if ((status === 'paused' || status === 'rosc' || status === 'terminated') && pausedAt == null) return null;
+
+  // v2 → v3: pausedAccumMs mixed ROSC time in; rebuild the clock from the log.
+  let endedAt = endedAtRaw;
+  let roscAccumMs = roscAccumRaw;
+  let cprPausedMs = pausedAccumMs;
+  if (raw.version === 2) {
+    const clock = deriveClockFromEvents(events, status, pausedAt);
+    endedAt = clock.endedAt;
+    roscAccumMs = clock.roscAccumMs;
+    cprPausedMs = Math.max(0, pausedAccumMs - clock.roscAccumMs);
+  } else if ((status === 'rosc' || status === 'terminated') && endedAt == null) {
+    return null;
+  }
 
   const metro = isObj(raw.metronome) ? raw.metronome : {};
   const metronome: MetronomeState = {
@@ -221,11 +282,15 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
   };
 
   return {
-    version: 2,
+    version: 3,
     status,
     startedAt,
     pausedAt,
-    pausedAccumMs,
+    pausedAccumMs: cprPausedMs,
+    endedAt,
+    roscAccumMs,
+    training,
+    voided,
     cycleStartedAt,
     cyclePausedAccumMs,
     cycleIndex: isNum(raw.cycleIndex) && raw.cycleIndex >= 1 ? Math.floor(raw.cycleIndex) : base.cycleIndex,

@@ -113,11 +113,15 @@ export interface CodeStore extends PersistedSession {
 
 function toPersisted(s: CodeStore): PersistedSession {
   return {
-    version: 2,
+    version: 3,
     status: s.status,
     startedAt: s.startedAt,
     pausedAt: s.pausedAt,
     pausedAccumMs: s.pausedAccumMs,
+    endedAt: s.endedAt,
+    roscAccumMs: s.roscAccumMs,
+    training: s.training,
+    voided: s.voided,
     cycleStartedAt: s.cycleStartedAt,
     cyclePausedAccumMs: s.cyclePausedAccumMs,
     cycleIndex: s.cycleIndex,
