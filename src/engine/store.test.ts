@@ -420,3 +420,16 @@ describe('statistics follow undo', () => {
     expect(computeCodeStats(s(), T0 + 70_000)!.firstEpiMs).toBeNull();
   });
 });
+
+describe('training / void flags', () => {
+  it('sets the flags and clears them on New code', () => {
+    s().startCode();
+    s().setTraining(true);
+    s().setVoided(true);
+    expect(s().training).toBe(true);
+    expect(s().voided).toBe(true);
+    s().reset();
+    expect(s().training).toBe(false);
+    expect(s().voided).toBe(false);
+  });
+});

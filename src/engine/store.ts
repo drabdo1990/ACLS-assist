@@ -107,6 +107,8 @@ export interface CodeStore extends PersistedSession {
   setWeight: (kg: number) => void;
   setMetronome: (patch: Partial<MetronomeState>) => void;
   setSetting: (patch: Partial<Settings>) => void;
+  setTraining: (on: boolean) => void;
+  setVoided: (on: boolean) => void;
   undoLastEvent: () => void;
   reset: () => void;
 }
@@ -542,6 +544,9 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     setMetronome: (patch) => apply((s) => ({ metronome: { ...s.metronome, ...patch } })),
 
     setSetting: (patch) => apply((s) => ({ settings: { ...s.settings, ...patch } })),
+
+    setTraining: (on) => apply(() => ({ training: on })),
+    setVoided: (on) => apply(() => ({ voided: on })),
 
     undoLastEvent: () =>
       apply((s) => {
