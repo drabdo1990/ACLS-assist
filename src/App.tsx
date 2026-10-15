@@ -7,6 +7,7 @@ import { HudScreen } from './screens/HudScreen';
 import { CausesScreen } from './screens/CausesScreen';
 import { LogScreen } from './screens/LogScreen';
 import { AudioHint, SaveFailedChip } from './components/ui/StatusChips';
+import { ClockChangeNotice } from './components/ui/ClockChangeNotice';
 
 type Tab = 'hud' | 'causes' | 'log';
 
@@ -94,6 +95,7 @@ export default function App() {
 
       {/* Body */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-3 pt-3 pb-appbar">
+        <ClockChangeNotice />
         {restored ? (
           <div className="mb-3 flex items-center gap-2 rounded-xl border border-warn/60 bg-warn/10 p-3 text-xs font-semibold text-warn">
             <span className="flex-1">

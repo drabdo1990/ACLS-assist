@@ -88,11 +88,20 @@ export interface Settings {
 
 /** The serializable slice persisted to localStorage. */
 export interface PersistedSession {
-  version: 2;
+  version: 3;
   status: SessionStatus;
   startedAt: number | null;
   pausedAt: number | null;
+  /** Total CPR-pause time (v3). Drives the 2-min cycle and "time logged as paused"; NOT subtracted from arrest time. */
   pausedAccumMs: number;
+  /** Master clock freeze point: set at ROSC and termination, cleared on re-arrest. */
+  endedAt: number | null;
+  /** Sum of closed ROSC intervals — the only time excluded from arrest time. */
+  roscAccumMs: number;
+  /** Training / simulation code (excluded from statistics aggregates). */
+  training: boolean;
+  /** Voided: kept, but excluded from statistics. */
+  voided: boolean;
   cycleStartedAt: number | null;
   cyclePausedAccumMs: number;
   cycleIndex: number;

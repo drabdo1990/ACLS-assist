@@ -18,11 +18,11 @@ const STATUS_STYLE: Record<SessionStatus, { label: string; className: string }> 
 export function MasterClock() {
   const now = useNow();
   const startedAt = useCodeStore((s) => s.startedAt);
-  const pausedAt = useCodeStore((s) => s.pausedAt);
-  const pausedAccumMs = useCodeStore((s) => s.pausedAccumMs);
+  const endedAt = useCodeStore((s) => s.endedAt);
+  const roscAccumMs = useCodeStore((s) => s.roscAccumMs);
   const status = useCodeStore((s) => s.status);
 
-  const elapsed = masterElapsedMs({ startedAt, pausedAt, pausedAccumMs }, now);
+  const elapsed = masterElapsedMs({ startedAt, endedAt, roscAccumMs }, now);
   const pill = STATUS_STYLE[status];
 
   return (

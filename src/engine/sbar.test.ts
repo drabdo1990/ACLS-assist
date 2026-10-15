@@ -3,6 +3,8 @@ import { buildSbar, sbarFilename, type SbarInput } from './sbar';
 import type { CodeEvent } from './types';
 import { formatWallClock } from './timing';
 import { POST_ROSC_BUNDLE } from '../content/protocols';
+import { statsRows } from './statsFormat';
+import { computeCodeStats } from './stats';
 
 const T0 = 1_700_000_000_000;
 
@@ -13,8 +15,8 @@ function ev(t: number, category: CodeEvent['category'], label: string, detail?: 
 const base: SbarInput = {
   status: 'rosc',
   startedAt: T0,
-  pausedAt: T0 + 405_000,
-  pausedAccumMs: 0,
+  endedAt: T0 + 405_000,
+  roscAccumMs: 0,
   events: [
     ev(0, 'system', 'Code Blue activated'),
     ev(45_000, 'shock', 'Defibrillation: Shock #1 (200J Biphasic)'),
@@ -82,7 +84,7 @@ describe('buildSbar', () => {
   });
 
   it('handles an empty session gracefully', () => {
-    const empty = buildSbar({ ...base, events: [], status: 'idle', startedAt: null, pausedAt: null }, T0);
+    const empty = buildSbar({ ...base, events: [], status: 'idle', startedAt: null, endedAt: null }, T0);
     expect(empty).toContain('(no events)');
     expect(empty).toContain('Outcome: No cardiac arrest recorded');
     expect(empty).not.toContain('Post-ROSC bundle');
@@ -127,5 +129,17 @@ describe('post-ROSC care section', () => {
 describe('sbarFilename', () => {
   it('is filename-safe and ends with .txt', () => {
     expect(sbarFilename(T0)).toMatch(/^resuscode-sbar-\d{8}-\d{4}\.txt$/);
+  });
+});
+
+describe('CODE STATISTICS section', () => {
+  it('is omitted without stats and matches statsRows line-for-line when present', () => {
+    expect(buildSbar(base, T0 + 500_000)).not.toContain('=== CODE STATISTICS ===');
+    const stats = computeCodeStats({ ...base, pausedAt: base.endedAt, pausedAccumMs: 0 }, T0 + 500_000)!;
+    const text = buildSbar({ ...base, stats, training: true }, T0 + 500_000);
+    expect(text).toContain('=== CODE STATISTICS ===');
+    expect(text).toContain('TRAINING / SIMULATION');
+    expect(text).toContain('Times are from code activation, as logged.');
+    for (const r of statsRows(stats)) expect(text).toContain(`${r.label}: ${r.value}`);
   });
 });

@@ -15,74 +15,46 @@ import {
 const T0 = 1_000_000_000_000;
 
 describe('masterElapsedMs', () => {
+  const run = { startedAt: T0, endedAt: null, roscAccumMs: 0 };
+
   it('is zero before the code starts', () => {
-    expect(masterElapsedMs({ startedAt: null, pausedAt: null, pausedAccumMs: 0 }, T0)).toBe(0);
+    expect(masterElapsedMs({ startedAt: null, endedAt: null, roscAccumMs: 0 }, T0)).toBe(0);
   });
-
-  it('counts wall time while running', () => {
-    const s = { startedAt: T0, pausedAt: null, pausedAccumMs: 0 };
-    expect(masterElapsedMs(s, T0 + 90_000)).toBe(90_000);
+  it('counts wall time while running (CPR pauses included)', () => {
+    expect(masterElapsedMs(run, T0 + 90_000)).toBe(90_000);
   });
-
-  it('freezes while paused and does not advance with `now`', () => {
-    const s = { startedAt: T0, pausedAt: T0 + 30_000, pausedAccumMs: 0 };
-    expect(masterElapsedMs(s, T0 + 30_000)).toBe(30_000);
-    // still 30s no matter how much wall time passes while paused
-    expect(masterElapsedMs(s, T0 + 500_000)).toBe(30_000);
+  it('freezes at endedAt (ROSC / termination)', () => {
+    expect(masterElapsedMs({ ...run, endedAt: T0 + 30_000 }, T0 + 500_000)).toBe(30_000);
   });
-
-  it('subtracts accumulated pause duration after resume', () => {
-    // ran 30s, paused for 20s, then resumed
-    const s = { startedAt: T0, pausedAt: null, pausedAccumMs: 20_000 };
-    expect(masterElapsedMs(s, T0 + 80_000)).toBe(60_000);
+  it('subtracts closed ROSC intervals', () => {
+    expect(masterElapsedMs({ ...run, roscAccumMs: 20_000 }, T0 + 80_000)).toBe(60_000);
   });
-
   it('never goes negative', () => {
-    const s = { startedAt: T0, pausedAt: null, pausedAccumMs: 1e12 };
-    expect(masterElapsedMs(s, T0)).toBe(0);
+    expect(masterElapsedMs({ ...run, roscAccumMs: 1e12 }, T0)).toBe(0);
   });
 });
 
 describe('cycleElapsedMs / cycleRemainingMs', () => {
-  const base = { startedAt: T0, pausedAt: null, pausedAccumMs: 0, cyclePausedAccumMs: 0 };
+  const base = { pausedAt: null, cyclePausedAccumMs: 0 };
 
   it('treats a fresh, unstarted cycle as fully elapsed', () => {
     expect(cycleElapsedMs({ ...base, cycleStartedAt: null }, T0)).toBe(CYCLE_MS);
     expect(cycleRemainingMs({ ...base, cycleStartedAt: null }, T0)).toBe(0);
   });
-
   it('counts down inside the cycle', () => {
-    const s = { ...base, cycleStartedAt: T0 };
-    expect(cycleRemainingMs(s, T0 + 45_000)).toBe(CYCLE_MS - 45_000);
+    expect(cycleRemainingMs({ ...base, cycleStartedAt: T0 }, T0 + 45_000)).toBe(CYCLE_MS - 45_000);
   });
-
-  it('clamps elapsed at the cycle length (never overruns negative remaining)', () => {
+  it('clamps elapsed at the cycle length', () => {
     const s = { ...base, cycleStartedAt: T0 };
     expect(cycleElapsedMs(s, T0 + 10 * CYCLE_MS)).toBe(CYCLE_MS);
     expect(cycleRemainingMs(s, T0 + 10 * CYCLE_MS)).toBe(0);
   });
-
   it('is independent of the master clock after a mid-cycle reset', () => {
-    // master started long ago, cycle restarted 5s ago
-    const s = {
-      startedAt: T0,
-      pausedAt: null,
-      pausedAccumMs: 0,
-      cycleStartedAt: T0 + 600_000,
-      cyclePausedAccumMs: 0,
-    };
-    expect(masterElapsedMs(s, T0 + 605_000)).toBe(605_000);
-    expect(cycleRemainingMs(s, T0 + 605_000)).toBe(CYCLE_MS - 5_000);
+    expect(masterElapsedMs({ startedAt: T0, endedAt: null, roscAccumMs: 0 }, T0 + 605_000)).toBe(605_000);
+    expect(cycleRemainingMs({ ...base, cycleStartedAt: T0 + 600_000 }, T0 + 605_000)).toBe(CYCLE_MS - 5_000);
   });
-
-  it('freezes the cycle while paused', () => {
-    const s = {
-      startedAt: T0,
-      pausedAt: T0 + 40_000,
-      pausedAccumMs: 0,
-      cycleStartedAt: T0,
-      cyclePausedAccumMs: 0,
-    };
+  it('freezes the cycle while CPR is paused', () => {
+    const s = { pausedAt: T0 + 40_000, cyclePausedAccumMs: 0, cycleStartedAt: T0 };
     expect(cycleRemainingMs(s, T0 + 40_000)).toBe(CYCLE_MS - 40_000);
     expect(cycleRemainingMs(s, T0 + 999_999)).toBe(CYCLE_MS - 40_000);
   });

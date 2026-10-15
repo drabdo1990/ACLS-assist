@@ -21,12 +21,15 @@ import { POCUS_ITEMS } from '../content/pocus';
 import { waveformFor, waveformLabel } from '../content/calc';
 import { POST_ROSC_BUNDLE } from '../content/protocols';
 import { isChecklistItemOn } from './checklist';
+import { MAGNESIUM_PREFIX, POST_ROSC_PREFIX, RHYTHM_CHECK_PREFIX } from './eventQueries';
+import type { CodeStats } from './stats';
+import { STATS_TIME_NOTE, statsRows } from './statsFormat';
 
 export interface SbarInput {
   status: SessionStatus;
   startedAt: number | null;
-  pausedAt: number | null;
-  pausedAccumMs: number;
+  endedAt: number | null;
+  roscAccumMs: number;
   events: CodeEvent[];
   shocks: ShockEvent[];
   epi: DoseEvent[];
@@ -38,6 +41,10 @@ export interface SbarInput {
   causes: Partial<Record<CauseId, boolean>>;
   pocus: Partial<Record<PocusId, boolean>>;
   weightKg: number;
+  /** Per-code statistics; the section is omitted when absent. */
+  stats?: CodeStats | null;
+  training?: boolean;
+  voided?: boolean;
 }
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
@@ -67,8 +74,8 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   const epiMg = Math.round(input.epi.reduce((s, d) => s + (d.mg ?? 0), 0) * 100) / 100;
   const cycles = input.events.filter((e) => e.category === 'cycle').length;
   const rhythms = input.events
-    .filter((e) => e.category === 'rhythm' && e.label.startsWith('Rhythm check — '))
-    .map((e) => e.label.replace('Rhythm check — ', ''));
+    .filter((e) => e.category === 'rhythm' && e.label.startsWith(RHYTHM_CHECK_PREFIX))
+    .map((e) => e.label.replace(RHYTHM_CHECK_PREFIX, ''));
 
   const out: string[] = [];
 
@@ -111,7 +118,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
     }`,
   );
   out.push(`Lidocaine doses: ${input.lido.length}${input.lido.length ? ` (dosing weight ${input.weightKg} kg)` : ''}`);
-  const mg = input.events.filter((e) => e.category === 'drug' && e.label.startsWith('Magnesium')).length;
+  const mg = input.events.filter((e) => e.category === 'drug' && e.label.startsWith(MAGNESIUM_PREFIX)).length;
   if (mg) out.push(`Magnesium sulfate doses: ${mg}`);
   out.push('');
 
@@ -127,9 +134,18 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   out.push(`POCUS findings: ${pocus.length ? pocus.join(', ') : 'none recorded'}`);
   out.push('');
 
+  if (input.stats) {
+    out.push('=== CODE STATISTICS ===');
+    if (input.training) out.push('TRAINING / SIMULATION — not a real patient');
+    if (input.voided) out.push('VOIDED — excluded from statistics');
+    out.push(`(${STATS_TIME_NOTE})`);
+    for (const r of statsRows(input.stats)) out.push(`${r.label}: ${r.value}${r.flag ? ' ⚠ over 5:00' : ''}`);
+    out.push('');
+  }
+
   // Only meaningful once ROSC has occurred; otherwise every item would read as "pending".
   if (rosc) {
-    const done = POST_ROSC_BUNDLE.filter((i) => isChecklistItemOn(input.events, 'Post-ROSC', i.text));
+    const done = POST_ROSC_BUNDLE.filter((i) => isChecklistItemOn(input.events, POST_ROSC_PREFIX, i.text));
     const pending = POST_ROSC_BUNDLE.filter((i) => !done.includes(i));
     out.push('=== POST-ROSC CARE ===');
     out.push(`Completed (${done.length}/${POST_ROSC_BUNDLE.length}):`);

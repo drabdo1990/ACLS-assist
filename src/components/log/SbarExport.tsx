@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ClipboardCopy, Download, Eye, RotateCcw, Check } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import { buildSbar, sbarFilename } from '../../engine/sbar';
+import { computeCodeStats } from '../../engine/stats';
 import { BigButton } from '../ui/BigButton';
 import { HoldButton } from '../ui/HoldButton';
 import { Panel } from '../ui/Panel';
@@ -13,7 +14,11 @@ export function SbarExport() {
   const [copied, setCopied] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const build = () => buildSbar(useCodeStore.getState(), Date.now());
+  const build = () => {
+    const st = useCodeStore.getState();
+    const now = Date.now();
+    return buildSbar({ ...st, stats: computeCodeStats(st, now) }, now);
+  };
 
   const copy = async () => {
     const text = build();

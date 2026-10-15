@@ -12,22 +12,28 @@ export const CYCLE_MS = 120_000; // 2:00 CPR cycle
 export const WARN_MS = 30_000; // cyan -> amber
 export const CRIT_MS = 10_000; // amber -> flashing red + alarm
 
-export interface ClockState {
+export interface ArrestClockState {
   startedAt: number | null;
-  pausedAt: number | null;
-  pausedAccumMs: number;
+  /** Freeze point: ROSC or termination time; null while the arrest is ongoing. */
+  endedAt: number | null;
+  /** Sum of closed ROSC intervals. */
+  roscAccumMs: number;
 }
 
-export interface CycleClockState extends ClockState {
+export interface CycleClockState {
+  pausedAt: number | null;
   cycleStartedAt: number | null;
   cyclePausedAccumMs: number;
 }
 
-/** Total elapsed arrest time (ms), pause-aware. */
-export function masterElapsedMs(s: ClockState, now: number): number {
+/**
+ * Total arrest time (ms): activation → end (or now) minus ROSC intervals.
+ * CPR pauses COUNT — the patient is still in arrest while compressions are paused.
+ */
+export function masterElapsedMs(s: ArrestClockState, now: number): number {
   if (s.startedAt == null) return 0;
-  const ref = s.pausedAt ?? now;
-  return Math.max(0, ref - s.startedAt - s.pausedAccumMs);
+  const ref = s.endedAt ?? now;
+  return Math.max(0, ref - s.startedAt - s.roscAccumMs);
 }
 
 /** Elapsed time within the current CPR cycle (ms), pause-aware and independent of the master clock. */
@@ -103,7 +109,7 @@ export function formatCountdown(ms: number): string {
  * Clock model — which clock governs what:
  * - Audit timestamps (`CodeEvent.at`) and this drug re-dose interval use real wall-clock time:
  *   a drug's interval keeps running while CPR is paused, so it is deliberately NOT pause-aware.
- * - `CodeEvent.t` / the master clock are pause-aware elapsed arrest time (display only).
+ * - `CodeEvent.t` / the master clock are arrest time — CPR pauses included, ROSC periods excluded.
  * - The 2-minute cycle has its own pause-aware clock, independent of the master clock.
  */
 export function epiLockoutRemainingMs(

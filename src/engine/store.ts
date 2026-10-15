@@ -24,6 +24,17 @@ import {
   isStaleSession,
   loadPersisted,
 } from './persistence';
+import {
+  AIRWAY_EVENT_PREFIX,
+  BRANCH_EVENT_PREFIX,
+  CODE_ENDED_LABEL,
+  REARREST_LABEL,
+  RHYTHM_CHECK_PREFIX,
+  ROSC_LABEL,
+  SGA_LABEL,
+  airwayFromEvents,
+  branchFromEvents,
+} from './eventQueries';
 import { playChime, playClose, playConfirm } from './audio';
 import { haptic } from './haptics';
 import { CAUSES } from '../content/causes';
@@ -58,9 +69,7 @@ const BRANCH_LABEL: Record<RhythmBranch, string> = {
   shockable: 'Shockable (VF / pVT)',
   nonshockable: 'Non-shockable (Asystole / PEA)',
 };
-const BRANCH_EVENT_PREFIX = 'Rhythm branch: ';
-const AIRWAY_EVENT_PREFIX = 'Advanced airway placed';
-const AIRWAY_LABEL: Record<AirwayType, string> = { ETT: 'ETT', SGA: 'Supraglottic airway' };
+const AIRWAY_LABEL: Record<AirwayType, string> = { ETT: 'ETT', SGA: SGA_LABEL };
 
 export interface CodeStore extends PersistedSession {
   /** ticker-driven clock value; excluded from persistence */
@@ -98,17 +107,23 @@ export interface CodeStore extends PersistedSession {
   setWeight: (kg: number) => void;
   setMetronome: (patch: Partial<MetronomeState>) => void;
   setSetting: (patch: Partial<Settings>) => void;
+  setTraining: (on: boolean) => void;
+  setVoided: (on: boolean) => void;
   undoLastEvent: () => void;
   reset: () => void;
 }
 
 function toPersisted(s: CodeStore): PersistedSession {
   return {
-    version: 2,
+    version: 3,
     status: s.status,
     startedAt: s.startedAt,
     pausedAt: s.pausedAt,
     pausedAccumMs: s.pausedAccumMs,
+    endedAt: s.endedAt,
+    roscAccumMs: s.roscAccumMs,
+    training: s.training,
+    voided: s.voided,
     cycleStartedAt: s.cycleStartedAt,
     cyclePausedAccumMs: s.cyclePausedAccumMs,
     cycleIndex: s.cycleIndex,
@@ -135,29 +150,6 @@ export function totalEpiMg(epi: DoseEvent[]): number {
   return Math.round(epi.reduce((sum, d) => sum + (d.mg ?? 0), 0) * 100) / 100;
 }
 
-/** Branch implied by the most recent branch event (used to roll back on undo). */
-function branchFromEvents(events: CodeEvent[]): RhythmBranch | null {
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i];
-    if (e.category === 'rhythm' && e.label.startsWith(BRANCH_EVENT_PREFIX)) {
-      return e.label.includes('Non-shockable') ? 'nonshockable' : 'shockable';
-    }
-  }
-  return null;
-}
-
-/** Airway type implied by the most recent placement event (used to roll back an un-mark on undo). */
-function airwayFromEvents(events: CodeEvent[]): AirwayType {
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i];
-    if (e.category === 'airway' && e.label.startsWith(AIRWAY_EVENT_PREFIX)) {
-      return e.label.includes(AIRWAY_LABEL.SGA) ? 'SGA' : 'ETT';
-    }
-  }
-  return 'ETT';
-}
-
-const RHYTHM_CHECK_PREFIX = 'Rhythm check — ';
 const CAUSE_UNCHECK_PREFIX = 'Cause unchecked — ';
 const POCUS_UNCHECK_PREFIX = 'POCUS unchecked — ';
 
@@ -213,6 +205,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           startedAt: at,
           pausedAt: null,
           pausedAccumMs: 0,
+          endedAt: null,
+          roscAccumMs: 0,
           cycleStartedAt: at,
           cyclePausedAccumMs: 0,
           cycleIndex: 1,
@@ -291,15 +285,18 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const t = el(s, at);
         playChime();
         haptic.rosc();
+        const closesPause = s.status === 'paused' && s.pausedAt != null;
         return {
           status: 'rosc' as SessionStatus,
-          pausedAt: s.pausedAt ?? at,
+          endedAt: at,
+          pausedAt: s.pausedAt ?? at, // freezes the 2-min cycle
+          pausedAccumMs: closesPause ? s.pausedAccumMs + (at - (s.pausedAt as number)) : s.pausedAccumMs,
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
             mkEvent(
               'rosc',
-              'ROSC declared',
+              ROSC_LABEL,
               `Total arrest duration: ${formatDuration(t)}. Total shocks: ${s.shocks.length}. Total epi: ${totalEpiMg(s.epi)} mg.`,
               at,
               t,
@@ -314,13 +311,16 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         const t = el(s, at);
         playClose();
+        const closesPause = s.status === 'paused' && s.pausedAt != null;
         return {
           status: 'terminated' as SessionStatus,
+          endedAt: s.status === 'rosc' ? s.endedAt : at,
           pausedAt: s.pausedAt ?? at,
+          pausedAccumMs: closesPause ? s.pausedAccumMs + (at - (s.pausedAt as number)) : s.pausedAccumMs,
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
-            mkEvent('system', 'Code ended', `Resuscitation ceased · total duration ${formatDuration(t)}`, at, t),
+            mkEvent('system', CODE_ENDED_LABEL, `Resuscitation ceased · total duration ${formatDuration(t)}`, at, t),
           ],
         };
       }),
@@ -329,15 +329,16 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       apply((s) => {
         if (s.status !== 'rosc') return {};
         const at = clockNow();
-        const delta = s.pausedAt != null ? at - s.pausedAt : 0;
+        const roscDelta = s.endedAt != null ? Math.max(0, at - s.endedAt) : 0;
         return {
           status: 'active' as SessionStatus,
           pausedAt: null,
-          pausedAccumMs: s.pausedAccumMs + delta,
+          endedAt: null,
+          roscAccumMs: s.roscAccumMs + roscDelta,
           cycleStartedAt: at,
           cyclePausedAccumMs: 0,
           cycleIndex: s.cycleIndex + 1,
-          events: [...s.events, mkEvent('system', 'Re-arrest', 'CPR resumed', at, el(s, at))],
+          events: [...s.events, mkEvent('system', REARREST_LABEL, 'CPR resumed', at, el(s, at))],
         };
       }),
 
@@ -543,6 +544,9 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     setMetronome: (patch) => apply((s) => ({ metronome: { ...s.metronome, ...patch } })),
 
     setSetting: (patch) => apply((s) => ({ settings: { ...s.settings, ...patch } })),
+
+    setTraining: (on) => apply(() => ({ training: on })),
+    setVoided: (on) => apply(() => ({ voided: on })),
 
     undoLastEvent: () =>
       apply((s) => {

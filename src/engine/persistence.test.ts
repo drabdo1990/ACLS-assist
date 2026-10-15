@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   CORRUPT_STORAGE_KEY,
+  deriveClockFromEvents,
   STALE_SESSION_MS,
   STORAGE_KEY,
   emptySession,
@@ -45,7 +46,7 @@ describe('migrateV1', () => {
   const m = migrateV1(v1)!;
 
   it('produces a v2 session that preserves the running code', () => {
-    expect(m.version).toBe(2);
+    expect(m.version).toBe(3);
     expect(m.status).toBe('active');
     expect(m.startedAt).toBe(T0);
     expect(m.cycleIndex).toBe(3);
@@ -82,7 +83,7 @@ describe('migrateV1', () => {
 describe('emptySession', () => {
   it('starts idle with ACLS defaults', () => {
     const e = emptySession();
-    expect(e.version).toBe(2);
+    expect(e.version).toBe(3);
     expect(e.status).toBe('idle');
     expect(e.metronome.bpm).toBe(110);
     expect(e.settings.epiLockoutMs).toBe(180_000);
@@ -109,7 +110,7 @@ describe('sanitizeSession', () => {
   it('rejects wrong version, non-objects and bad status', () => {
     expect(sanitizeSession(null)).toBeNull();
     expect(sanitizeSession([])).toBeNull();
-    expect(sanitizeSession({ ...good(), version: 3 })).toBeNull();
+    expect(sanitizeSession({ ...good(), version: 4 })).toBeNull();
     expect(sanitizeSession({ ...good(), status: 'exploding' })).toBeNull();
   });
 
@@ -215,5 +216,104 @@ describe('isStaleSession', () => {
     expect(isStaleSession({ status: 'terminated', savedAt: T0 }, now)).toBe(false);
     expect(isStaleSession({ status: 'idle', savedAt: T0 }, now)).toBe(false);
     expect(isStaleSession({ status: 'active', savedAt: 0 }, now)).toBe(false);
+  });
+});
+
+describe('v2 → v3 migration', () => {
+  const ev = (at: number, category: string, label: string) => ({ id: `${at}`, at: T0 + at, t: at, category, label });
+
+  it('derives ROSC intervals and endedAt from the log', () => {
+    const events = [
+      ev(0, 'system', 'Code Blue activated'),
+      ev(100_000, 'rosc', 'ROSC declared'),
+      ev(160_000, 'system', 'Re-arrest'),
+      ev(300_000, 'rosc', 'ROSC declared'),
+    ];
+    expect(deriveClockFromEvents(events as never, 'rosc', T0 + 300_000)).toEqual({
+      roscAccumMs: 60_000,
+      endedAt: T0 + 300_000,
+    });
+  });
+
+  it('uses the Code ended time for terminated sessions (not the pause start)', () => {
+    const events = [ev(0, 'system', 'Code Blue activated'), ev(50_000, 'system', 'CPR paused'), ev(90_000, 'system', 'Code ended')];
+    expect(deriveClockFromEvents(events as never, 'terminated', T0 + 50_000).endedAt).toBe(T0 + 90_000);
+  });
+
+  it('upgrades a v2 snapshot, narrowing pausedAccumMs to CPR-pause time only', () => {
+    const v2: Record<string, unknown> = {
+      ...good(),
+      version: 2,
+      status: 'active',
+      pausedAccumMs: 80_000, // 60 s ROSC + 20 s CPR pause, mixed in v2
+      events: [
+        ev(0, 'system', 'Code Blue activated'),
+        ev(100_000, 'rosc', 'ROSC declared'),
+        ev(160_000, 'system', 'Re-arrest'),
+      ],
+    };
+    delete v2.endedAt;
+    delete v2.roscAccumMs;
+    const s = sanitizeSession(v2)!;
+    expect(s.version).toBe(3);
+    expect(s.roscAccumMs).toBe(60_000);
+    expect(s.pausedAccumMs).toBe(20_000);
+    expect(s.endedAt).toBeNull();
+    expect(s.training).toBe(false);
+    expect(s.voided).toBe(false);
+  });
+
+  it('keeps an open CPR pause from a v2 snapshot without going negative', () => {
+    const v2 = { ...good(), version: 2, status: 'paused', pausedAt: T0 + 40_000, pausedAccumMs: 0 };
+    const s = sanitizeSession(v2)!;
+    expect(s.status).toBe('paused');
+    expect(s.pausedAccumMs).toBe(0);
+    expect(s.endedAt).toBeNull();
+  });
+
+  it('rejects a v3 ROSC/terminated session without endedAt', () => {
+    expect(sanitizeSession({ ...good(), status: 'rosc', pausedAt: T0 + 1, endedAt: null })).toBeNull();
+  });
+});
+
+describe('migration — code terminated straight from ROSC (review fix)', () => {
+  const ev = (at: number, category: string, label: string) => ({ id: `${at}`, at: T0 + at, t: at, category, label });
+
+  it('freezes at the open ROSC, not at Code ended', () => {
+    const events = [ev(0, 'system', 'Code Blue activated'), ev(100_000, 'rosc', 'ROSC declared'), ev(400_000, 'system', 'Code ended')];
+    expect(deriveClockFromEvents(events as never, 'terminated', T0 + 100_000)).toEqual({ roscAccumMs: 0, endedAt: T0 + 100_000 });
+  });
+
+  it('handles ROSC → Re-arrest → ROSC → Code ended', () => {
+    const events = [
+      ev(0, 'system', 'Code Blue activated'),
+      ev(100_000, 'rosc', 'ROSC declared'),
+      ev(160_000, 'system', 'Re-arrest'),
+      ev(300_000, 'rosc', 'ROSC declared'),
+      ev(900_000, 'system', 'Code ended'),
+    ];
+    expect(deriveClockFromEvents(events as never, 'terminated', T0 + 300_000)).toEqual({ roscAccumMs: 60_000, endedAt: T0 + 300_000 });
+  });
+
+  it('v1 path: migrateV1 of a code terminated from ROSC keeps the ROSC freeze point', () => {
+    const m = migrateV1({
+      ...v1,
+      status: 'terminated',
+      pausedAt: T0 + 100_000,
+      events: [
+        { id: 'a', at: T0, t: 0, category: 'system', label: 'Code Initiated' },
+        { id: 'b', at: T0 + 100_000, t: 100_000, category: 'rosc', label: 'ROSC declared' },
+        { id: 'c', at: T0 + 400_000, t: 100_000, category: 'system', label: 'Code ended' },
+      ],
+    })!;
+    expect(m.endedAt).toBe(T0 + 100_000);
+  });
+});
+
+describe('training / voided persistence round-trip (spec §4.3)', () => {
+  it('keeps true flags through sanitizeSession', () => {
+    const s = sanitizeSession(JSON.parse(JSON.stringify({ ...good(), training: true, voided: true })))!;
+    expect(s.training).toBe(true);
+    expect(s.voided).toBe(true);
   });
 });

@@ -10,6 +10,8 @@ vi.mock('./audio', () => ({
 vi.mock('./clock', () => ({ clockNow: () => Date.now(), resyncClock: () => {} }));
 
 import { useCodeStore } from './store';
+import { masterElapsedMs } from './timing';
+import { computeCodeStats } from './stats';
 
 const T0 = 1_700_000_000_000;
 const at = (ms: number) => vi.setSystemTime(T0 + ms);
@@ -26,21 +28,20 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('pause / resume timestamps', () => {
-  it('logs "CPR resumed" at the frozen elapsed time, not before the pause', () => {
+describe('pause / resume — CPR pauses count as arrest time', () => {
+  it('keeps the arrest clock running through a CPR pause', () => {
     s().startCode();
     at(60_000);
     s().pauseCode();
     at(200_000);
     s().resumeCode();
-
-    const paused = s().events.find((e) => e.label === 'CPR paused')!;
-    expect(paused.t).toBe(60_000);
+    expect(s().events.find((e) => e.label === 'CPR paused')!.t).toBe(60_000);
     expect(lastEvent().label).toBe('CPR resumed');
-    expect(lastEvent().t).toBe(60_000);
+    expect(lastEvent().t).toBe(200_000);
+    expect(s().pausedAccumMs).toBe(140_000);
   });
 
-  it('excludes the paused interval from later events', () => {
+  it('includes the paused interval in later events', () => {
     s().startCode();
     at(60_000);
     s().pauseCode();
@@ -48,7 +49,58 @@ describe('pause / resume timestamps', () => {
     s().resumeCode();
     at(230_000);
     s().administerEpi();
+    expect(lastEvent().t).toBe(230_000);
+  });
+});
+
+describe('ROSC / termination freeze points', () => {
+  it('ROSC while CPR is paused closes the pause and freezes the clock at ROSC', () => {
+    s().startCode();
+    at(60_000);
+    s().pauseCode();
+    at(100_000);
+    s().declareRosc();
+    expect(s().endedAt).toBe(T0 + 100_000);
+    expect(s().pausedAccumMs).toBe(40_000);
+    expect(masterElapsedMs(s(), T0 + 500_000)).toBe(100_000);
+  });
+
+  it('sums two ROSC episodes and logs later events correctly', () => {
+    s().startCode();
+    at(100_000);
+    s().declareRosc();
+    at(200_000);
+    s().reArrest();
+    at(300_000);
+    s().declareRosc();
+    at(450_000);
+    s().reArrest();
+    expect(s().roscAccumMs).toBe(250_000);
+    at(500_000);
+    s().administerEpi();
+    expect(lastEvent().t).toBe(250_000);
+  });
+
+  it('terminating while CPR is paused freezes at the termination time', () => {
+    s().startCode();
+    at(60_000);
+    s().pauseCode();
+    at(90_000);
+    s().terminateCode();
+    expect(s().endedAt).toBe(T0 + 90_000);
+    expect(s().pausedAccumMs).toBe(30_000);
+    expect(masterElapsedMs(s(), T0 + 999_000)).toBe(90_000);
     expect(lastEvent().t).toBe(90_000);
+  });
+
+  it('terminating from ROSC keeps the clock frozen at ROSC', () => {
+    s().startCode();
+    at(100_000);
+    s().declareRosc();
+    at(300_000);
+    s().terminateCode();
+    expect(s().endedAt).toBe(T0 + 100_000);
+    expect(lastEvent().t).toBe(100_000);
   });
 });
 
@@ -354,5 +406,30 @@ describe('rhythm check keeps the algorithm branch in step', () => {
     expect(s().rhythmBranch).toBe('nonshockable');
     s().undoLastEvent();
     expect(s().rhythmBranch).toBe('shockable');
+  });
+});
+
+describe('statistics follow undo', () => {
+  it('drops an undone epinephrine dose from the stats', () => {
+    s().startCode();
+    at(60_000);
+    s().administerEpi();
+    expect(computeCodeStats(s(), T0 + 70_000)!.epi.count).toBe(1);
+    s().undoLastEvent();
+    expect(computeCodeStats(s(), T0 + 70_000)!.epi.count).toBe(0);
+    expect(computeCodeStats(s(), T0 + 70_000)!.firstEpiMs).toBeNull();
+  });
+});
+
+describe('training / void flags', () => {
+  it('sets the flags and clears them on New code', () => {
+    s().startCode();
+    s().setTraining(true);
+    s().setVoided(true);
+    expect(s().training).toBe(true);
+    expect(s().voided).toBe(true);
+    s().reset();
+    expect(s().training).toBe(false);
+    expect(s().voided).toBe(false);
   });
 });
