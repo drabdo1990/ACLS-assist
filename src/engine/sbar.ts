@@ -26,8 +26,8 @@ import { MAGNESIUM_PREFIX, POST_ROSC_PREFIX, RHYTHM_CHECK_PREFIX } from './event
 export interface SbarInput {
   status: SessionStatus;
   startedAt: number | null;
-  pausedAt: number | null;
-  pausedAccumMs: number;
+  endedAt: number | null;
+  roscAccumMs: number;
   events: CodeEvent[];
   shocks: ShockEvent[];
   epi: DoseEvent[];

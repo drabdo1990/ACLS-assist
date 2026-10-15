@@ -38,9 +38,7 @@ export function CyclePanel() {
     useShallow((s) => ({
       status: s.status,
       cycleIndex: s.cycleIndex,
-      startedAt: s.startedAt,
       pausedAt: s.pausedAt,
-      pausedAccumMs: s.pausedAccumMs,
       cycleStartedAt: s.cycleStartedAt,
       cyclePausedAccumMs: s.cyclePausedAccumMs,
     })),

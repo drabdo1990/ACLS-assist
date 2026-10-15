@@ -203,6 +203,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           startedAt: at,
           pausedAt: null,
           pausedAccumMs: 0,
+          endedAt: null,
+          roscAccumMs: 0,
           cycleStartedAt: at,
           cyclePausedAccumMs: 0,
           cycleIndex: 1,
@@ -281,9 +283,12 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const t = el(s, at);
         playChime();
         haptic.rosc();
+        const closesPause = s.status === 'paused' && s.pausedAt != null;
         return {
           status: 'rosc' as SessionStatus,
-          pausedAt: s.pausedAt ?? at,
+          endedAt: at,
+          pausedAt: s.pausedAt ?? at, // freezes the 2-min cycle
+          pausedAccumMs: closesPause ? s.pausedAccumMs + (at - (s.pausedAt as number)) : s.pausedAccumMs,
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
@@ -304,9 +309,12 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         const t = el(s, at);
         playClose();
+        const closesPause = s.status === 'paused' && s.pausedAt != null;
         return {
           status: 'terminated' as SessionStatus,
+          endedAt: s.status === 'rosc' ? s.endedAt : at,
           pausedAt: s.pausedAt ?? at,
+          pausedAccumMs: closesPause ? s.pausedAccumMs + (at - (s.pausedAt as number)) : s.pausedAccumMs,
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
@@ -319,11 +327,12 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       apply((s) => {
         if (s.status !== 'rosc') return {};
         const at = clockNow();
-        const delta = s.pausedAt != null ? at - s.pausedAt : 0;
+        const roscDelta = s.endedAt != null ? Math.max(0, at - s.endedAt) : 0;
         return {
           status: 'active' as SessionStatus,
           pausedAt: null,
-          pausedAccumMs: s.pausedAccumMs + delta,
+          endedAt: null,
+          roscAccumMs: s.roscAccumMs + roscDelta,
           cycleStartedAt: at,
           cyclePausedAccumMs: 0,
           cycleIndex: s.cycleIndex + 1,

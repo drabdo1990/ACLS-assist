@@ -13,8 +13,8 @@ function ev(t: number, category: CodeEvent['category'], label: string, detail?: 
 const base: SbarInput = {
   status: 'rosc',
   startedAt: T0,
-  pausedAt: T0 + 405_000,
-  pausedAccumMs: 0,
+  endedAt: T0 + 405_000,
+  roscAccumMs: 0,
   events: [
     ev(0, 'system', 'Code Blue activated'),
     ev(45_000, 'shock', 'Defibrillation: Shock #1 (200J Biphasic)'),
@@ -82,7 +82,7 @@ describe('buildSbar', () => {
   });
 
   it('handles an empty session gracefully', () => {
-    const empty = buildSbar({ ...base, events: [], status: 'idle', startedAt: null, pausedAt: null }, T0);
+    const empty = buildSbar({ ...base, events: [], status: 'idle', startedAt: null, endedAt: null }, T0);
     expect(empty).toContain('(no events)');
     expect(empty).toContain('Outcome: No cardiac arrest recorded');
     expect(empty).not.toContain('Post-ROSC bundle');
