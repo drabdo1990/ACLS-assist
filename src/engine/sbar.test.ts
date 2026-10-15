@@ -3,6 +3,8 @@ import { buildSbar, sbarFilename, type SbarInput } from './sbar';
 import type { CodeEvent } from './types';
 import { formatWallClock } from './timing';
 import { POST_ROSC_BUNDLE } from '../content/protocols';
+import { statsRows } from './statsFormat';
+import { computeCodeStats } from './stats';
 
 const T0 = 1_700_000_000_000;
 
@@ -127,5 +129,17 @@ describe('post-ROSC care section', () => {
 describe('sbarFilename', () => {
   it('is filename-safe and ends with .txt', () => {
     expect(sbarFilename(T0)).toMatch(/^resuscode-sbar-\d{8}-\d{4}\.txt$/);
+  });
+});
+
+describe('CODE STATISTICS section', () => {
+  it('is omitted without stats and matches statsRows line-for-line when present', () => {
+    expect(buildSbar(base, T0 + 500_000)).not.toContain('=== CODE STATISTICS ===');
+    const stats = computeCodeStats({ ...base, pausedAt: base.endedAt, pausedAccumMs: 0 }, T0 + 500_000)!;
+    const text = buildSbar({ ...base, stats, training: true }, T0 + 500_000);
+    expect(text).toContain('=== CODE STATISTICS ===');
+    expect(text).toContain('TRAINING / SIMULATION');
+    expect(text).toContain('Times are from code activation, as logged.');
+    for (const r of statsRows(stats)) expect(text).toContain(`${r.label}: ${r.value}`);
   });
 });
