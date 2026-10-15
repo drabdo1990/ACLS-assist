@@ -24,6 +24,17 @@ import {
   isStaleSession,
   loadPersisted,
 } from './persistence';
+import {
+  AIRWAY_EVENT_PREFIX,
+  BRANCH_EVENT_PREFIX,
+  CODE_ENDED_LABEL,
+  REARREST_LABEL,
+  RHYTHM_CHECK_PREFIX,
+  ROSC_LABEL,
+  SGA_LABEL,
+  airwayFromEvents,
+  branchFromEvents,
+} from './eventQueries';
 import { playChime, playClose, playConfirm } from './audio';
 import { haptic } from './haptics';
 import { CAUSES } from '../content/causes';
@@ -58,9 +69,7 @@ const BRANCH_LABEL: Record<RhythmBranch, string> = {
   shockable: 'Shockable (VF / pVT)',
   nonshockable: 'Non-shockable (Asystole / PEA)',
 };
-const BRANCH_EVENT_PREFIX = 'Rhythm branch: ';
-const AIRWAY_EVENT_PREFIX = 'Advanced airway placed';
-const AIRWAY_LABEL: Record<AirwayType, string> = { ETT: 'ETT', SGA: 'Supraglottic airway' };
+const AIRWAY_LABEL: Record<AirwayType, string> = { ETT: 'ETT', SGA: SGA_LABEL };
 
 export interface CodeStore extends PersistedSession {
   /** ticker-driven clock value; excluded from persistence */
@@ -135,29 +144,6 @@ export function totalEpiMg(epi: DoseEvent[]): number {
   return Math.round(epi.reduce((sum, d) => sum + (d.mg ?? 0), 0) * 100) / 100;
 }
 
-/** Branch implied by the most recent branch event (used to roll back on undo). */
-function branchFromEvents(events: CodeEvent[]): RhythmBranch | null {
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i];
-    if (e.category === 'rhythm' && e.label.startsWith(BRANCH_EVENT_PREFIX)) {
-      return e.label.includes('Non-shockable') ? 'nonshockable' : 'shockable';
-    }
-  }
-  return null;
-}
-
-/** Airway type implied by the most recent placement event (used to roll back an un-mark on undo). */
-function airwayFromEvents(events: CodeEvent[]): AirwayType {
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i];
-    if (e.category === 'airway' && e.label.startsWith(AIRWAY_EVENT_PREFIX)) {
-      return e.label.includes(AIRWAY_LABEL.SGA) ? 'SGA' : 'ETT';
-    }
-  }
-  return 'ETT';
-}
-
-const RHYTHM_CHECK_PREFIX = 'Rhythm check — ';
 const CAUSE_UNCHECK_PREFIX = 'Cause unchecked — ';
 const POCUS_UNCHECK_PREFIX = 'POCUS unchecked — ';
 
@@ -299,7 +285,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
             ...s.events,
             mkEvent(
               'rosc',
-              'ROSC declared',
+              ROSC_LABEL,
               `Total arrest duration: ${formatDuration(t)}. Total shocks: ${s.shocks.length}. Total epi: ${totalEpiMg(s.epi)} mg.`,
               at,
               t,
@@ -320,7 +306,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
-            mkEvent('system', 'Code ended', `Resuscitation ceased · total duration ${formatDuration(t)}`, at, t),
+            mkEvent('system', CODE_ENDED_LABEL, `Resuscitation ceased · total duration ${formatDuration(t)}`, at, t),
           ],
         };
       }),
@@ -337,7 +323,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           cycleStartedAt: at,
           cyclePausedAccumMs: 0,
           cycleIndex: s.cycleIndex + 1,
-          events: [...s.events, mkEvent('system', 'Re-arrest', 'CPR resumed', at, el(s, at))],
+          events: [...s.events, mkEvent('system', REARREST_LABEL, 'CPR resumed', at, el(s, at))],
         };
       }),
 

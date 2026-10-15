@@ -21,6 +21,7 @@ import { POCUS_ITEMS } from '../content/pocus';
 import { waveformFor, waveformLabel } from '../content/calc';
 import { POST_ROSC_BUNDLE } from '../content/protocols';
 import { isChecklistItemOn } from './checklist';
+import { MAGNESIUM_PREFIX, POST_ROSC_PREFIX, RHYTHM_CHECK_PREFIX } from './eventQueries';
 
 export interface SbarInput {
   status: SessionStatus;
@@ -67,8 +68,8 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   const epiMg = Math.round(input.epi.reduce((s, d) => s + (d.mg ?? 0), 0) * 100) / 100;
   const cycles = input.events.filter((e) => e.category === 'cycle').length;
   const rhythms = input.events
-    .filter((e) => e.category === 'rhythm' && e.label.startsWith('Rhythm check — '))
-    .map((e) => e.label.replace('Rhythm check — ', ''));
+    .filter((e) => e.category === 'rhythm' && e.label.startsWith(RHYTHM_CHECK_PREFIX))
+    .map((e) => e.label.replace(RHYTHM_CHECK_PREFIX, ''));
 
   const out: string[] = [];
 
@@ -111,7 +112,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
     }`,
   );
   out.push(`Lidocaine doses: ${input.lido.length}${input.lido.length ? ` (dosing weight ${input.weightKg} kg)` : ''}`);
-  const mg = input.events.filter((e) => e.category === 'drug' && e.label.startsWith('Magnesium')).length;
+  const mg = input.events.filter((e) => e.category === 'drug' && e.label.startsWith(MAGNESIUM_PREFIX)).length;
   if (mg) out.push(`Magnesium sulfate doses: ${mg}`);
   out.push('');
 
@@ -129,7 +130,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
 
   // Only meaningful once ROSC has occurred; otherwise every item would read as "pending".
   if (rosc) {
-    const done = POST_ROSC_BUNDLE.filter((i) => isChecklistItemOn(input.events, 'Post-ROSC', i.text));
+    const done = POST_ROSC_BUNDLE.filter((i) => isChecklistItemOn(input.events, POST_ROSC_PREFIX, i.text));
     const pending = POST_ROSC_BUNDLE.filter((i) => !done.includes(i));
     out.push('=== POST-ROSC CARE ===');
     out.push(`Completed (${done.length}/${POST_ROSC_BUNDLE.length}):`);
