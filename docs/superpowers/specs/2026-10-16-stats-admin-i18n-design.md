@@ -74,7 +74,7 @@ Session schema **v3** (`PersistedSession.version: 3`):
 ### 4.2 Statistics engine — `src/engine/stats.ts` (pure)
 
 ```ts
-type Outcome = 'rosc' | 'rosc_rearrest' | 'terminated' | 'incomplete';
+type Outcome = 'rosc' | 'rosc_then_terminated' | 'terminated' | 'incomplete';
 
 interface CodeStats {
   statsVersion: 1;
@@ -89,7 +89,9 @@ interface CodeStats {
   branchAtFirstEpi: RhythmBranch | null;
   shocks: { count: number; joules: number[] };
   epi: { count: number; meanIntervalMs: number | null; longestIntervalMs: number | null;
-         configuredIntervalMs: number; longestExceedsConfigured: boolean };
+         flagThresholdMs: number; longestExceedsThreshold: boolean };
+         // flag = guideline upper bound 5:00 (EPI_INTERVAL_FLAG_MS), not the configured lockout
+         // (the lockout is the MINIMUM re-dose interval, so it would flag normal 3:30 intervals)
   amiodarone: { count: number; totalMg: number };
   lidocaine: { count: number };
   magnesium: { count: number };
@@ -109,7 +111,7 @@ function computeCodeStats(session: PersistedSession, now: number): CodeStats | n
 - "From activation" means `event.at − startedAt` in wall-clock time, labelled **"from activation, as logged"** wherever it is shown.
 - Outcome:
   - `rosc` — final status is `rosc`.
-  - `rosc_rearrest` — status `terminated` with `roscCount > 0`.
+  - `rosc_then_terminated` — status `terminated` with `roscCount > 0` (re-arrest or terminated straight from ROSC).
   - `terminated` — status `terminated` with no ROSC.
   - `incomplete` — status `active` or `paused` when the record is captured.
 - Missing or legacy data gives `null` or an empty value, shown as "—". It never throws and never shows a fake 0.
@@ -121,7 +123,7 @@ function computeCodeStats(session: PersistedSession, now: number): CodeStats | n
 - A **"Code statistics" panel** on the Log/SBAR screen, shown when a code has started. It has:
   - a **Training / simulation** toggle;
   - a **Void** action, hold to confirm.
-- Both flags live in the session (`training: boolean`, `void: boolean`, default `false`).
+- Both flags live in the session (`training: boolean`, `voided: boolean`, default `false`; `void` is a JS keyword).
 - Void keeps the record but excludes it from statistics. Nothing is deleted.
 - An `=== CODE STATISTICS ===` section goes in the SBAR, placed after ASSESSMENT.
 
@@ -141,7 +143,7 @@ interface CodeRecord {
   unit: string | null;   // filled from enrollment when known
   stats: CodeStats;
   training: boolean;
-  void: boolean;
+  voided: boolean;
   uploadStatus: 'local' | 'queued' | 'sent' | 'sent_unconfirmed' | 'failed' | 'rejected';
   savedAt: number;
 }
@@ -208,7 +210,7 @@ interface UploadPayload {
   startEpochMs: number;
   startIso: string;          // with UTC offset
   training: boolean;
-  void: boolean;
+  voided: boolean;
   stats: CodeStats;
   sbar?: string;             // English SBAR with relative [MM:SS] times only; omitted for backfill
 }

@@ -11,6 +11,7 @@ vi.mock('./clock', () => ({ clockNow: () => Date.now(), resyncClock: () => {} })
 
 import { useCodeStore } from './store';
 import { masterElapsedMs } from './timing';
+import { computeCodeStats } from './stats';
 
 const T0 = 1_700_000_000_000;
 const at = (ms: number) => vi.setSystemTime(T0 + ms);
@@ -405,5 +406,17 @@ describe('rhythm check keeps the algorithm branch in step', () => {
     expect(s().rhythmBranch).toBe('nonshockable');
     s().undoLastEvent();
     expect(s().rhythmBranch).toBe('shockable');
+  });
+});
+
+describe('statistics follow undo', () => {
+  it('drops an undone epinephrine dose from the stats', () => {
+    s().startCode();
+    at(60_000);
+    s().administerEpi();
+    expect(computeCodeStats(s(), T0 + 70_000)!.epi.count).toBe(1);
+    s().undoLastEvent();
+    expect(computeCodeStats(s(), T0 + 70_000)!.epi.count).toBe(0);
+    expect(computeCodeStats(s(), T0 + 70_000)!.firstEpiMs).toBeNull();
   });
 });
