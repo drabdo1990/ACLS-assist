@@ -29,24 +29,27 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     if (!this.state.failed) return this.props.children;
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-bg p-6 text-center text-ink">
-        <p className="text-lg font-bold text-crit">Something went wrong</p>
+        <p className="text-lg font-bold text-crit">Something went wrong · حدث خطأ ما</p>
         <p className="max-w-sm text-sm text-mute">
           The screen could not be drawn. Your saved session is kept unless you reset it. Reload first; reset only if
           the problem returns.
+        </p>
+        <p className="max-w-sm text-sm text-mute" dir="rtl">
+          تعذر عرض الشاشة. تم الاحتفاظ بالجلسة المحفوظة ما لم تختر إعادة الضبط. أعد تحميل الصفحة أولاً؛ ولا تختر إعادة الضبط إلا إذا تكررت المشكلة.
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
           className="touch-hit min-h-[64px] w-full max-w-sm rounded-xl border border-cyber/60 bg-cyber/15 font-bold text-cyber"
         >
-          Reload
+          Reload · إعادة تحميل
         </button>
         <button
           type="button"
           onClick={this.resetAndReload}
           className="touch-hit min-h-[64px] w-full max-w-sm rounded-xl border border-crit/60 bg-crit/10 font-bold text-crit"
         >
-          Reset session and reload
+          Reset session and reload · إعادة ضبط الجلسة والتحميل
         </button>
       </div>
     );

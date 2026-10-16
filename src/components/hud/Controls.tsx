@@ -2,6 +2,7 @@ import { ClipboardList, Pause, Play, Radio, RotateCcw, ShieldAlert, Siren } from
 import { useCodeStore } from '../../engine/store';
 import { BigButton } from '../ui/BigButton';
 import { HoldButton } from '../ui/HoldButton';
+import { useT } from '../../i18n/useT';
 
 /**
  * Primary code lifecycle controls. Interventions elsewhere are one tap; lifecycle
@@ -9,6 +10,7 @@ import { HoldButton } from '../ui/HoldButton';
  * are press-and-hold.
  */
 export function Controls({ onEnd }: { onEnd: () => void }) {
+  const { t } = useT();
   const status = useCodeStore((s) => s.status);
   const startCode = useCodeStore((s) => s.startCode);
   const pauseCode = useCodeStore((s) => s.pauseCode);
@@ -24,8 +26,8 @@ export function Controls({ onEnd }: { onEnd: () => void }) {
         variant="crit"
         size="xl"
         icon={Siren}
-        label="START CODE"
-        sub="Starts the arrest clock, 2-min cycle and timestamped log"
+        label={t('hud.ctrl.startCode')}
+        sub={t('hud.ctrl.startCodeSub')}
         onClick={startCode}
         className="animate-ping-crit"
       />
@@ -35,13 +37,20 @@ export function Controls({ onEnd }: { onEnd: () => void }) {
   if (status === 'terminated') {
     return (
       <div className="grid grid-cols-2 gap-2">
-        <BigButton variant="cyber" size="lg" icon={ClipboardList} label="Review code" sub="Log & SBAR" onClick={onEnd} />
+        <BigButton
+          variant="cyber"
+          size="lg"
+          icon={ClipboardList}
+          label={t('hud.ctrl.reviewCode')}
+          sub={t('hud.ctrl.reviewCodeSub')}
+          onClick={onEnd}
+        />
         <HoldButton
           variant="outline"
           size="lg"
           icon={RotateCcw}
-          label="New code"
-          sub="Hold 2.5 s — clears session"
+          label={t('hud.ctrl.newCode')}
+          sub={t('hud.ctrl.newCodeSub')}
           durationMs={2500}
           onComplete={reset}
         />
@@ -52,8 +61,22 @@ export function Controls({ onEnd }: { onEnd: () => void }) {
   if (status === 'rosc') {
     return (
       <div className="grid grid-cols-2 gap-2">
-        <BigButton variant="crit" size="lg" icon={Siren} label="Re-arrest" sub="Resume CPR" onClick={reArrest} />
-        <BigButton variant="cyber" size="lg" icon={ClipboardList} label="Review code" sub="Log & SBAR" onClick={onEnd} />
+        <BigButton
+          variant="crit"
+          size="lg"
+          icon={Siren}
+          label={t('hud.ctrl.rearrest')}
+          sub={t('hud.ctrl.rearrestSub')}
+          onClick={reArrest}
+        />
+        <BigButton
+          variant="cyber"
+          size="lg"
+          icon={ClipboardList}
+          label={t('hud.ctrl.reviewCode')}
+          sub={t('hud.ctrl.reviewCodeSub')}
+          onClick={onEnd}
+        />
       </div>
     );
   }
@@ -62,15 +85,15 @@ export function Controls({ onEnd }: { onEnd: () => void }) {
   return (
     <div className="grid grid-cols-2 gap-2">
       {status === 'active' ? (
-        <BigButton variant="warn" size="lg" icon={Pause} label="Pause" onClick={pauseCode} />
+        <BigButton variant="warn" size="lg" icon={Pause} label={t('hud.ctrl.pause')} onClick={pauseCode} />
       ) : (
-        <BigButton variant="cyber" size="lg" icon={Play} label="Resume" onClick={resumeCode} />
+        <BigButton variant="cyber" size="lg" icon={Play} label={t('hud.ctrl.resume')} onClick={resumeCode} />
       )}
       <HoldButton
         variant="good"
         size="lg"
         icon={Radio}
-        label="ROSC Achieved"
+        label={t('hud.ctrl.rosc')}
         durationMs={1200}
         onComplete={declareRosc}
       />
@@ -78,8 +101,8 @@ export function Controls({ onEnd }: { onEnd: () => void }) {
         variant="outline"
         size="lg"
         icon={ShieldAlert}
-        label="End / Review Code"
-        sub="Hold 2 s — terminates and opens the log"
+        label={t('hud.ctrl.end')}
+        sub={t('hud.ctrl.endSub')}
         durationMs={2000}
         onComplete={() => {
           terminateCode();

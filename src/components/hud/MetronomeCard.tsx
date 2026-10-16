@@ -4,12 +4,14 @@ import { useMetronome } from '../../hooks/useMetronome';
 import { ensureAudio, playClick } from '../../engine/audio';
 import { hapticsSupported } from '../../engine/haptics';
 import { Panel } from '../ui/Panel';
+import { useT } from '../../i18n/useT';
 
 const MIN_BPM = 100;
 const MAX_BPM = 110;
 
 /** CPR metronome: LED-style visual beacon + synthesized audio tick + optional haptics. */
 export function MetronomeCard() {
+  const { t } = useT();
   const metronome = useCodeStore((s) => s.metronome);
   const setMetronome = useCodeStore((s) => s.setMetronome);
   const status = useCodeStore((s) => s.status);
@@ -24,9 +26,15 @@ export function MetronomeCard() {
     if (next && metronome.audio) playClick(true);
   };
 
+  const toggleText = metronome.on
+    ? status === 'paused'
+      ? t('hud.metro.paused')
+      : t('hud.metro.on')
+    : t('hud.metro.off');
+
   return (
     <Panel
-      title="CPR metronome"
+      title={t('hud.metro.title')}
       icon={Activity}
       accent={running ? 'cyber' : 'none'}
       right={
@@ -57,13 +65,13 @@ export function MetronomeCard() {
             }`}
             style={running ? { animationDuration: `${60 / metronome.bpm}s` } : undefined}
           />
-          {metronome.on ? (status === 'paused' ? 'Metronome PAUSED' : 'Metronome ON') : 'Metronome OFF'}
+          {toggleText}
         </button>
 
         <div className="flex flex-col items-center gap-1">
           <button
             type="button"
-            aria-label="Decrease rate"
+            aria-label={t('hud.metro.dec')}
             onClick={() => setMetronome({ bpm: Math.max(MIN_BPM, metronome.bpm - 5) })}
             className="touch-hit flex h-14 w-14 items-center justify-center rounded-xl border border-line bg-panel2 active:scale-95"
           >
@@ -71,7 +79,7 @@ export function MetronomeCard() {
           </button>
           <button
             type="button"
-            aria-label="Increase rate"
+            aria-label={t('hud.metro.inc')}
             onClick={() => setMetronome({ bpm: Math.min(MAX_BPM, metronome.bpm + 5) })}
             className="touch-hit flex h-14 w-14 items-center justify-center rounded-xl border border-line bg-panel2 active:scale-95"
           >
@@ -93,7 +101,7 @@ export function MetronomeCard() {
           ].join(' ')}
         >
           {metronome.audio ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-          Audio {metronome.audio ? 'on' : 'off'}
+          {metronome.audio ? t('hud.metro.audioOn') : t('hud.metro.audioOff')}
         </button>
         <button
           type="button"
@@ -104,13 +112,13 @@ export function MetronomeCard() {
           ].join(' ')}
         >
           <Vibrate className="h-5 w-5" />
-          Vibrate {metronome.haptic ? 'on' : 'off'}
+          {metronome.haptic ? t('hud.metro.vibrateOn') : t('hud.metro.vibrateOff')}
         </button>
       </div>
       {!hapticsSupported() ? (
-        <p className="mt-1 text-[11px] text-mute">Vibration unavailable on this device (iOS) — audio cues still fire.</p>
+        <p className="mt-1 text-[11px] text-mute">{t('hud.metro.noHaptics')}</p>
       ) : null}
-      <p className="mt-1 text-[11px] text-mute">Accent tick every 10 beats aids cadence counting.</p>
+      <p className="mt-1 text-[11px] text-mute">{t('hud.metro.accentNote')}</p>
     </Panel>
   );
 }

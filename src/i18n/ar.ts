@@ -216,6 +216,124 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'upload.test.notJson': 'أجاب البرنامج النصي بصفحة خطأ. تحقق من ضبط النشر على "أي شخص" وأنه أحدث إصدار.', // draft — clinician review required
   'upload.test.failed': 'تعذر الوصول إلى البرنامج النصي ({reason}).', // draft — clinician review required
 
+  // ---- App Shell ----
+  'app.title': 'قيادة إنعاش البالغين (ACLS)', // draft — clinician review required
+  'app.offline': 'دون اتصال', // draft — clinician review required
+  'app.settings': 'الإعدادات', // draft — clinician review required
+  'app.restored.title': 'تمت استعادة الجلسة من الزيارة السابقة', // draft — clinician review required
+  'app.restored.fresh': 'بدء من جديد', // draft — clinician review required
+  'app.restored.dismiss': 'إغلاق', // draft — clinician review required
+  'app.restored.stale':
+    'الجلسة المحفوظة عمرها {hours} ساعة — قد تكون لنداء إنعاش سابق. ابدأ من جديد، أو احتفظ بها لمراجعتها.', // draft — clinician review required
+  'app.restored.freshSession':
+    'تمت استعادة الجلسة من هذا الجهاز — المؤقتات مستمرة وفق الطوابع الزمنية المحفوظة.', // draft — clinician review required
+  'app.disclaimer':
+    'أداة مساعدة لدعم القرار السريري فقط، مستندة إلى دليل مقدم خدمة ACLS الصادر عن جمعية القلب السعودية 2024 (المتوافق مع AHA/ERC). تحقق من كل جرعة وفقاً للبروتوكول المحلي. ليست بديلاً عن التقدير السريري. خالية من المعلومات الصحية المحمية (PHI) — لا تُسجَّل أي بيانات تعريفية للمريض. تبقى البيانات على هذا الجهاز ما لم يتم تسجيل وحدتك لرفع بيانات الإنعاش (الإعدادات).', // draft — clinician review required
+  'tab.hud': 'شاشة التحكم (HUD)', // draft — clinician review required
+  'tab.causes': 'الأسباب (H’s & T’s)', // draft — clinician review required
+  'tab.log': 'السجل و SBAR', // draft — clinician review required
+
+  // ---- HUD Screen & Master Clock ----
+  'hud.roscBanner.title': 'حزمة رعاية ما بعد ROSC', // draft — clinician review required
+  'hud.roscBanner.sub': 'MAP ≥ 65 · SpO₂ 92–98% · تخطيط 12-lead · TTM — فتح القائمة', // draft — clinician review required
+  'hud.clock.status.standby': 'جاهزية', // draft — clinician review required
+  'hud.clock.status.active': 'توقف قلبي نشط', // draft — clinician review required
+  'hud.clock.status.paused': 'توقف قلبي نشط · موقوف مؤقتاً', // draft — clinician review required
+  'hud.clock.status.rosc': 'تحققت ROSC', // draft — clinician review required
+  'hud.clock.status.terminated': 'أُنهي الإنعاش', // draft — clinician review required
+  'hud.clock.elapsed': 'إجمالي وقت التوقف', // draft — clinician review required
+
+  // ---- Controls ----
+  'hud.ctrl.startCode': 'بدء نداء الإنعاش', // draft — clinician review required
+  'hud.ctrl.startCodeSub': 'بدء ساعة التوقف ودورة الدقيقتين وسجل الأحداث', // draft — clinician review required
+  'hud.ctrl.reviewCode': 'مراجعة النداء', // draft — clinician review required
+  'hud.ctrl.reviewCodeSub': 'السجل و SBAR', // draft — clinician review required
+  'hud.ctrl.newCode': 'نداء جديد', // draft — clinician review required
+  'hud.ctrl.newCodeSub': 'استمرار بالضغط 2.5 ثانية — مسح الجلسة', // draft — clinician review required
+  'hud.ctrl.rearrest': 'توقف قلبي متكرر', // draft — clinician review required
+  'hud.ctrl.rearrestSub': 'استئناف CPR', // draft — clinician review required
+  'hud.ctrl.pause': 'إيقاف مؤقت', // draft — clinician review required
+  'hud.ctrl.resume': 'استئناف', // draft — clinician review required
+  'hud.ctrl.rosc': 'تحققت ROSC', // draft — clinician review required
+  'hud.ctrl.end': 'إنهاء / مراجعة النداء', // draft — clinician review required
+  'hud.ctrl.endSub': 'استمرار بالضغط ثانيتين — إنهاء وفتح السجل', // draft — clinician review required
+
+  // ---- Cycle Panel ----
+  'hud.cycle.title': 'دورة CPR لمدة دقيقتين', // draft — clinician review required
+  'hud.cycle.index': 'الدورة {n}', // draft — clinician review required
+  'hud.cycle.awaiting': 'بانتظار البدء', // draft — clinician review required
+  'hud.cycle.stopped': 'الدورة متوقفة', // draft — clinician review required
+  'hud.cycle.complete': 'اكتملت الدورة', // draft — clinician review required
+  'hud.cycle.remaining': 'الوقت المتبقي للدورة', // draft — clinician review required
+  'hud.cycle.rhythmCheck': 'فحص النظم', // draft — clinician review required
+  'hud.cycle.switchCompressors': 'تبديل القائم بالضغطات', // draft — clinician review required
+  'hud.cycle.logRhythm': 'تسجيل النظم — إعادة ضبط الدورة', // draft — clinician review required
+  'hud.cycle.resetBtn': 'إعادة ضبط دورة الدقيقتين', // draft — clinician review required
+  'hud.cycle.subtext': 'ساعة التوقف مستمرة · طول الدورة {length} s', // draft — clinician review required
+
+  // ---- Intervention Grid ----
+  'hud.grid.title': 'تدخلات ACLS', // draft — clinician review required
+  'hud.grid.vent.ett': 'ضغطات صدرية مستمرة + نَفَس واحد كل 6 ثوانٍ (10 أنفاس/دقيقة)', // draft — clinician review required
+  'hud.grid.vent.none': 'ضغطات 30 : 2 تهوية — إيقاف مؤقت للأنفاس فقط', // draft — clinician review required
+  'hud.grid.epi.next': 'Epi مؤهل بعد {lockout}', // draft — clinician review required
+  'hud.grid.epi.eligible': 'مؤهل الآن — اضغط للتسجيل', // draft — clinician review required
+  'hud.grid.epi.flush': 'IV/IO + دفع 20 mL NS', // draft — clinician review required
+  'hud.grid.shock.last': 'آخر صدمة: #{n} {joules}J', // draft — clinician review required
+  'hud.grid.shock.select': 'اختيار الطاقة', // draft — clinician review required
+  'hud.grid.shock.deliver': 'توجيه الصدمة رقم {n} · {joules}J', // draft — clinician review required
+  'hud.grid.shock.waveformSub': '{waveform} — تسجيل وطابع زمني', // draft — clinician review required
+  'hud.grid.amio.sub1': 'جرعة 1 ← التالية 150 mg', // draft — clinician review required
+  'hud.grid.amio.sub2': 'جرعة 2 (الجرعة السريعة الأخيرة)', // draft — clinician review required
+  'hud.grid.amio.subMax': 'أُعطيت جرعتان كحد أقصى', // draft — clinician review required
+  'hud.grid.lido.exceeds': '⚠ يتجاوز الحد الأقصى 3 mg/kg (أُعطي {given}/{max} mg)', // draft — clinician review required
+  'hud.grid.lido.sub': 'جرعة {n} · {perKg}{interval} لوزن {kg} kg', // draft — clinician review required
+  'hud.grid.airwayPlaced': 'تم وضع مجرى هواء {type}', // draft — clinician review required
+  'hud.grid.ett': 'تم وضع ETT', // draft — clinician review required
+  'hud.grid.ettSub': 'مجرى هواء متقدم', // draft — clinician review required
+  'hud.grid.sga': 'تم وضع SGA', // draft — clinician review required
+  'hud.grid.sgaSub': 'فوق المزمار', // draft — clinician review required
+  'hud.grid.airwayActiveSub': 'ضغطات مستمرة مفعلة · اضغط للإلغاء', // draft — clinician review required
+  'hud.grid.energyTitle': 'طاقة إزالة الرجفان', // draft — clinician review required
+  'hud.grid.epiInterval': 'فاصل تكرار جرعة Epi', // draft — clinician review required
+  'hud.grid.mgIndication': 'Torsades', // draft — clinician review required
+  'hud.grid.logNoPulse': 'تسجيل عدم وجود نبض', // draft — clinician review required
+  'hud.grid.undo': 'تراجع عن آخر إدخال', // draft — clinician review required
+
+  // ---- Metronome ----
+  'hud.metro.title': 'إيقاع CPR (Metronome)', // draft — clinician review required
+  'hud.metro.audio': 'الصوت', // draft — clinician review required
+  'hud.metro.vibrate': 'الاهتزاز', // draft — clinician review required
+  'hud.metro.paused': 'الإيقاع موقوف مؤقتاً', // draft — clinician review required
+  'hud.metro.on': 'الإيقاع يعمل', // draft — clinician review required
+  'hud.metro.off': 'الإيقاع متوقف', // draft — clinician review required
+  'hud.metro.audioOn': 'تشغيل الصوت', // draft — clinician review required
+  'hud.metro.audioOff': 'إيقاف الصوت', // draft — clinician review required
+  'hud.metro.vibrateOn': 'تشغيل الاهتزاز', // draft — clinician review required
+  'hud.metro.vibrateOff': 'إيقاف الاهتزاز', // draft — clinician review required
+  'hud.metro.dec': 'تقليل السرعة', // draft — clinician review required
+  'hud.metro.inc': 'زيادة السرعة', // draft — clinician review required
+  'hud.metro.noHaptics': 'الاهتزاز غير متاح على هذا الجهاز (iOS) — التنبيهات الصوتية تعمل.', // draft — clinician review required
+  'hud.metro.accentNote': 'نغمة مميزة كل 10 نبضات للمساعدة في العد.', // draft — clinician review required
+
+  // ---- Rhythm Branch ----
+  'hud.branch.title': 'مسار النظم', // draft — clinician review required
+  'hud.branch.shockable.title': 'قابل للصدمة', // draft — clinician review required
+  'hud.branch.shockable.sub': 'VF / VT عديم النبض', // draft — clinician review required
+  'hud.branch.nonshockable.title': 'غير قابل للصدمة', // draft — clinician review required
+  'hud.branch.nonshockable.sub': 'Asystole / PEA', // draft — clinician review required
+  'hud.branch.then': 'ثم:', // draft — clinician review required
+
+  // ---- UI Controls & Notices ----
+  'ui.hold.confirm': 'استمر بالضغط للتأكيد', // draft — clinician review required
+  'ui.status.soundOff': 'كتم الصوت — اضغط هنا', // draft — clinician review required
+  'ui.status.notSaved': 'غير محفوظ', // draft — clinician review required
+  'ui.status.storageWarning': 'مساحة التخزين غير متاحة أو ممتلئة — إعادة تحميل الصفحة ستؤدي لفقدان الجلسة', // draft — clinician review required
+  'ui.clockNotice.text': 'تحديث: ساعة التوقف تستمر في العمل أثناء الإيقاف المؤقت للإنعاش — تُستثنى فترات ROSC فقط.', // draft — clinician review required
+  'ui.clockNotice.dismiss': 'حسناً', // draft — clinician review required
+  'ui.weight.title': 'وزن تحديد الجرعة', // draft — clinician review required
+  'ui.weight.dec': 'إنقاص الوزن', // draft — clinician review required
+  'ui.weight.inc': 'زيادة الوزن', // draft — clinician review required
+
   // ---- Reversible causes (H's & T's) ----
   'cause.hypoxia.label': 'نقص الأكسجة', // draft — clinician review required
   'cause.hypoxia.clue': 'مرض قلبي/رئوي مزمن، انسداد مجرى الهواء، انزياح الأنبوب؛ زُرقة.', // draft — clinician review required
