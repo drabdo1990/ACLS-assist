@@ -47,14 +47,27 @@ describe('schema v4 — migration and sanitisation', () => {
     expect(sanitizeSession({ ...emptySession(), population: 7 })).toBeNull();
   });
 
-  it('v4 weightKg must be null or 0.5–150; out-of-range becomes null (doses then read "Set weight")', () => {
-    expect(sanitizeSession({ ...emptySession(), weightKg: null })!.weightKg).toBeNull();
-    expect(sanitizeSession({ ...emptySession(), weightKg: 18 })!.weightKg).toBe(18);
-    expect(sanitizeSession({ ...emptySession(), weightKg: 0.5 })!.weightKg).toBe(0.5);
-    expect(sanitizeSession({ ...emptySession(), weightKg: 150 })!.weightKg).toBe(150);
-    expect(sanitizeSession({ ...emptySession(), weightKg: 0.4 })!.weightKg).toBeNull();
-    expect(sanitizeSession({ ...emptySession(), weightKg: 200 })!.weightKg).toBeNull();
-    expect(sanitizeSession({ ...emptySession(), weightKg: NaN })!.weightKg).toBeNull();
+  it('v4 pediatric weightKg must be null or 0.5–150; out-of-range becomes null (doses then read "Set weight")', () => {
+    const peds = (weightKg: number | null) => ({ ...emptySession(), population: 'pediatric', weightKg });
+    expect(sanitizeSession(peds(null))!.weightKg).toBeNull();
+    expect(sanitizeSession(peds(18))!.weightKg).toBe(18);
+    expect(sanitizeSession(peds(0.5))!.weightKg).toBe(0.5);
+    expect(sanitizeSession(peds(150))!.weightKg).toBe(150);
+    expect(sanitizeSession(peds(0.4))!.weightKg).toBeNull();
+    expect(sanitizeSession(peds(200))!.weightKg).toBeNull();
+    expect(sanitizeSession(peds(NaN))!.weightKg).toBeNull();
+  });
+
+  it('v4 adult weightKg keeps the full slider range 30–250 across a reload (no silent 70 kg fallback)', () => {
+    const adult = (weightKg: number | null) => ({ ...emptySession(), population: 'adult', weightKg });
+    expect(sanitizeSession(adult(30))!.weightKg).toBe(30);
+    expect(sanitizeSession(adult(151))!.weightKg).toBe(151);
+    expect(sanitizeSession(adult(200))!.weightKg).toBe(200);
+    expect(sanitizeSession(adult(250))!.weightKg).toBe(250);
+    expect(sanitizeSession(adult(251))!.weightKg).toBeNull();
+    expect(sanitizeSession(adult(29))!.weightKg).toBeNull();
+    expect(sanitizeSession(adult(null))!.weightKg).toBeNull();
+    expect(sanitizeSession(adult(NaN))!.weightKg).toBeNull();
   });
 
   it('v4 ageMonths must be null or an integer 0–216', () => {

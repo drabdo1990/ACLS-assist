@@ -300,8 +300,10 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
     isV4 && isNum(raw.ageMonths) && Number.isInteger(raw.ageMonths) && raw.ageMonths >= 0 && raw.ageMonths <= 216
       ? raw.ageMonths
       : null;
+  // Range follows the population: the adult slider allows 30–250 kg (store.setWeight), pediatric 0.5–150.
+  const [minKg, maxKg] = population === 'pediatric' ? [0.5, 150] : [30, 250];
   const weightKg = isV4
-    ? isNum(raw.weightKg) && raw.weightKg >= 0.5 && raw.weightKg <= 150
+    ? isNum(raw.weightKg) && raw.weightKg >= minKg && raw.weightKg <= maxKg
       ? raw.weightKg
       : null
     : isNum(raw.weightKg)
