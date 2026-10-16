@@ -39,7 +39,7 @@ export function CausesGrid() {
                     aria-pressed={on}
                     onClick={() => toggleCause(c.id)}
                     className={[
-                      'touch-hit flex min-h-[72px] items-start gap-3 rounded-xl border p-3 text-left active:scale-[0.98]',
+                      'touch-hit flex min-h-[72px] items-start gap-3 rounded-xl border p-3 text-start active:scale-[0.98]',
                       on ? 'border-warn bg-warn/15' : 'border-line bg-panel2',
                     ].join(' ')}
                   >

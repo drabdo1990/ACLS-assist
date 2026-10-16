@@ -14,7 +14,7 @@ export function RecordDetail({ record }: { record: CodeRecord }) {
         {statsRows(record.stats, lang).map((r) => (
           <div key={r.label} className="flex items-baseline justify-between gap-3 px-1 py-1">
             <dt className="text-xs text-mute">{r.label}</dt>
-            <dd className={`tnum text-end text-sm font-bold ${r.flag ? 'text-warn' : 'text-ink'}`}>
+            <dd dir="auto" className={`tnum text-end text-sm font-bold ${r.flag ? 'text-warn' : 'text-ink'}`}>
               {r.value}
               {r.flag ? ' ⚠' : ''}
             </dd>

@@ -11,8 +11,8 @@ import { ClockChangeNotice } from './components/ui/ClockChangeNotice';
 import { EnrollConfirm } from './components/EnrollConfirm';
 import { SettingsSheet } from './components/SettingsSheet';
 import type { EnrollFragment } from './engine/enrollLink';
-
 import { useT } from './i18n/useT';
+import { AR_CLINICAL_REVIEWED } from './i18n/review';
 
 type Tab = 'hud' | 'causes' | 'log';
 
@@ -32,7 +32,7 @@ function useOnline(): boolean {
 }
 
 export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }) {
-  const { t } = useT();
+  const { t, lang } = useT();
   useTicker();
   const { active: wakeActive, supported: wakeSupported } = useWakeLock();
   const online = useOnline();
@@ -72,7 +72,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
             <h1 className="font-mono text-base font-bold tracking-tight text-ink">ResusCode</h1>
             <p className="text-[10px] uppercase tracking-widest text-mute">{t('app.title')}</p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ms-auto flex items-center gap-2">
             <SaveFailedChip />
             <AudioHint />
             <span
@@ -111,6 +111,11 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
       {/* Body */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-3 pt-3 pb-appbar">
         <EnrollConfirm fragment={pendingEnroll} onEnrolled={() => setSettingsOpen(true)} />
+        {lang === 'ar' && !AR_CLINICAL_REVIEWED ? (
+          <p role="note" className="mb-3 rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-xs font-semibold text-warn">
+            {t('i18n.draftNotice')}
+          </p>
+        ) : null}
         <ClockChangeNotice />
         {restored ? (
           <div className="mb-3 flex items-center gap-2 rounded-xl border border-warn/60 bg-warn/10 p-3 text-xs font-semibold text-warn">
@@ -174,7 +179,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
                 {tabItem.label}
                 {badge ? (
                   <span
-                    className={`absolute top-2 right-3 h-2 w-2 rounded-full ${tabItem.id === 'causes' ? 'bg-good' : 'bg-crit'}`}
+                    className={`absolute top-2 end-3 h-2 w-2 rounded-full ${tabItem.id === 'causes' ? 'bg-good' : 'bg-crit'}`}
                   />
                 ) : null}
               </button>

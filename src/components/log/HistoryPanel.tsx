@@ -33,7 +33,7 @@ export function HistoryPanel() {
             {aggregateRows(agg, lang).map((r) => (
               <div key={r.label} className="flex items-baseline justify-between gap-3 rounded-lg border border-line bg-panel2/60 px-3 py-2">
                 <dt className="text-xs text-mute">{r.label}</dt>
-                <dd className="tnum text-end text-sm font-bold text-ink">{r.value}</dd>
+                <dd dir="auto" className="tnum text-end text-sm font-bold text-ink">{r.value}</dd>
               </div>
             ))}
           </dl>

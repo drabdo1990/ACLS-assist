@@ -78,7 +78,7 @@ export function Timeline() {
         <button
           type="button"
           onClick={() => setAscending((v) => !v)}
-          className="touch-hit ml-auto shrink-0 rounded-full border border-line bg-panel2 px-4 py-2 text-sm font-bold text-mute"
+          className="touch-hit ms-auto shrink-0 rounded-full border border-line bg-panel2 px-4 py-2 text-sm font-bold text-mute"
         >
           {ascending ? t('timeline.oldestFirst') : t('timeline.newestFirst')}
         </button>

@@ -34,6 +34,17 @@
     min-height: 100%;
   }
 
+  /* Arabic: system Arabic faces first (no web fonts — offline-safe); Arabic glyphs read smaller
+     at equal px, so text gets a little more line-height. Monospace clocks keep Latin digits. */
+  html:lang(ar) {
+    --font-sans:
+      system-ui, 'Segoe UI', 'Geeza Pro', 'SF Arabic', 'Noto Sans Arabic', 'Noto Naskh Arabic', Tahoma, Arial,
+      sans-serif;
+  }
+  html:lang(ar) body {
+    line-height: 1.6;
+  }
+
   body {
     margin: 0;
     background-color: var(--color-bg);

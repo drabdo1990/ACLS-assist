@@ -70,7 +70,7 @@ export function RhythmBranch() {
                 {step.state === 'done' ? (
                   <Check className="h-4 w-4 shrink-0 text-good" />
                 ) : step.state === 'current' ? (
-                  <ArrowRight className="h-4 w-4 shrink-0" />
+                  <ArrowRight className="h-4 w-4 shrink-0 rtl:-scale-x-100" />
                 ) : (
                   <span className="h-4 w-4 shrink-0" />
                 )}

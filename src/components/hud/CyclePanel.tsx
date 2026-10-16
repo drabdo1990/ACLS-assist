@@ -123,7 +123,7 @@ export function CyclePanel() {
           />
         </svg>
         <div className="flex flex-col items-center">
-          <span
+          <span dir="ltr"
             className={`tnum font-mono text-6xl font-bold leading-none ${
               expired || warning ? 'animate-flash text-crit' : ''
             }`}

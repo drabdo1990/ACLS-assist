@@ -58,7 +58,7 @@ export function BigButton({
       disabled={disabled}
       onClick={onClick}
       className={[
-        'touch-hit select-none relative flex w-full items-center gap-3 rounded-2xl border px-4 text-left',
+        'touch-hit select-none relative flex w-full items-center gap-3 rounded-2xl border px-4 text-start',
         'transition-[transform,background-color,opacity] duration-100 active:scale-[0.97]',
         height,
         VARIANT_CLASS[variant],

@@ -38,7 +38,7 @@ export function MetronomeCard() {
       icon={Activity}
       accent={running ? 'cyber' : 'none'}
       right={
-        <span className="tnum text-xs font-bold text-mute">{metronome.bpm} bpm</span>
+        <span dir="ltr" className="tnum text-xs font-bold text-mute">{metronome.bpm} bpm</span>
       }
     >
       <div className="flex items-center gap-3">

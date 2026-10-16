@@ -103,7 +103,7 @@ export function HoldButton({
       onPointerLeave={cancel}
       onContextMenu={(e) => e.preventDefault()}
       className={[
-        'touch-hit relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-4 text-left',
+        'touch-hit relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-4 text-start',
         'transition-[transform] duration-100 active:scale-[0.98]',
         height,
         skin.base,
@@ -113,7 +113,7 @@ export function HoldButton({
     >
       <span
         aria-hidden
-        className={`absolute inset-y-0 left-0 ${skin.fill} transition-none`}
+        className={`absolute inset-y-0 start-0 ${skin.fill} transition-none`}
         style={{ width: `${pct * 100}%` }}
       />
       <span className="relative flex w-full items-center gap-3">

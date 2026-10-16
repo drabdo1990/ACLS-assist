@@ -23,7 +23,7 @@ export function PocusChecklist() {
               aria-pressed={on}
               onClick={() => togglePocus(p.id)}
               className={[
-                'touch-hit flex min-h-[64px] w-full items-start gap-3 rounded-xl border p-3 text-left active:scale-[0.98]',
+                'touch-hit flex min-h-[64px] w-full items-start gap-3 rounded-xl border p-3 text-start active:scale-[0.98]',
                 on ? 'border-cyber bg-cyber/15' : 'border-line bg-panel2',
               ].join(' ')}
             >

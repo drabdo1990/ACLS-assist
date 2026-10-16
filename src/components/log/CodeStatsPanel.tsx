@@ -57,7 +57,7 @@ export function CodeStatsPanel() {
             className="flex items-baseline justify-between gap-3 rounded-lg border border-line bg-panel2/60 px-3 py-2"
           >
             <dt className="text-xs text-mute">{r.label}</dt>
-            <dd className={`tnum text-end text-sm font-bold ${r.flag ? 'text-warn' : 'text-ink'}`}>
+            <dd dir="auto" className={`tnum text-end text-sm font-bold ${r.flag ? 'text-warn' : 'text-ink'}`}>
               {r.value}
               {r.flag ? ' ⚠' : ''}
             </dd>

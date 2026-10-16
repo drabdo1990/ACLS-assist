@@ -27,7 +27,7 @@ export function HudScreen({ onEnd, onOpenCauses }: { onEnd: () => void; onOpenCa
         <button
           type="button"
           onClick={onOpenCauses}
-          className="touch-hit flex min-h-[64px] items-center gap-3 rounded-2xl border border-good bg-good/15 px-4 text-left text-good active:scale-[0.98]"
+          className="touch-hit flex min-h-[64px] items-center gap-3 rounded-2xl border border-good bg-good/15 px-4 text-start text-good active:scale-[0.98]"
         >
           <HeartPulse className="h-7 w-7 shrink-0" />
           <span>

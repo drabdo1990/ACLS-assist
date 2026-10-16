@@ -291,7 +291,7 @@ export function InterventionGrid() {
             disabled={!canUndo}
             className="touch-hit flex min-h-[64px] w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-panel2 px-2 text-sm font-bold text-mute active:scale-[0.98] disabled:opacity-40"
           >
-            <Undo2 className="h-4 w-4" /> {t('hud.grid.undo')}
+            <Undo2 className="h-4 w-4 rtl:-scale-x-100" /> {t('hud.grid.undo')}
           </button>
         </div>
       </div>

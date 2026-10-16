@@ -16,7 +16,7 @@ export function WeightControl() {
       <div className="mb-2 flex items-center gap-2">
         <Scale className="h-4 w-4 text-mute" />
         <span className="text-xs font-bold uppercase tracking-widest text-mute">{t('ui.weight.title')}</span>
-        <span className="tnum ml-auto font-mono text-xl font-bold text-cyber">{weightKg} kg</span>
+        <span dir="ltr" className="tnum ms-auto font-mono text-xl font-bold text-cyber">{weightKg} kg</span>
       </div>
       <div className="grid grid-cols-6 gap-1.5">
         <button
