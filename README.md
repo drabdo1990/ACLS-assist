@@ -91,6 +91,23 @@ slow a running code, and a device can stop uploading at any time. Setup for admi
 > before your hospital's data-governance team has approved what is sent, who can open the sheet,
 > and retention.
 
+## Language — English / العربية
+
+The whole app, clinical text included, runs in **English or Arabic** with a right-to-left layout
+in Arabic. The language is detected from the device (Arabic when the browser's first language is
+Arabic) and can be changed any time in **Settings → Language**; switching never touches the
+running code. Clocks, doses and units stay in Western digits and Latin script, dates are always
+Gregorian, and drug names stay Latin inside Arabic text.
+
+- The event log keeps a canonical English audit trail; Arabic is rendered from keys stored with
+  each event, and older events without keys show their English text.
+- The SBAR export has its own language choice (defaults to the app language, remembered). Uploads,
+  the device history and the CSV always stay English.
+- **Arabic clinical wording is a draft.** Every Arabic clinical string carries
+  `// draft — clinician review required`, and Arabic mode shows a notice that English is the
+  reference until a clinician signs off — see
+  [docs/i18n/arabic-clinical-review.md](docs/i18n/arabic-clinical-review.md).
+
 ## Tech stack
 
 | Layer | Choice |
