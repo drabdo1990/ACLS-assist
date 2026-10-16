@@ -394,6 +394,51 @@ const UI = {
   'timeline.newestFirst': 'Newest first',
   'timeline.empty': 'No events recorded yet.',
   'log.title': 'Event log · {count} events',
+
+  // ---- Settings sheet ----
+  'settings.title': 'Settings',
+  'settings.close': 'Close settings',
+  'settings.upload.title': 'Code upload',
+  'settings.upload.enrolled': 'Enrolled',
+  'settings.upload.waiting': 'Waiting to send: {n}',
+  'settings.upload.nothingWaiting': 'Nothing waiting to send.',
+  'settings.upload.sending': 'Sending…',
+  'settings.upload.sendTest': 'Send test record',
+  'settings.upload.stop': 'Stop uploading',
+  'settings.upload.stopSub': 'Hold 2 s — this device only',
+  'settings.upload.off': "Upload is off. Codes stay on this device. Your unit's admin can give you an enrollment link or code.",
+  'settings.backfill.title': 'Earlier codes',
+  'settings.backfill.ask': 'Send earlier codes (statistics only)? Codes: {n}',
+  'settings.backfill.send': 'Send',
+  'settings.backfill.notNow': 'Not now',
+  'settings.enroll.title': 'Enroll with a code',
+  'settings.enroll.field': 'Paste the enrollment code or link',
+  'settings.enroll.placeholder': 'https://…#enroll=…  or the code after #enroll=',
+  'settings.enroll.invalid': "That code isn't valid.",
+  'settings.enroll.check': 'Check code',
+  'settings.history.title': 'History on this device',
+  'settings.retention.all': 'Keep all',
+  'settings.retention.last': 'Keep last…',
+  'settings.retention.afterUpload': 'Delete after upload',
+  'settings.retention.note':
+    'Up to 500 codes are kept. "Delete after upload" removes a code from this device only once the sheet has confirmed it.',
+  'settings.device.title': 'This device',
+  'settings.device.id': 'Device id',
+  'settings.device.note':
+    'Random, created on this device. When enrolled, finished codes send their statistics, start date and time, your unit and a summary note with relative times. No patient identifiers are ever recorded.',
+
+  // ---- Enrollment (consent wording) ----
+  'enroll.enroll': 'Enroll',
+  'enroll.cancel': 'Cancel',
+  'enroll.dismiss': 'Dismiss',
+  'enroll.linkInvalid': 'That enrollment link was not valid and was ignored.',
+  'enroll.confirmTitle': 'Enroll this device for code upload?',
+  'enroll.notice':
+    "If you enroll, each finished code's statistics (times, shocks, drugs, outcome), its start date and time, your unit and a summary note with relative times — never patient identifiers — are sent to the Google Sheet of the admin who issued this code.",
+  'enroll.destination': 'Destination',
+  'enroll.unit': 'Unit',
+  'enroll.replacing': 'This replaces your current enrollment.',
+  'enroll.nothingSent': 'Nothing is sent until you tap Enroll. You can stop at any time in Settings.',
 } as const;
 
 type CauseKey = `cause.${CauseId}.${'label' | 'clue' | 'action'}`;

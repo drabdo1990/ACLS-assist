@@ -388,6 +388,51 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'timeline.empty': 'لم يتم تسجيل أي أحداث بعد.', // draft — clinician review required
   'log.title': 'سجل الأحداث · {count} حدث', // draft — clinician review required
 
+  // ---- Settings sheet ----
+  'settings.title': 'الإعدادات',
+  'settings.close': 'إغلاق الإعدادات',
+  'settings.upload.title': 'رفع بيانات النداءات',
+  'settings.upload.enrolled': 'مسجَّل',
+  'settings.upload.waiting': 'بانتظار الإرسال: {n}',
+  'settings.upload.nothingWaiting': 'لا شيء بانتظار الإرسال.',
+  'settings.upload.sending': 'جارٍ الإرسال…',
+  'settings.upload.sendTest': 'إرسال سجل تجريبي',
+  'settings.upload.stop': 'إيقاف الرفع',
+  'settings.upload.stopSub': 'اضغط مطولاً 2 ثانية — لهذا الجهاز فقط',
+  'settings.upload.off': 'الرفع متوقف. تبقى النداءات على هذا الجهاز. يمكن لمسؤول وحدتك تزويدك برابط أو رمز تسجيل.',
+  'settings.backfill.title': 'نداءات سابقة',
+  'settings.backfill.ask': 'إرسال النداءات السابقة (الإحصاءات فقط)؟ العدد: {n}',
+  'settings.backfill.send': 'إرسال',
+  'settings.backfill.notNow': 'ليس الآن',
+  'settings.enroll.title': 'التسجيل برمز',
+  'settings.enroll.field': 'الصق رمز التسجيل أو الرابط',
+  'settings.enroll.placeholder': 'https://…#enroll=…  أو الرمز بعد #enroll=',
+  'settings.enroll.invalid': 'هذا الرمز غير صالح.',
+  'settings.enroll.check': 'التحقق من الرمز',
+  'settings.history.title': 'السجل على هذا الجهاز',
+  'settings.retention.all': 'الاحتفاظ بالكل',
+  'settings.retention.last': 'الاحتفاظ بآخر…',
+  'settings.retention.afterUpload': 'الحذف بعد الرفع',
+  'settings.retention.note':
+    'يُحتفظ بما يصل إلى 500 نداء. خيار «الحذف بعد الرفع» يزيل النداء من هذا الجهاز فقط بعد أن يؤكد الجدول استلامه.',
+  'settings.device.title': 'هذا الجهاز',
+  'settings.device.id': 'معرّف الجهاز',
+  'settings.device.note':
+    'معرّف عشوائي أُنشئ على هذا الجهاز. عند التسجيل، تُرسل النداءات المنتهية إحصاءاتها وتاريخ ووقت البدء ووحدتك وملخصاً بأوقات نسبية. لا تُسجَّل أي معرّفات للمرضى أبداً.', // draft — clinician review required (consent wording)
+
+  // ---- Enrollment (consent wording) ----
+  'enroll.enroll': 'تسجيل',
+  'enroll.cancel': 'إلغاء',
+  'enroll.dismiss': 'إغلاق',
+  'enroll.linkInvalid': 'رابط التسجيل هذا غير صالح وتم تجاهله.',
+  'enroll.confirmTitle': 'تسجيل هذا الجهاز لرفع بيانات النداءات؟',
+  'enroll.notice':
+    'عند التسجيل، تُرسل إحصاءات كل نداء منتهٍ (الأوقات، الصدمات، الأدوية، النتيجة) وتاريخ ووقت بدئه ووحدتك وملخصاً بأوقات نسبية — دون أي معرّفات للمرضى — إلى جدول Google الخاص بالمسؤول الذي أصدر هذا الرمز.', // draft — clinician review required (consent wording)
+  'enroll.destination': 'الوجهة',
+  'enroll.unit': 'الوحدة',
+  'enroll.replacing': 'سيحل هذا محل تسجيلك الحالي.',
+  'enroll.nothingSent': 'لا يُرسل أي شيء حتى تضغط «تسجيل». يمكنك الإيقاف في أي وقت من الإعدادات.', // draft — clinician review required (consent wording)
+
   // ---- Reversible causes (H's & T's) ----
   'cause.hypoxia.label': 'نقص الأكسجة', // draft — clinician review required
   'cause.hypoxia.clue': 'مرض قلبي/رئوي مزمن، انسداد مجرى الهواء، انزياح الأنبوب؛ زُرقة.', // draft — clinician review required

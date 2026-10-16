@@ -77,13 +77,8 @@ const ALLOWED_TOKENS = new Set([
   'test',
 ]);
 
-/** Files pending migration in Task 7 */
-const PENDING = new Set([
-  'src/components/SettingsSheet.tsx',
-  'src/components/EnrollConfirm.tsx',
-  'src/components/EnrollmentSummary.tsx',
-  'src/main.tsx',
-]);
+/** Files still awaiting translation — empty: every screen is now translated. */
+const PENDING = new Set<string>([]);
 
 /** Exempt files with justified standalone fallback */
 const EXEMPT = new Set([
@@ -222,10 +217,7 @@ describe('hard-coded-text guard', () => {
     expect(failures).toEqual({});
   });
 
-  it('verifies that PENDING list contains only expected un-migrated files', () => {
-    expect(PENDING.size).toBeGreaterThan(0);
-    for (const file of PENDING) {
-      expect(fs.existsSync(file), `Pending file does not exist: ${file}`).toBe(true);
-    }
+  it('has no files left pending translation', () => {
+    expect([...PENDING]).toEqual([]);
   });
 });
