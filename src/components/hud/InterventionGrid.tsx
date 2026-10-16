@@ -88,9 +88,11 @@ export function InterventionGrid() {
   const ring = (f: StepFocus) => (focus === f ? FOCUS_RING : '');
 
   const isLido = antiarrhythmic === 'lidocaine';
-  const lidoNext = lidocaineDose(weightKg, lido.length);
+  // Adult HUD: null weight falls back to the 70 kg default (pediatric uses its own card).
+  const lidoKg = weightKg ?? 70;
+  const lidoNext = lidocaineDose(lidoKg, lido.length);
   const lidoBudget = lidocaineBudget(
-    weightKg,
+    lidoKg,
     lido.map((d) => d.mg ?? 0),
   );
   const aaLabel = isLido
@@ -104,7 +106,7 @@ export function InterventionGrid() {
           n: lido.length + 1,
           perKg: lidoNext.perKgLabel,
           interval: lido.length ? ' q5–10 min' : '',
-          kg: weightKg,
+          kg: lidoKg,
         })
     : amio.length === 0
       ? t('hud.grid.amio.sub1')

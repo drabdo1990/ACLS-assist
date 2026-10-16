@@ -57,6 +57,28 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'ev.postRosc.on': 'رعاية ما بعد ROSC: {item}', // draft — clinician review required
   'ev.postRosc.off': 'رعاية ما بعد ROSC (أُلغي التحديد): {item}', // draft — clinician review required
 
+  // ---- Pediatric events ----
+  'ev.pedsStart.measured': 'نداء إنعاش أطفال — {kg} kg (مقاس)', // draft — clinician review required
+  'ev.pedsStart.estimated': 'نداء إنعاش أطفال — {kg} kg (تقديري، العمر {years} y)', // draft — clinician review required
+  'ev.pedsStart.estimatedMonths': 'نداء إنعاش أطفال — {kg} kg (تقديري، العمر {months} m)', // draft — clinician review required
+  'ev.pedsStart.noWeight': 'نداء إنعاش أطفال — الوزن غير محدد', // draft — clinician review required
+  'ev.weight.set.measured': 'تم تحديد الوزن — {kg} kg (مقاس)', // draft — clinician review required
+  'ev.weight.set.estimated': 'تم تحديد الوزن — {kg} kg (تقديري، العمر {years} y)', // draft — clinician review required
+  'ev.weight.set.estimatedMonths': 'تم تحديد الوزن — {kg} kg (تقديري، العمر {months} m)', // draft — clinician review required
+  'ev.weight.corrected.measured': 'تم تصحيح الوزن — {kg} kg (مقاس)', // draft — clinician review required
+  'ev.weight.corrected.estimated': 'تم تصحيح الوزن — {kg} kg (تقديري، العمر {years} y)', // draft — clinician review required
+  'ev.weight.corrected.estimatedMonths': 'تم تصحيح الوزن — {kg} kg (تقديري، العمر {months} m)', // draft — clinician review required
+  'ev.pedsEpi': 'Epinephrine {mg} mg IV/IO', // draft — clinician review required
+  'ev.pedsEpi.detail': 'الجرعة رقم {n} · 0.01 mg/kg ({kg} kg)', // draft — clinician review required
+  'ev.pedsEpi.noWeight': 'أُعطي Epinephrine — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
+  'ev.pedsEpi.noWeight.detail': 'الجرعة رقم {n} · حدد الوزن لحساب الجرعات', // draft — clinician review required
+  'ev.pedsAmio.noWeight': 'أُعطي Amiodarone — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
+  'ev.pedsLido': 'Lidocaine {mg} mg IV/IO', // draft — clinician review required
+  'ev.pedsLido.detail': 'الجرعة رقم {n} · 1 mg/kg ({kg} kg)', // draft — clinician review required
+  'ev.pedsLido.noWeight': 'أُعطي Lidocaine — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
+  'ev.pedsMag': 'Magnesium sulfate {minMg}–{maxMg} mg IV/IO', // draft — clinician review required
+  'ev.pedsMag.noWeight': 'أُعطي Magnesium — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
+
   // ---- Event param values ----
   'rhythm.VF': 'VF',
   'rhythm.pVT': 'pVT',

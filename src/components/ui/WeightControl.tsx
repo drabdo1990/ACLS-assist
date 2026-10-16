@@ -8,7 +8,8 @@ const PRESETS = [50, 70, 90, 110];
 /** Dosing weight control (lidocaine mg/kg): quick chips plus a 5 kg stepper. Persists with the session. */
 export function WeightControl() {
   const { t } = useT();
-  const weightKg = useCodeStore((s) => s.weightKg);
+  // Adult slider: null (shouldn't happen in adult mode) falls back to the 70 kg default.
+  const weightKg = useCodeStore((s) => s.weightKg) ?? 70;
   const setWeight = useCodeStore((s) => s.setWeight);
 
   return (

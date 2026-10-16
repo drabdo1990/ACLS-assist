@@ -45,7 +45,7 @@ export interface SbarInput {
   airwayType: AirwayType | null;
   causes: Partial<Record<CauseId, boolean>>;
   pocus: Partial<Record<PocusId, boolean>>;
-  weightKg: number;
+  weightKg: number | null;
   /** Per-code statistics; the section is omitted when absent. */
   stats?: CodeStats | null;
   training?: boolean;
@@ -152,7 +152,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now(), opts: Sbar
     : '';
   out.push(translate(lang, 'sbar.amio', { count: input.amio.length, details: amioDetails }));
   const lidoDetails = input.lido.length
-    ? translate(lang, 'sbar.lido.weight', { kg: input.weightKg })
+    ? translate(lang, 'sbar.lido.weight', { kg: input.weightKg ?? 70 })
     : '';
   out.push(translate(lang, 'sbar.lido', { count: input.lido.length, details: lidoDetails }));
   const mg = input.events.filter((e) => e.category === 'drug' && e.label.startsWith(MAGNESIUM_PREFIX)).length;

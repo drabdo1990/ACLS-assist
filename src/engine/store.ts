@@ -21,6 +21,7 @@ import { clockNow } from './clock';
 import {
   clearPersisted,
   createDebouncedWriter,
+  DEFAULT_WEIGHT_KG,
   emptySession,
   isStaleSession,
   loadPersisted,
@@ -43,7 +44,10 @@ import {
   waveformFor,
 } from '../content/calc';
 import { keyed } from '../i18n/enText';
+import type { KeyedEvent } from '../i18n/enText';
 import type { MessageKey } from '../i18n/en';
+import { profileFor } from '../content/profiles';
+import type { Population, WeightSource } from '../content/profiles';
 
 let idCounter = 0;
 function uid(): string {
@@ -65,6 +69,36 @@ function mkEvent(
   if (i18n?.detailKey) e.detailKey = i18n.detailKey;
   if (i18n?.detailParams) e.detailParams = i18n.detailParams;
   return e;
+}
+
+/** Age wording: months under 1 year, otherwise fractional years ("age 2.5 y"). */
+function ageEventParams(ageMonths: number): { key: 'estimatedMonths' | 'estimated'; params: Record<string, number> } {
+  if (ageMonths < 12) return { key: 'estimatedMonths', params: { months: ageMonths } };
+  return { key: 'estimated', params: { years: Math.round((ageMonths / 12) * 10) / 10 } };
+}
+
+/** The pediatric weight event label for a set/corrected weight (canonical English + key). */
+function weightEvent(corrected: boolean, kg: number, source: WeightSource, ageMonths: number | null): KeyedEvent {
+  if (source === 'measured') {
+    return keyed(corrected ? 'ev.weight.corrected.measured' : 'ev.weight.set.measured', { kg });
+  }
+  const age = ageEventParams(ageMonths ?? 0);
+  const base = corrected ? 'ev.weight.corrected.' : 'ev.weight.set.';
+  return keyed((`${base}${age.key}`) as MessageKey, { kg, ...age.params });
+}
+
+/** The population event logged as the first event of a pediatric code (null for adult). */
+function populationStartEvent(
+  weightKg: number | null,
+  weightSource: WeightSource,
+  ageMonths: number | null,
+): KeyedEvent | null {
+  if (weightKg == null) return keyed('ev.pedsStart.noWeight');
+  if (weightSource === 'estimated') {
+    const age = ageEventParams(ageMonths ?? 0);
+    return keyed((`ev.pedsStart.${age.key}`) as MessageKey, { kg: weightKg, ...age.params });
+  }
+  return keyed('ev.pedsStart.measured', { kg: weightKg });
 }
 
 export interface CodeStore extends PersistedSession {
@@ -89,6 +123,10 @@ export interface CodeStore extends PersistedSession {
   reArrest: () => void;
 
   logEvent: (category: EventCategory, label: string, detail?: string, i18n?: EventI18n) => void;
+  /** Idle only: the Adult / Pediatric toggle. Locked by startCode. */
+  setPopulation: (p: Population) => void;
+  /** Pediatric weight entry — before the code (no event) or during one (logged). */
+  setPediatricWeight: (kg: number, source: WeightSource, ageMonths?: number | null) => void;
   setRhythmBranch: (branch: RhythmBranch) => void;
   administerEpi: () => void;
   deliverShock: (joules: number) => void;
@@ -111,7 +149,8 @@ export interface CodeStore extends PersistedSession {
 
 function toPersisted(s: CodeStore): PersistedSession {
   return {
-    version: 3,
+    version: 4,
+    population: s.population,
     status: s.status,
     startedAt: s.startedAt,
     pausedAt: s.pausedAt,
@@ -136,6 +175,8 @@ function toPersisted(s: CodeStore): PersistedSession {
     pocus: s.pocus,
     metronome: s.metronome,
     weightKg: s.weightKg,
+    weightSource: s.weightSource,
+    ageMonths: s.ageMonths,
     settings: s.settings,
     savedAt: Date.now(),
   };
@@ -198,6 +239,14 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         const ev1 = keyed('ev.start', undefined, 'ev.start.detail');
         const ev2 = keyed('ev.compressions', undefined, 'ev.compressions.detail');
+        const events: CodeEvent[] = [...s.events];
+        // The population event opens the pediatric audit trail; adult keeps today's two events.
+        if (s.population === 'pediatric') {
+          const pop = populationStartEvent(s.weightKg, s.weightSource, s.ageMonths);
+          if (pop) events.push(mkEvent('system', pop.label, pop.detail, at, 0, pop.i18n));
+        }
+        events.push(mkEvent('system', ev1.label, ev1.detail, at, 0, ev1.i18n));
+        events.push(mkEvent('cpr', ev2.label, ev2.detail, at, 0, ev2.i18n));
         return {
           status: 'active' as SessionStatus,
           startedAt: at,
@@ -208,11 +257,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           cycleStartedAt: at,
           cyclePausedAccumMs: 0,
           cycleIndex: 1,
-          events: [
-            ...s.events,
-            mkEvent('system', ev1.label, ev1.detail, at, 0, ev1.i18n),
-            mkEvent('cpr', ev2.label, ev2.detail, at, 0, ev2.i18n),
-          ],
+          events,
         };
       }),
 
@@ -353,6 +398,44 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         return { events: [...s.events, mkEvent(category, label, detail, at, el(s, at), i18n)] };
       }),
 
+    setPopulation: (p) =>
+      apply((s) => {
+        if (s.status !== 'idle' || s.population === p) return {};
+        return {
+          population: p,
+          // Switching population resets the weight: adult falls back to the 70 kg default,
+          // pediatric starts with "Set weight".
+          weightKg: p === 'pediatric' ? null : DEFAULT_WEIGHT_KG,
+          weightSource: null,
+          ageMonths: null,
+        };
+      }),
+
+    setPediatricWeight: (kg, source, ageMonths = null) =>
+      apply((s) => {
+        if (s.population !== 'pediatric' || s.status === 'terminated') return {};
+        if (!Number.isFinite(kg) || kg < 0.5 || kg > 150) return {};
+        const kgR = Math.round(kg * 10) / 10;
+        const age =
+          source === 'estimated' && ageMonths != null && Number.isInteger(ageMonths) && ageMonths >= 0 && ageMonths <= 216
+            ? ageMonths
+            : null;
+        if (s.status === 'idle') {
+          return { weightKg: kgR, weightSource: source, ageMonths: age };
+        }
+        const corrected = s.events.some(
+          (e) => e.label.startsWith('Weight set — ') || e.label.startsWith('Weight corrected — '),
+        );
+        const ev = weightEvent(corrected, kgR, source, age);
+        const at = clockNow();
+        return {
+          weightKg: kgR,
+          weightSource: source,
+          ageMonths: age,
+          events: [...s.events, mkEvent('system', ev.label, ev.detail, at, el(s, at), ev.i18n)],
+        };
+      }),
+
     setRhythmBranch: (branch) =>
       apply((s) => {
         if (s.rhythmBranch === branch) return {};
@@ -373,9 +456,22 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         const t = el(s, at);
         const n = s.epi.length + 1;
-        const label = 'Epinephrine 1 mg IV/IO';
         playConfirm();
         haptic.confirm();
+        if (s.population === 'pediatric') {
+          const dose = profileFor('pediatric').epinephrine(s.weightKg, n - 1);
+          const epiEv = dose
+            ? keyed('ev.pedsEpi', { mg: dose.mg }, 'ev.pedsEpi.detail', { n, kg: s.weightKg ?? 0 })
+            : keyed('ev.pedsEpi.noWeight', undefined, 'ev.pedsEpi.noWeight.detail', { n });
+          return {
+            epi: [...s.epi, { at, t, label: epiEv.label, mg: dose ? dose.mg : null }],
+            events: [
+              ...s.events,
+              mkEvent('drug', epiEv.label, epiEv.detail, at, t, epiEv.i18n),
+            ],
+          };
+        }
+        const label = 'Epinephrine 1 mg IV/IO';
         const epiEv = keyed('ev.epi', undefined, 'ev.epi.detail', { n });
         return {
           epi: [...s.epi, { at, t, label, mg: 1 }],
@@ -421,10 +517,29 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         const t = el(s, at);
         const count = s.amio.length;
-        const mg = amiodaroneDoseMg(count);
-        const label = `Amiodarone ${mg} mg IV/IO`;
         playConfirm();
         haptic.confirm();
+        if (s.population === 'pediatric') {
+          const dose = profileFor('pediatric').amiodarone(s.weightKg, count);
+          if (!dose) {
+            const offEv = keyed('ev.pedsAmio.noWeight');
+            return {
+              amio: [...s.amio, { at, t, label: offEv.label, mg: null }],
+              events: [...s.events, mkEvent('drug', offEv.label, undefined, at, t, offEv.i18n)],
+            };
+          }
+          const detailKey: MessageKey = count === 0 ? 'ev.dose.first' : count === 1 ? 'ev.dose.second' : 'ev.dose.additional';
+          const amioEv = keyed('ev.amio', { mg: dose.mg }, detailKey);
+          return {
+            amio: [...s.amio, { at, t, label: amioEv.label, mg: dose.mg }],
+            events: [
+              ...s.events,
+              mkEvent('drug', amioEv.label, amioEv.detail, at, t, amioEv.i18n),
+            ],
+          };
+        }
+        const mg = amiodaroneDoseMg(count);
+        const label = `Amiodarone ${mg} mg IV/IO`;
         const detailKey: MessageKey = count === 0 ? 'ev.dose.first' : count === 1 ? 'ev.dose.second' : 'ev.dose.additional';
         const amioEv = keyed('ev.amio', { mg }, detailKey);
         return {
@@ -440,11 +555,33 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       apply((s) => {
         const at = clockNow();
         const t = el(s, at);
-        const d = lidocaineDose(s.weightKg, s.lido.length);
-        const budget = lidocaineBudget(s.weightKg, s.lido.map((x) => x.mg ?? 0));
-        const label = `Lidocaine ${d.minMg}–${d.maxMg} mg IV/IO`;
         playConfirm();
         haptic.confirm();
+        if (s.population === 'pediatric') {
+          const dose = profileFor('pediatric').lidocaine(s.weightKg, s.lido.length);
+          if (!dose) {
+            const offEv = keyed('ev.pedsLido.noWeight');
+            return {
+              lido: [...s.lido, { at, t, label: offEv.label, mg: null }],
+              events: [...s.events, mkEvent('drug', offEv.label, undefined, at, t, offEv.i18n)],
+            };
+          }
+          const lidoEv = keyed('ev.pedsLido', { mg: dose.mg }, 'ev.pedsLido.detail', {
+            n: s.lido.length + 1,
+            kg: s.weightKg ?? 0,
+          });
+          return {
+            lido: [...s.lido, { at, t, label: lidoEv.label, mg: dose.mg }],
+            events: [
+              ...s.events,
+              mkEvent('drug', lidoEv.label, lidoEv.detail, at, t, lidoEv.i18n),
+            ],
+          };
+        }
+        const kg = s.weightKg ?? DEFAULT_WEIGHT_KG;
+        const d = lidocaineDose(kg, s.lido.length);
+        const budget = lidocaineBudget(kg, s.lido.map((x) => x.mg ?? 0));
+        const label = `Lidocaine ${d.minMg}–${d.maxMg} mg IV/IO`;
         const detailKey: MessageKey = budget.nextExceeds ? 'ev.lido.detailExceeds' : 'ev.lido.detail';
         const lidoEv = keyed(
           'ev.lido',
@@ -453,7 +590,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           {
             n: d.doseNo,
             perKg: d.perKgLabel,
-            kg: s.weightKg,
+            kg,
             cumMg: budget.givenMg + d.minMg,
             maxMg: budget.maxMg,
           },
@@ -472,6 +609,15 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         playConfirm();
         haptic.confirm();
+        if (s.population === 'pediatric') {
+          const dose = profileFor('pediatric').magnesium(s.weightKg);
+          const magEv = dose
+            ? keyed('ev.pedsMag', { minMg: dose.minMg, maxMg: dose.maxMg })
+            : keyed('ev.pedsMag.noWeight');
+          return {
+            events: [...s.events, mkEvent('drug', magEv.label, magEv.detail, at, el(s, at), magEv.i18n)],
+          };
+        }
         const magEv = keyed('ev.mag', undefined, 'ev.mag.detail');
         return {
           events: [...s.events, mkEvent('drug', magEv.label, magEv.detail, at, el(s, at), magEv.i18n)],
@@ -547,7 +693,9 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       }),
 
     setWeight: (kg) =>
-      apply(() => {
+      apply((s) => {
+        // Adult-only slider; pediatric weight goes through setPediatricWeight.
+        if (s.population === 'pediatric') return {};
         const clamped = Math.max(30, Math.min(250, Math.round(kg)));
         return { weightKg: clamped };
       }),
@@ -599,7 +747,20 @@ export const useCodeStore = create<CodeStore>((set, get) => {
 
     reset: () => {
       clearPersisted();
-      set({ ...emptySession(), now: clockNow(), rev: 0, restored: false, staleAgeMs: null });
+      // New code: the population choice survives (it is a device-level choice); the weight
+      // resets per population (adult default 70, pediatric "Set weight").
+      set((s) => {
+        const peds = s.population === 'pediatric';
+        return {
+          ...emptySession(),
+          population: s.population,
+          weightKg: peds ? null : DEFAULT_WEIGHT_KG,
+          now: clockNow(),
+          rev: 0,
+          restored: false,
+          staleAgeMs: null,
+        };
+      });
     },
   };
 });

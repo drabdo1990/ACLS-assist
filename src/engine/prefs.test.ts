@@ -2,12 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { memoryKV, throwingKV } from './testing/memoryKV';
 import {
   DEFAULT_RETENTION,
+  POPULATION_KEY,
   PREFS_KEY,
   enrollmentLink,
   encodeEnrollment,
   loadPrefs,
   parseEnrollmentCode,
+  readStoredPopulation,
   savePrefs,
+  savePopulation,
   validateEnrollment,
 } from './prefs';
 
@@ -105,5 +108,25 @@ describe('enrollment codes', () => {
     expect(parseEnrollmentCode('!!!not-base64!!!')).toBeNull();
     expect(parseEnrollmentCode('')).toBeNull();
     expect(parseEnrollmentCode(btoa('{"url":1}'))).toBeNull();
+  });
+});
+
+describe('population device preference (phase 4a)', () => {
+  it('defaults to adult and round-trips under its own key', () => {
+    const kv = memoryKV();
+    expect(readStoredPopulation(kv)).toBe('adult');
+    expect(savePopulation(kv, 'pediatric')).toBe(true);
+    expect(kv.get(POPULATION_KEY)).toBe('pediatric');
+    expect(readStoredPopulation(kv)).toBe('pediatric');
+    savePopulation(kv, 'adult');
+    expect(readStoredPopulation(kv)).toBe('adult');
+  });
+
+  it('treats an invalid stored value, unreadable storage or no storage as adult', () => {
+    expect(readStoredPopulation(memoryKV({ [POPULATION_KEY]: 'feline' }))).toBe('adult');
+    expect(readStoredPopulation(throwingKV())).toBe('adult');
+    expect(readStoredPopulation(null)).toBe('adult');
+    expect(savePopulation(memoryKV(), 'pediatric')).toBe(true);
+    expect(savePopulation(null, 'pediatric')).toBe(false);
   });
 });

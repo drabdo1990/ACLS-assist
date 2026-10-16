@@ -29,7 +29,8 @@ export const DEFAULT_WEIGHT_KG = 70;
 
 export function emptySession(): PersistedSession {
   return {
-    version: 3,
+    version: 4,
+    population: 'adult',
     status: 'idle',
     startedAt: null,
     pausedAt: null,
@@ -54,6 +55,8 @@ export function emptySession(): PersistedSession {
     pocus: {},
     metronome: { on: false, audio: true, haptic: true, bpm: 110 },
     weightKg: DEFAULT_WEIGHT_KG,
+    weightSource: null,
+    ageMonths: null,
     settings: { epiLockoutMs: 180_000, defaultJoules: 200 },
     savedAt: 0,
   };
@@ -223,7 +226,8 @@ function sanitizeEvent(raw: unknown): CodeEvent {
   return ev;
 }
 const validDose = (e: unknown) =>
-  isObj(e) && isNum(e.at) && isNum(e.t) && typeof e.label === 'string' && (e.mg === undefined || isNum(e.mg));
+  isObj(e) && isNum(e.at) && isNum(e.t) && typeof e.label === 'string' &&
+  (e.mg === undefined || e.mg === null || isNum(e.mg));
 const validShock = (e: unknown) =>
   isObj(e) && isNum(e.at) && isNum(e.t) && isNum(e.joules) && typeof e.shockable === 'boolean';
 const validFlagMap = (v: unknown) => isObj(v) && Object.values(v).every((x) => typeof x === 'boolean');
@@ -236,12 +240,13 @@ function field<T>(v: unknown, ok: (x: unknown) => boolean, fallback: T): T | und
 const arrayOf = (fn: (x: unknown) => boolean) => (v: unknown) => Array.isArray(v) && v.every(fn);
 
 /**
- * Runtime validation of a stored v2/v3 snapshot (v2 is upgraded to v3). Clinical / time / event
- * structure that is malformed rejects the whole payload (so it is never presented as a trustworthy
- * session); cosmetic preferences (metronome, settings) fall back to defaults field by field.
+ * Runtime validation of a stored v2/v3/v4 snapshot (v2 upgrades to v3 clock fields; v2/v3
+ * upgrade to v4 population/weight metadata as adult). Clinical / time / event structure that
+ * is malformed rejects the whole payload (so it is never presented as a trustworthy session);
+ * cosmetic preferences (metronome, settings) fall back to defaults field by field.
  */
 export function sanitizeSession(raw: unknown): PersistedSession | null {
-  if (!isObj(raw) || (raw.version !== 2 && raw.version !== 3)) return null;
+  if (!isObj(raw) || (raw.version !== 2 && raw.version !== 3 && raw.version !== 4)) return null;
   const base = emptySession();
 
   if (typeof raw.status !== 'string' || !STATUSES.has(raw.status)) return null;
@@ -284,13 +289,33 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
   );
   const airwayPlaced = field(raw.airwayPlaced, (x) => typeof x === 'boolean', false);
 
+  // v4 population / weight metadata (spec 4a §4). Population is safety-critical — doses depend
+  // on it — so an invalid value rejects the session; weight fields degrade to null ("Set weight").
+  const isV4 = raw.version === 4;
+  const population =
+    isV4 ? (raw.population === 'adult' || raw.population === 'pediatric' ? raw.population : undefined) : 'adult';
+  const weightSource =
+    isV4 && (raw.weightSource === 'measured' || raw.weightSource === 'estimated') ? raw.weightSource : null;
+  const ageMonths =
+    isV4 && isNum(raw.ageMonths) && Number.isInteger(raw.ageMonths) && raw.ageMonths >= 0 && raw.ageMonths <= 216
+      ? raw.ageMonths
+      : null;
+  const weightKg = isV4
+    ? isNum(raw.weightKg) && raw.weightKg >= 0.5 && raw.weightKg <= 150
+      ? raw.weightKg
+      : null
+    : isNum(raw.weightKg)
+      ? raw.weightKg
+      : DEFAULT_WEIGHT_KG;
+
   if (
     events === undefined || shocks === undefined || epi === undefined || amio === undefined ||
     lido === undefined || causes === undefined || pocus === undefined || startedAt === undefined ||
     pausedAt === undefined || cycleStartedAt === undefined || pausedAccumMs === undefined ||
     cyclePausedAccumMs === undefined || rhythmBranch === undefined || antiarrhythmic === undefined ||
     airwayType === undefined || airwayPlaced === undefined || endedAtRaw === undefined ||
-    roscAccumRaw === undefined || training === undefined || voided === undefined
+    roscAccumRaw === undefined || training === undefined || voided === undefined ||
+    population === undefined
   ) {
     return null;
   }
@@ -326,7 +351,8 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
   };
 
   return {
-    version: 3,
+    version: 4,
+    population,
     status,
     startedAt,
     pausedAt,
@@ -350,7 +376,9 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
     causes,
     pocus,
     metronome,
-    weightKg: isNum(raw.weightKg) ? raw.weightKg : base.weightKg,
+    weightKg,
+    weightSource,
+    ageMonths,
     settings,
     savedAt: isNum(raw.savedAt) ? raw.savedAt : 0,
   };

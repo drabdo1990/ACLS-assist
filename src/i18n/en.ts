@@ -69,6 +69,28 @@ const UI = {
   'ev.postRosc.on': `${POST_ROSC_PREFIX}: {item}`,
   'ev.postRosc.off': `${POST_ROSC_PREFIX} (unchecked): {item}`,
 
+  // ---- Pediatric events (canonical English; the label format mirrors the golden audit trail) ----
+  'ev.pedsStart.measured': 'Pediatric code — {kg} kg (measured)',
+  'ev.pedsStart.estimated': 'Pediatric code — {kg} kg (estimated, age {years} y)',
+  'ev.pedsStart.estimatedMonths': 'Pediatric code — {kg} kg (estimated, age {months} m)',
+  'ev.pedsStart.noWeight': 'Pediatric code — weight not set',
+  'ev.weight.set.measured': 'Weight set — {kg} kg (measured)',
+  'ev.weight.set.estimated': 'Weight set — {kg} kg (estimated, age {years} y)',
+  'ev.weight.set.estimatedMonths': 'Weight set — {kg} kg (estimated, age {months} m)',
+  'ev.weight.corrected.measured': 'Weight corrected — {kg} kg (measured)',
+  'ev.weight.corrected.estimated': 'Weight corrected — {kg} kg (estimated, age {years} y)',
+  'ev.weight.corrected.estimatedMonths': 'Weight corrected — {kg} kg (estimated, age {months} m)',
+  'ev.pedsEpi': 'Epinephrine {mg} mg IV/IO',
+  'ev.pedsEpi.detail': 'Dose #{n} · 0.01 mg/kg ({kg} kg)',
+  'ev.pedsEpi.noWeight': 'Epinephrine given — dose not calculated (no weight)',
+  'ev.pedsEpi.noWeight.detail': 'Dose #{n} · set a weight to calculate doses',
+  'ev.pedsAmio.noWeight': 'Amiodarone given — dose not calculated (no weight)',
+  'ev.pedsLido': 'Lidocaine {mg} mg IV/IO',
+  'ev.pedsLido.detail': 'Dose #{n} · 1 mg/kg ({kg} kg)',
+  'ev.pedsLido.noWeight': 'Lidocaine given — dose not calculated (no weight)',
+  'ev.pedsMag': 'Magnesium sulfate {minMg}–{maxMg} mg IV/IO',
+  'ev.pedsMag.noWeight': 'Magnesium given — dose not calculated (no weight)',
+
   // ---- Event param values ----
   'rhythm.VF': 'VF',
   'rhythm.pVT': 'pVT',
