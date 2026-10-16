@@ -258,11 +258,16 @@ export function InterventionGrid() {
           <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
             <div className="grid grid-cols-3 gap-1.5">
-              {[false, false, true].map((esc, i) => {
-                const e = profile.shockEnergy(weightKg, shocks.length, esc);
+              {(
+                [
+                  ['peds.grid.shock.chip2', profile.shockEnergy(weightKg, 0, false)],
+                  ['peds.grid.shock.chip4', profile.shockEnergy(weightKg, 1, false)],
+                  ['peds.grid.shock.escalate', profile.shockEnergy(weightKg, 1, true)],
+                ] as const
+              ).map(([chipKey, e], i) => {
                 if (!e) return null;
+                // default selection follows the algorithm: shock 1 at 2 J/kg, later shocks at 4 J/kg
                 const selected = i === 2 ? escalate : !escalate && i === (shocks.length < 1 ? 0 : 1);
-                const chipKey = i === 2 ? 'peds.grid.shock.escalate' : i === 0 ? 'peds.grid.shock.chip2' : 'peds.grid.shock.chip4';
                 return (
                   <Chip
                     key={chipKey}
