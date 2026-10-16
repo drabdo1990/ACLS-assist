@@ -341,6 +341,59 @@ const UI = {
   'ui.weight.title': 'Dosing weight',
   'ui.weight.dec': 'Decrease weight',
   'ui.weight.inc': 'Increase weight',
+
+  // ---- Causes & POCUS ----
+  'causes.title': 'Reversible causes — 5 H’s & 5 T’s',
+  'causes.group.H': '5 H’s — Reversible Causes',
+  'causes.group.T': '5 T’s — Reversible Causes',
+  'pocus.title': 'Point-of-care ultrasound',
+  'pocus.warning': 'Scan during the rhythm check only — never extend the pause beyond 10 s.',
+  'postRosc.title': 'Post-ROSC bundle',
+
+  // ---- Code Stats Panel & Flags ----
+  'stats.title': 'Code statistics',
+  'stats.voidedNotice': 'VOIDED — kept on record, excluded from statistics',
+  'stats.trainingActive': 'Training / simulation ✓',
+  'stats.markTraining': 'Mark as training',
+  'stats.restore': 'Restore (un-void)',
+  'stats.voidLabel': 'Void this code',
+  'stats.voidSub': 'Hold 2 s — keeps it, excludes from stats',
+  'stats.voidSubPast': 'Hold 2 s — kept, excluded from stats',
+
+  // ---- History Panel ----
+  'history.title': 'History · {count} codes',
+  'history.empty': 'No finished codes on this device yet. A code is kept here once it ends or is reset.',
+  'history.showFewer': 'Show fewer',
+  'history.showAll': 'Show all {count}',
+  'history.exportCsv': 'Export CSV',
+  'history.clearHistory': 'Clear history',
+  'history.clearHistorySub': 'Hold 2.5 s',
+  'history.retentionNote': 'Up to 500 codes are kept on this device — statistics only, no event log.',
+
+  // ---- SBAR Debrief Export ----
+  'sbar.exportTitle': 'SBAR export',
+  'sbar.copied': 'Copied to clipboard',
+  'sbar.copyBtn': 'Copy SBAR Resuscitation Summary',
+  'sbar.copySub': 'Plain-text note ready to paste into the EHR/EMR',
+  'sbar.downloadBtn': 'Download .txt',
+  'sbar.previewBtn': 'Preview',
+  'sbar.hidePreview': 'Hide preview',
+  'sbar.resetBtn': 'Reset session',
+  'sbar.resetSub': 'Hold 2.5 s to clear the current code from the screen. Finished codes stay in History on this device.',
+  'sbar.exportLang': 'Export language',
+
+  // ---- Timeline & Log Screen ----
+  'timeline.all': 'All',
+  'timeline.drugs': 'Drugs',
+  'timeline.shocks': 'Shocks',
+  'timeline.cycles': 'Cycles',
+  'timeline.rhythm': 'Rhythm',
+  'timeline.airway': 'Airway',
+  'timeline.causes': "H's & T's",
+  'timeline.oldestFirst': 'Oldest first',
+  'timeline.newestFirst': 'Newest first',
+  'timeline.empty': 'No events recorded yet.',
+  'log.title': 'Event log · {count} events',
 } as const;
 
 type CauseKey = `cause.${CauseId}.${'label' | 'clue' | 'action'}`;

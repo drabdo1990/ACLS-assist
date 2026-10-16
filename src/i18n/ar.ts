@@ -334,6 +334,60 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'ui.weight.dec': 'إنقاص الوزن', // draft — clinician review required
   'ui.weight.inc': 'زيادة الوزن', // draft — clinician review required
 
+  // ---- Causes & POCUS ----
+  'causes.title': 'الأسباب القابلة للعكس — 5 H’s و 5 T’s', // draft — clinician review required
+  'causes.group.H': '5 H’s — أسباب قابلة للعكس', // draft — clinician review required
+  'causes.group.T': '5 T’s — أسباب قابلة للعكس', // draft — clinician review required
+  'pocus.title': 'الموجات فوق الصوتية في نقطة الرعاية (POCUS)', // draft — clinician review required
+  'pocus.warning': 'الفحص أثناء فحص النظم فقط — لا تمدد التوقف أكثر من 10 ثوانٍ أبداً.', // draft — clinician review required
+  'postRosc.title': 'حزمة رعاية ما بعد ROSC', // draft — clinician review required
+
+  // ---- Code Stats Panel & Flags ----
+  'stats.title': 'إحصاءات نداء الإنعاش', // draft — clinician review required
+  'stats.voidedNotice': 'ملغى — محفوظ في السجل، مستثنى من الإحصاءات', // draft — clinician review required
+  'stats.trainingActive': 'تدريب / محاكاة ✓', // draft — clinician review required
+  'stats.markTraining': 'تحديد كتدريب', // draft — clinician review required
+  'stats.restore': 'استعادة (إلغاء الإلغاء)', // draft — clinician review required
+  'stats.voidLabel': 'إلغاء هذا النداء', // draft — clinician review required
+  'stats.voidSub': 'استمرار بالضغط ثانيتين — يُحفظ ويُستثنى من الإحصاءات', // draft — clinician review required
+  'stats.voidSubPast': 'استمرار بالضغط ثانيتين — محفوظ، مستثنى من الإحصاءات', // draft — clinician review required
+
+  // ---- History Panel ----
+  'history.title': 'السجل التاريخي · {count} نداء', // draft — clinician review required
+  'history.empty': 'لا توجد نداءات منتهية على هذا الجهاز بعد. يُحفظ النداء هنا بمجرد انتهائه أو إعادة ضبطه.', // draft — clinician review required
+  'history.showFewer': 'عرض أقل', // draft — clinician review required
+  'history.showAll': 'عرض الكل ({count})', // draft — clinician review required
+  'history.exportCsv': 'تصدير CSV', // draft — clinician review required
+  'history.clearHistory': 'مسح السجل التاريخي', // draft — clinician review required
+  'history.clearHistorySub': 'استمرار بالضغط 2.5 ثانية', // draft — clinician review required
+  'history.retentionNote': 'يُحفظ حتى 500 نداء على هذا الجهاز — إحصاءات فقط، دون سجل الأحداث.', // draft — clinician review required
+
+  // ---- SBAR Debrief Export ----
+  'sbar.exportTitle': 'تصدير تقرير SBAR', // draft — clinician review required
+  'sbar.copied': 'تم النسخ إلى الحافظة', // draft — clinician review required
+  'sbar.copyBtn': 'نسخ ملخص إنعاش SBAR', // draft — clinician review required
+  'sbar.copySub': 'تقرير نصي جاهز للصق في السجل الطبي الإلكتروني', // draft — clinician review required
+  'sbar.downloadBtn': 'تنزيل ملف .txt', // draft — clinician review required
+  'sbar.previewBtn': 'معاينة', // draft — clinician review required
+  'sbar.hidePreview': 'إخفاء المعاينة', // draft — clinician review required
+  'sbar.resetBtn': 'إعادة ضبط الجلسة', // draft — clinician review required
+  'sbar.resetSub':
+    'استمر بالضغط 2.5 ثانية لمسح النداء الحالي من الشاشة. النداءات المنتهية تبقى في السجل التاريخي على هذا الجهاز.', // draft — clinician review required
+  'sbar.exportLang': 'لغة التقرير', // draft — clinician review required
+
+  // ---- Timeline & Log Screen ----
+  'timeline.all': 'الكل', // draft — clinician review required
+  'timeline.drugs': 'الأدوية', // draft — clinician review required
+  'timeline.shocks': 'الصدمات', // draft — clinician review required
+  'timeline.cycles': 'الدورات', // draft — clinician review required
+  'timeline.rhythm': 'النظم', // draft — clinician review required
+  'timeline.airway': 'مجرى الهواء', // draft — clinician review required
+  'timeline.causes': 'الأسباب (H’s & T’s)', // draft — clinician review required
+  'timeline.oldestFirst': 'الأقدم أولاً', // draft — clinician review required
+  'timeline.newestFirst': 'الأحدث أولاً', // draft — clinician review required
+  'timeline.empty': 'لم يتم تسجيل أي أحداث بعد.', // draft — clinician review required
+  'log.title': 'سجل الأحداث · {count} حدث', // draft — clinician review required
+
   // ---- Reversible causes (H's & T's) ----
   'cause.hypoxia.label': 'نقص الأكسجة', // draft — clinician review required
   'cause.hypoxia.clue': 'مرض قلبي/رئوي مزمن، انسداد مجرى الهواء، انزياح الأنبوب؛ زُرقة.', // draft — clinician review required

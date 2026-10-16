@@ -10,6 +10,8 @@ import {
   POST_ROSC_CHECKLIST_I18N,
 } from '../../engine/checklist';
 import { POST_ROSC_PREFIX } from '../../engine/eventQueries';
+import { useT } from '../../i18n/useT';
+import type { MessageKey } from '../../i18n/en';
 
 export interface ChecklistItemLike {
   id: string;
@@ -53,12 +55,15 @@ export function Checklist({
   prefix: string;
   icon?: LucideIcon;
 }) {
+  const { t } = useT();
   const { isOn, toggle } = useLoggedChecklist(category, prefix);
 
   return (
     <ul className="space-y-1.5">
       {items.map((item) => {
         const on = isOn(item.text);
+        // Only the post-ROSC bundle has translated item keys; other checklists show their own text.
+        const itemLabel = prefix === POST_ROSC_PREFIX ? t(`postRosc.${item.id}` as MessageKey) : item.text;
         return (
           <li key={item.id}>
             <button
@@ -81,7 +86,7 @@ export function Checklist({
               <span
                 className={`text-sm leading-tight ${on ? 'text-good' : item.critical ? 'font-bold text-ink' : 'text-ink'}`}
               >
-                {item.text}
+                {itemLabel}
               </span>
             </button>
           </li>

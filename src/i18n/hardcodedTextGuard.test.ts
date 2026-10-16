@@ -77,18 +77,8 @@ const ALLOWED_TOKENS = new Set([
   'test',
 ]);
 
-/** Files pending migration in Task 6 and Task 7 */
+/** Files pending migration in Task 7 */
 const PENDING = new Set([
-  'src/screens/CausesScreen.tsx',
-  'src/screens/LogScreen.tsx',
-  'src/components/causes/CausesGrid.tsx',
-  'src/components/causes/PocusChecklist.tsx',
-  'src/components/causes/PostRoscBundle.tsx',
-  'src/components/log/CodeStatsPanel.tsx',
-  'src/components/log/HistoryPanel.tsx',
-  'src/components/log/RecordDetail.tsx',
-  'src/components/log/SbarExport.tsx',
-  'src/components/log/Timeline.tsx',
   'src/components/SettingsSheet.tsx',
   'src/components/EnrollConfirm.tsx',
   'src/components/EnrollmentSummary.tsx',
@@ -115,7 +105,7 @@ function isAllowedText(raw: string): boolean {
   const words = raw
     .toLowerCase()
     .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '')
-    .replace(/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~·—–×✓⚠°≥≤]/g, ' ')
+    .replace(/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~·—–→×✓⚠°≥≤]/g, ' ')
     .trim()
     .split(/\s+/)
     .filter((w) => w.length > 0);

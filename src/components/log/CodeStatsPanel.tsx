@@ -3,13 +3,15 @@ import { useShallow } from 'zustand/react/shallow';
 import { useCodeStore } from '../../engine/store';
 import { useNow } from '../../hooks/useNow';
 import { computeCodeStats } from '../../engine/stats';
-import { STATS_TIME_NOTE, statsRows } from '../../engine/statsFormat';
+import { statsRows, statsTimeNote } from '../../engine/statsFormat';
 import { Panel } from '../ui/Panel';
 import { Chip } from '../ui/Chip';
 import { HoldButton } from '../ui/HoldButton';
+import { useT } from '../../i18n/useT';
 
 /** End-of-code statistics (same rows as the SBAR section) plus Training / Void flags. */
 export function CodeStatsPanel() {
+  const { t, lang } = useT();
   const now = useNow();
   const session = useCodeStore(
     useShallow((s) => ({
@@ -38,18 +40,18 @@ export function CodeStatsPanel() {
 
   return (
     <Panel
-      title="Code statistics"
+      title={t('stats.title')}
       icon={BarChart3}
       accent={voided ? 'none' : 'cyber'}
       className={voided ? 'opacity-60' : ''}
     >
       {voided ? (
         <p className="mb-2 rounded-lg border border-line px-3 py-2 text-xs font-bold text-mute">
-          VOIDED — kept on record, excluded from statistics
+          {t('stats.voidedNotice')}
         </p>
       ) : null}
       <dl className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-        {statsRows(stats).map((r) => (
+        {statsRows(stats, lang).map((r) => (
           <div
             key={r.label}
             className="flex items-baseline justify-between gap-3 rounded-lg border border-line bg-panel2/60 px-3 py-2"
@@ -62,20 +64,20 @@ export function CodeStatsPanel() {
           </div>
         ))}
       </dl>
-      <p className="mt-2 text-[11px] text-mute">{STATS_TIME_NOTE}</p>
+      <p className="mt-2 text-[11px] text-mute">{statsTimeNote(lang)}</p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Chip selected={training} onClick={() => setTraining(!training)}>
-          {training ? 'Training / simulation ✓' : 'Mark as training'}
+          {training ? t('stats.trainingActive') : t('stats.markTraining')}
         </Chip>
         {voided ? (
           <Chip selected onClick={() => setVoided(false)}>
-            Restore (un-void)
+            {t('stats.restore')}
           </Chip>
         ) : (
           <HoldButton
             variant="outline"
-            label="Void this code"
-            sub="Hold 2 s — keeps it, excludes from stats"
+            label={t('stats.voidLabel')}
+            sub={t('stats.voidSub')}
             durationMs={2000}
             onComplete={() => setVoided(true)}
           />
