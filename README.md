@@ -1,5 +1,7 @@
 # ResusCode — Universal Adult ACLS Code Blue Command Engine
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23410467.svg)](https://doi.org/10.5281/zenodo.23410467)
+
 A mobile-first, high-reliability **Progressive Web App** that serves as the real-time
 cognitive command HUD and timekeeper for adult cardiac arrest — built for Code Blue teams,
 Emergency Departments, ICUs, and rapid-response resuscitation leaders.
@@ -172,3 +174,7 @@ your institution's protocol.
 ## Arrest clock
 
 Total arrest time runs from code activation to the end of the code. Time logged as **CPR paused counts** (the patient is still in arrest); only **ROSC periods** are excluded. The 2-minute CPR cycle timer still pauses with CPR. Statistics report "time logged as paused" separately, and all statistic times are from activation, as logged.
+
+## License
+
+Released under the [MIT License](LICENSE). Use is also subject to the [clinical disclaimer](DISCLAIMER.md).

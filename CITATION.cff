@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "ResusCode: Universal Adult ACLS Code Blue Command Engine"
+type: software
+version: 0.2.0
+doi: 10.5281/zenodo.23410467
+authors:
+  - given-names: "Mohamed Abdelwahab"
+    family-names: "Mansour"
+license: MIT
+repository-code: "https://github.com/drabdo1990/ACLS-assist"
+url: "https://drabdo1990.github.io/ACLS-assist/"
+abstract: "PHI-free offline PWA for Code Blue, ED, ICU and rapid response resuscitation leaders, following adult ACLS guidance."
+keywords:
+  - ACLS
+  - resuscitation
+  - cardiac arrest
