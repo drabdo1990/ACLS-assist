@@ -20,6 +20,7 @@ const OUTCOMES = ['rosc', 'rosc_then_terminated', 'terminated', 'incomplete'];
 /** Written by the script (device-owned). */
 const DEVICE_COLUMNS = [
   'record_id', 'unit', 'device_id', 'start_iso', 'start_month', 'start_epoch_ms', 'outcome', 'training', 'void',
+  'population', 'weight_kg', 'weight_source',
   'ended_epoch_ms', 'arrest_ms', 'rosc_count', 'first_rosc_ms', 'first_shock_ms', 'first_epi_ms',
   'branch_at_first_epi', 'shock_count', 'shock_joules', 'epi_count', 'epi_mean_interval_ms',
   'epi_longest_interval_ms', 'epi_interval_flag', 'amiodarone_count', 'amiodarone_mg', 'lidocaine_count',
@@ -103,6 +104,10 @@ function flattenPayload(p, unitName, nowIso) {
     outcome: st.outcome,
     training: p.training,
     void: p.voided,
+    // Phase 4a: a payload with no population (older app) reads as adult.
+    population: st.population === 'pediatric' ? 'pediatric' : 'adult',
+    weight_kg: val(st.weightKg),
+    weight_source: val(st.weightSource),
     ended_epoch_ms: val(st.endedAt),
     arrest_ms: val(st.arrestMs),
     rosc_count: val(st.roscCount),
@@ -325,7 +330,12 @@ function setupAdminSheet() {
   };
   const real =
     R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"';
-  const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + real;
+  // Population selector (C2/D2): all / adult / pediatric — like the month filter, it narrows every row.
+  dash.getRange('C2').setValue('Population:');
+  dash.getRange('D2').setDataValidation(list(['all', 'adult', 'pediatric']));
+  dash.getRange('D2').setValue('all');
+  const pop = 'IF($D$2="all",TRUE,IF(' + R('population') + '="",($D$2="adult"),' + R('population') + '=$D$2))';
+  const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + pop + ',' + real;
   const med = function (name) {
     return '=IF($A5="","",IFERROR(MEDIAN(FILTER(' + R(name) + ',' + grp + ',' + R(name) + '<>""))/1000,"—"))';
   };
@@ -335,7 +345,7 @@ function setupAdminSheet() {
   );
   dash.getRange('A4:H4').setValues([['Unit', 'Month', 'Codes', 'Any ROSC', 'ROSC rate', 'Median first epi (s)', 'Median first shock (s)', 'Median arrest (s)']]);
   dash.getRange('A5').setFormula(
-    '=IFERROR(SORT(UNIQUE(FILTER({' + R('unit') + ',' + R('start_month') + '},' + R('unit') + '<>"",' + real + '))),"")',
+    '=IFERROR(SORT(UNIQUE(FILTER({' + R('unit') + ',' + R('start_month') + '},' + R('unit') + '<>"",' + pop + ',' + real + '))),"")',
   );
   const rows = 200;
   const f = [];

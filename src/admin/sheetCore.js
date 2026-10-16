@@ -17,6 +17,7 @@ const OUTCOMES = ['rosc', 'rosc_then_terminated', 'terminated', 'incomplete'];
 /** Written by the script (device-owned). */
 export const DEVICE_COLUMNS = [
   'record_id', 'unit', 'device_id', 'start_iso', 'start_month', 'start_epoch_ms', 'outcome', 'training', 'void',
+  'population', 'weight_kg', 'weight_source',
   'ended_epoch_ms', 'arrest_ms', 'rosc_count', 'first_rosc_ms', 'first_shock_ms', 'first_epi_ms',
   'branch_at_first_epi', 'shock_count', 'shock_joules', 'epi_count', 'epi_mean_interval_ms',
   'epi_longest_interval_ms', 'epi_interval_flag', 'amiodarone_count', 'amiodarone_mg', 'lidocaine_count',
@@ -100,6 +101,10 @@ export function flattenPayload(p, unitName, nowIso) {
     outcome: st.outcome,
     training: p.training,
     void: p.voided,
+    // Phase 4a: a payload with no population (older app) reads as adult.
+    population: st.population === 'pediatric' ? 'pediatric' : 'adult',
+    weight_kg: val(st.weightKg),
+    weight_source: val(st.weightSource),
     ended_epoch_ms: val(st.endedAt),
     arrest_ms: val(st.arrestMs),
     rosc_count: val(st.roscCount),

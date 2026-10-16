@@ -82,11 +82,26 @@ units are silent.
 ## 12. Dashboard
 
 Formulas by unit and month, excluding training, void, `exclude` and incomplete codes. "Any ROSC"
-counts `rosc` and `rosc_then_terminated`.
+counts `rosc` and `rosc_then_terminated`. The **Population** selector (`C2`/`D2`: all / adult /
+pediatric) narrows every row; older rows with an empty `population` cell count as adult.
 *The Dashboard formulas were not run against a live sheet when this was written. Check the first
 real upload.*
 
-## 13. Before clinical use (release gate)
+## 13. Upgrading the script (app updates)
+
+When a new version of the app adds columns or fixes the script:
+
+1. Copy the new `admin/apps-script/Code.gs` over the old code in **Extensions → Apps Script**.
+2. Run `setupAdminSheet` once more (it only adds what is missing; it never clears data).
+3. **Deploy → Manage deployments → ✏ → Version: New version → Deploy** — this keeps the same URL.
+   Never create a new deployment: it changes the `/exec` URL and every enrolled device stops
+   working until it is re-enrolled.
+
+Old script versions ignore unknown columns, so updating the devices first is safe: the pediatric
+columns stay empty until you paste the new script. Rows written by older devices (no `population`
+value) are counted as adult on the Dashboard.
+
+## 14. Before clinical use (release gate)
 
 Get written approval from hospital data governance covering:
 
@@ -97,7 +112,7 @@ Get written approval from hospital data governance covering:
 Start date/time plus unit can identify a patient indirectly even without names. Access to the
 sheet is controlled only by its Google sharing settings.
 
-## 14. Troubleshooting
+## 15. Troubleshooting
 
 | Settings message | Meaning and fix |
 |---|---|

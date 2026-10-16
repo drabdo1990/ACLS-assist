@@ -185,3 +185,31 @@ describe('safety', () => {
     expect(s.rows[0]).toMatchObject({ record_id: `TEST-${DEVICE}`, training: true, unit: 'ICU' });
   });
 });
+
+describe('population / weight columns (phase 4a)', () => {
+  it('a payload with population and weight fields writes them', () => {
+    const s = memorySheet();
+    const rec = mkRecord(1, {}, { population: 'pediatric', weightKg: 18, weightSource: 'estimated' });
+    expect(send(s, buildPayload(rec, { enrollmentKey: KEY, offsetMin: 0 }))).toEqual({ ok: true });
+    expect(s.rows[0]).toMatchObject({ population: 'pediatric', weight_kg: 18, weight_source: 'estimated' });
+  });
+
+  it('a payload without the new fields (older app) reads as adult with empty weight', () => {
+    const s = memorySheet();
+    expect(send(s, P())).toEqual({ ok: true });
+    expect(s.rows[0]).toMatchObject({ population: 'adult', weight_kg: null, weight_source: null });
+  });
+
+  it('the new columns are appended to an old sheet by header name; admin columns untouched', () => {
+    const oldHeaders = DEVICE_COLUMNS.filter((c) => !['population', 'weight_kg', 'weight_source'].includes(c));
+    const s = memorySheet([...oldHeaders, 'debrief_note'], [{ record_id: `${T0}-${DEVICE}`, debrief_note: 'keep me' }]);
+    expect(send(s, P())).toEqual({ ok: true });
+    expect(s.headers).toContain('population');
+    expect(s.headers).toContain('weight_kg');
+    expect(s.headers).toContain('weight_source');
+    // the pre-existing row is untouched (it reads as adult at filter time); the new row lands below it
+    expect(s.rows[0].population).toBeUndefined();
+    expect(s.rows[0].debrief_note).toBe('keep me');
+    expect(s.rows[1].population).toBe('adult');
+  });
+});

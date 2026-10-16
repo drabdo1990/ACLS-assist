@@ -152,7 +152,12 @@ function setupAdminSheet() {
   };
   const real =
     R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"';
-  const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + real;
+  // Population selector (C2/D2): all / adult / pediatric — like the month filter, it narrows every row.
+  dash.getRange('C2').setValue('Population:');
+  dash.getRange('D2').setDataValidation(list(['all', 'adult', 'pediatric']));
+  dash.getRange('D2').setValue('all');
+  const pop = 'IF($D$2="all",TRUE,IF(' + R('population') + '="",($D$2="adult"),' + R('population') + '=$D$2))';
+  const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + pop + ',' + real;
   const med = function (name) {
     return '=IF($A5="","",IFERROR(MEDIAN(FILTER(' + R(name) + ',' + grp + ',' + R(name) + '<>""))/1000,"—"))';
   };
@@ -162,7 +167,7 @@ function setupAdminSheet() {
   );
   dash.getRange('A4:H4').setValues([['Unit', 'Month', 'Codes', 'Any ROSC', 'ROSC rate', 'Median first epi (s)', 'Median first shock (s)', 'Median arrest (s)']]);
   dash.getRange('A5').setFormula(
-    '=IFERROR(SORT(UNIQUE(FILTER({' + R('unit') + ',' + R('start_month') + '},' + R('unit') + '<>"",' + real + '))),"")',
+    '=IFERROR(SORT(UNIQUE(FILTER({' + R('unit') + ',' + R('start_month') + '},' + R('unit') + '<>"",' + pop + ',' + real + '))),"")',
   );
   const rows = 200;
   const f = [];
