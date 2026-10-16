@@ -1,4 +1,4 @@
-import type { CodeEvent } from './types';
+import type { CodeEvent, EventI18n } from './types';
 
 /**
  * Logged-checklist helpers. A checklist item's state is never stored on its own: it is
@@ -18,4 +18,35 @@ export function isChecklistItemOn(events: CodeEvent[], prefix: string, text: str
     else if (e.label === off) state = false;
   }
   return state;
+}
+
+export interface ChecklistI18nConfig {
+  onKey: string;
+  offKey: string;
+  itemKey: (id: string) => string;
+}
+
+export const POST_ROSC_CHECKLIST_I18N: ChecklistI18nConfig = {
+  onKey: 'ev.postRosc.on',
+  offKey: 'ev.postRosc.off',
+  itemKey: (id) => `postRosc.${id}`,
+};
+
+export function checklistToggle(
+  events: CodeEvent[],
+  prefix: string,
+  item: { id: string; text: string },
+  i18n?: ChecklistI18nConfig,
+): { label: string; i18n?: EventI18n } {
+  const on = isChecklistItemOn(events, prefix, item.text);
+  const label = on ? checklistOffLabel(prefix, item.text) : checklistOnLabel(prefix, item.text);
+  if (!i18n) return { label };
+  const key = on ? i18n.offKey : i18n.onKey;
+  return {
+    label,
+    i18n: {
+      key,
+      params: { item: `@${i18n.itemKey(item.id)}` },
+    },
+  };
 }

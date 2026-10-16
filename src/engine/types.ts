@@ -19,13 +19,25 @@ export type EventCategory =
   | 'rosc'
   | 'post';
 
-export interface CodeEvent {
+/** Raw display params: numbers, ids as `@message.key`, durations in `*Ms` — never English fragments. */
+export type EventParams = Record<string, string | number>;
+
+/** Translation keys stored next to the canonical English text (display only; logic never reads them). */
+export interface EventI18n {
+  key?: string;
+  params?: EventParams;
+  detailKey?: string;
+  detailParams?: EventParams;
+}
+
+export interface CodeEvent extends EventI18n {
   id: string;
   /** Absolute epoch ms — the source of truth, survives refresh/pause. */
   at: number;
   /** Elapsed ms since code start at the moment of logging (stable for display). */
   t: number;
   category: EventCategory;
+  /** Canonical English — part of the audit trail; all logic matches on it. */
   label: string;
   detail?: string;
 }

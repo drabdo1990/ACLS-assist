@@ -7,8 +7,11 @@ import { MetronomeCard } from '../components/hud/MetronomeCard';
 import { RhythmBranch } from '../components/hud/RhythmBranch';
 import { InterventionGrid } from '../components/hud/InterventionGrid';
 
+import { useT } from '../i18n/useT';
+
 /** Screen 1 — the ACLS command HUD. */
 export function HudScreen({ onEnd, onOpenCauses }: { onEnd: () => void; onOpenCauses: () => void }) {
+  const { t } = useT();
   const status = useCodeStore((s) => s.status);
 
   return (
@@ -24,12 +27,12 @@ export function HudScreen({ onEnd, onOpenCauses }: { onEnd: () => void; onOpenCa
         <button
           type="button"
           onClick={onOpenCauses}
-          className="touch-hit flex min-h-[64px] items-center gap-3 rounded-2xl border border-good bg-good/15 px-4 text-left text-good active:scale-[0.98]"
+          className="touch-hit flex min-h-[64px] items-center gap-3 rounded-2xl border border-good bg-good/15 px-4 text-start text-good active:scale-[0.98]"
         >
           <HeartPulse className="h-7 w-7 shrink-0" />
           <span>
-            <span className="block text-lg font-bold leading-tight">Post-ROSC bundle</span>
-            <span className="block text-xs opacity-80">MAP ≥ 65 · SpO₂ 92–98% · 12-lead · TTM — open checklist</span>
+            <span className="block text-lg font-bold leading-tight">{t('hud.roscBanner.title')}</span>
+            <span className="block text-xs opacity-80">{t('hud.roscBanner.sub')}</span>
           </span>
         </button>
       ) : null}

@@ -5,15 +5,18 @@ export interface TextFieldProps {
   placeholder?: string;
   mono?: boolean;
   error?: string | null;
+  /** Direction of the typed text only (e.g. 'ltr' for codes and links); the label follows the page. */
+  dir?: 'ltr' | 'rtl';
 }
 
 /** Single-line text input in the app's dark style (the app had no form fields before Settings). */
-export function TextField({ label, value, onChange, placeholder, mono, error }: TextFieldProps) {
+export function TextField({ label, value, onChange, placeholder, mono, error, dir }: TextFieldProps) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-bold text-mute">{label}</span>
       <input
         type="text"
+        dir={dir}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

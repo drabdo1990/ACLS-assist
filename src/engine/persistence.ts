@@ -184,6 +184,44 @@ const validEvent = (e: unknown) =>
   CATEGORIES.has(e.category) &&
   typeof e.label === 'string' &&
   (e.detail === undefined || typeof e.detail === 'string');
+
+const KEY_RE = /^[a-zA-Z0-9_.-]+$/;
+
+function sanitizeEvent(raw: unknown): CodeEvent {
+  const e = raw as Record<string, unknown>;
+  const ev: CodeEvent = {
+    id: e.id as string,
+    at: e.at as number,
+    t: e.t as number,
+    category: e.category as EventCategory,
+    label: e.label as string,
+  };
+  if (typeof e.detail === 'string') ev.detail = e.detail;
+
+  // A key is kept only with valid params (or none): a key without its params would render a raw
+  // "{n}" in Arabic, so an invalid pair is dropped and the event shows its English text instead.
+  const validParams = (p: unknown) => isObj(p) && Object.values(p).every((v) => typeof v === 'string' || isNum(v));
+
+  if (typeof e.key === 'string' && KEY_RE.test(e.key)) {
+    if (e.params === undefined) {
+      ev.key = e.key;
+    } else if (validParams(e.params)) {
+      ev.key = e.key;
+      ev.params = e.params as Record<string, string | number>;
+    }
+  }
+
+  if (typeof e.detailKey === 'string' && KEY_RE.test(e.detailKey)) {
+    if (e.detailParams === undefined) {
+      ev.detailKey = e.detailKey;
+    } else if (validParams(e.detailParams)) {
+      ev.detailKey = e.detailKey;
+      ev.detailParams = e.detailParams as Record<string, string | number>;
+    }
+  }
+
+  return ev;
+}
 const validDose = (e: unknown) =>
   isObj(e) && isNum(e.at) && isNum(e.t) && typeof e.label === 'string' && (e.mg === undefined || isNum(e.mg));
 const validShock = (e: unknown) =>
@@ -209,7 +247,8 @@ export function sanitizeSession(raw: unknown): PersistedSession | null {
   if (typeof raw.status !== 'string' || !STATUSES.has(raw.status)) return null;
   const status = raw.status as PersistedSession['status'];
 
-  const events = field(raw.events, arrayOf(validEvent), base.events);
+  const rawEvents = field(raw.events, arrayOf(validEvent), base.events);
+  const events = rawEvents?.map(sanitizeEvent);
   const shocks = field(raw.shocks, arrayOf(validShock), base.shocks);
   const epi = field(raw.epi, arrayOf(validDose), base.epi);
   const amio = field(raw.amio, arrayOf(validDose), base.amio);

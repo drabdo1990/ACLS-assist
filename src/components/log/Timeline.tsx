@@ -17,6 +17,10 @@ import { useCodeStore } from '../../engine/store';
 import { formatClock, formatWallClock } from '../../engine/timing';
 import type { EventCategory } from '../../engine/types';
 
+import { eventText } from '../../i18n/eventText';
+import { useT } from '../../i18n/useT';
+import type { MessageKey } from '../../i18n/en';
+
 const CATEGORY: Record<EventCategory, { icon: LucideIcon; className: string }> = {
   system: { icon: Siren, className: 'text-mute border-line' },
   cycle: { icon: RotateCcw, className: 'text-cyber border-cyber/50' },
@@ -31,18 +35,19 @@ const CATEGORY: Record<EventCategory, { icon: LucideIcon; className: string }> =
   post: { icon: Check, className: 'text-good border-good/50' },
 };
 
-const FILTERS: Array<{ id: 'all' | EventCategory; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'drug', label: 'Drugs' },
-  { id: 'shock', label: 'Shocks' },
-  { id: 'cycle', label: 'Cycles' },
-  { id: 'rhythm', label: 'Rhythm' },
-  { id: 'airway', label: 'Airway' },
-  { id: 'cause', label: "H's & T's" },
+const FILTERS: Array<{ id: 'all' | EventCategory; labelKey: MessageKey }> = [
+  { id: 'all', labelKey: 'timeline.all' },
+  { id: 'drug', labelKey: 'timeline.drugs' },
+  { id: 'shock', labelKey: 'timeline.shocks' },
+  { id: 'cycle', labelKey: 'timeline.cycles' },
+  { id: 'rhythm', labelKey: 'timeline.rhythm' },
+  { id: 'airway', labelKey: 'timeline.airway' },
+  { id: 'cause', labelKey: 'timeline.causes' },
 ];
 
 /** Chronological event timeline (newest first) with category filtering. */
 export function Timeline() {
+  const { t, lang } = useT();
   const events = useCodeStore((s) => s.events);
   const [filter, setFilter] = useState<'all' | EventCategory>('all');
   const [ascending, setAscending] = useState(false);
@@ -67,25 +72,26 @@ export function Timeline() {
               filter === f.id ? 'border-cyber bg-cyber/20 text-cyber' : 'border-line bg-panel2 text-mute',
             ].join(' ')}
           >
-            {f.label}
+            {t(f.labelKey)}
           </button>
         ))}
         <button
           type="button"
           onClick={() => setAscending((v) => !v)}
-          className="touch-hit ml-auto shrink-0 rounded-full border border-line bg-panel2 px-4 py-2 text-sm font-bold text-mute"
+          className="touch-hit ms-auto shrink-0 rounded-full border border-line bg-panel2 px-4 py-2 text-sm font-bold text-mute"
         >
-          {ascending ? 'Oldest first' : 'Newest first'}
+          {ascending ? t('timeline.oldestFirst') : t('timeline.newestFirst')}
         </button>
       </div>
 
       {shown.length === 0 ? (
-        <p className="py-8 text-center text-sm text-mute">No events recorded yet.</p>
+        <p className="py-8 text-center text-sm text-mute">{t('timeline.empty')}</p>
       ) : (
         <ol className="space-y-1.5">
           {shown.map((e) => {
             const c = CATEGORY[e.category];
             const Icon = c.icon;
+            const item = eventText(e, lang);
             return (
               <li key={e.id} className={`flex items-start gap-3 rounded-xl border bg-panel2/60 p-3 ${c.className}`}>
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${c.className}`}>
@@ -93,11 +99,11 @@ export function Timeline() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="tnum font-mono text-sm font-bold text-ink">{formatClock(e.t)}</span>
-                    <span className="tnum font-mono text-[11px] text-mute">{formatWallClock(e.at)}</span>
-                    <span className="text-sm font-semibold text-ink">{e.label}</span>
+                    <span className="tnum font-mono text-sm font-bold text-ink" dir="ltr">{formatClock(e.t)}</span>
+                    <span className="tnum font-mono text-[11px] text-mute" dir="ltr">{formatWallClock(e.at)}</span>
+                    <span className="text-sm font-semibold text-ink">{item.label}</span>
                   </div>
-                  {e.detail ? <p className="text-xs leading-snug text-mute">{e.detail}</p> : null}
+                  {item.detail ? <p className="text-xs leading-snug text-mute">{item.detail}</p> : null}
                 </div>
               </li>
             );

@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { haptic } from '../../engine/haptics';
 import type { ButtonVariant } from './BigButton';
+import { useT } from '../../i18n/useT';
 
 const VARIANT_SKIN: Record<ButtonVariant, { base: string; fill: string }> = {
   neutral: { base: 'border-line text-ink', fill: 'bg-white/10' },
@@ -44,6 +45,7 @@ export function HoldButton({
   disabled,
   ariaLabel,
 }: HoldButtonProps) {
+  const { t } = useT();
   const [pct, setPct] = useState(0);
   const raf = useRef<number | null>(null);
   const startedAt = useRef(0);
@@ -90,7 +92,7 @@ export function HoldButton({
   return (
     <button
       type="button"
-      aria-label={ariaLabel ?? `${label} — press and hold to confirm`}
+      aria-label={ariaLabel ?? `${label} — ${t('ui.hold.confirm')}`}
       disabled={disabled}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -101,7 +103,7 @@ export function HoldButton({
       onPointerLeave={cancel}
       onContextMenu={(e) => e.preventDefault()}
       className={[
-        'touch-hit relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-4 text-left',
+        'touch-hit relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-4 text-start',
         'transition-[transform] duration-100 active:scale-[0.98]',
         height,
         skin.base,
@@ -111,7 +113,7 @@ export function HoldButton({
     >
       <span
         aria-hidden
-        className={`absolute inset-y-0 left-0 ${skin.fill} transition-none`}
+        className={`absolute inset-y-0 start-0 ${skin.fill} transition-none`}
         style={{ width: `${pct * 100}%` }}
       />
       <span className="relative flex w-full items-center gap-3">
@@ -121,7 +123,7 @@ export function HoldButton({
           {sub ? (
             <span className="text-xs font-medium leading-tight opacity-80">{sub}</span>
           ) : (
-            <span className="text-xs font-medium leading-tight opacity-60">Hold to confirm</span>
+            <span className="text-xs font-medium leading-tight opacity-60">{t('ui.hold.confirm')}</span>
           )}
         </span>
       </span>

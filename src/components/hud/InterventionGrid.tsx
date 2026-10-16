@@ -11,13 +11,14 @@ import {
   lidocaineBudget,
   lidocaineDose,
   waveformFor,
-  waveformLabel,
 } from '../../content/calc';
 import { nextAclsStep, type StepFocus } from '../../content/algorithm';
 import { BigButton } from '../ui/BigButton';
 import { Chip } from '../ui/Chip';
 import { Panel } from '../ui/Panel';
 import { WeightControl } from '../ui/WeightControl';
+import { keyed } from '../../i18n/enText';
+import { useT } from '../../i18n/useT';
 
 /** Ring that marks the button the algorithm expects next. */
 const FOCUS_RING = 'ring-4 ring-warn/70 ring-offset-2 ring-offset-bg';
@@ -27,6 +28,7 @@ const FOCUS_RING = 'ring-4 ring-warn/70 ring-offset-2 ring-offset-bg';
  * Nothing here blocks the clinician: dose timers and algorithm hints are advisory.
  */
 export function InterventionGrid() {
+  const { t } = useT();
   const now = useNow();
   const status = useCodeStore((s) => s.status);
   const shocks = useCodeStore((s) => s.shocks);
@@ -97,16 +99,21 @@ export function InterventionGrid() {
   const aaCount = isLido ? lido.length : amio.length;
   const aaSub = isLido
     ? lidoBudget.nextExceeds
-      ? `⚠ Exceeds 3 mg/kg max (${lidoBudget.givenMg}/${lidoBudget.maxMg} mg given)`
-      : `Dose ${lido.length + 1} · ${lidoNext.perKgLabel}${lido.length ? ' q5–10 min' : ''} @ ${weightKg} kg`
+      ? t('hud.grid.lido.exceeds', { given: lidoBudget.givenMg, max: lidoBudget.maxMg })
+      : t('hud.grid.lido.sub', {
+          n: lido.length + 1,
+          perKg: lidoNext.perKgLabel,
+          interval: lido.length ? ' q5–10 min' : '',
+          kg: weightKg,
+        })
     : amio.length === 0
-      ? 'Dose 1 → next 150 mg'
+      ? t('hud.grid.amio.sub1')
       : amio.length === 1
-        ? 'Dose 2 (final bolus)'
-        : 'Max 2 boluses given';
+        ? t('hud.grid.amio.sub2')
+        : t('hud.grid.amio.subMax');
 
   return (
-    <Panel title="ACLS interventions" icon={Syringe} accent="none">
+    <Panel title={t('hud.grid.title')} icon={Syringe} accent="none">
       {/* Ventilation guidance banner */}
       <div
         className={[
@@ -117,8 +124,8 @@ export function InterventionGrid() {
         <Wind className="h-5 w-5 shrink-0" />
         <p className="text-sm font-bold leading-tight">
           {airwayPlaced
-            ? 'Continuous compressions + 1 breath every 6 seconds (10 breaths/min)'
-            : 'Compressions 30 : 2 ventilations — pause only for breaths'}
+            ? t('hud.grid.vent.ett')
+            : t('hud.grid.vent.none')}
         </p>
       </div>
 
@@ -130,10 +137,10 @@ export function InterventionGrid() {
           label={`Epi 1 mg${epi.length ? ` · ×${epi.length}` : ''}`}
           sub={
             lockout
-              ? `Next Epi eligible in ${lockout}`
+              ? t('hud.grid.epi.next', { lockout })
               : epiEligible
-                ? 'ELIGIBLE NOW — tap to log'
-                : 'IV/IO + 20 mL NS flush'
+                ? t('hud.grid.epi.eligible')
+                : t('hud.grid.epi.flush')
           }
           className={[epiEligible ? 'animate-flash-bg' : '', ring('epi')].join(' ')}
           disabled={!canLog}
@@ -144,11 +151,11 @@ export function InterventionGrid() {
         <BigButton
           variant="cyber"
           icon={Zap}
-          label={`Shock${shocks.length ? ` · ×${shocks.length}` : ''}`}
+          label={shocks.length ? t('hud.grid.shock.titleCount', { n: shocks.length }) : t('hud.grid.shock.title')}
           sub={
             shocks.length
-              ? `Last: #${shocks.length} ${shocks[shocks.length - 1].joules}J`
-              : 'Select energy'
+              ? t('hud.grid.shock.last', { n: shocks.length, joules: shocks[shocks.length - 1].joules })
+              : t('hud.grid.shock.select')
           }
           className={ring('shock')}
           disabled={!canLog}
@@ -158,7 +165,7 @@ export function InterventionGrid() {
 
       {showEnergy ? (
         <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">Defibrillation energy</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
           <div className="grid grid-cols-4 gap-1.5">
             {SHOCK_ENERGIES.map((e) => (
               <Chip
@@ -176,8 +183,8 @@ export function InterventionGrid() {
             className="mt-2"
             variant="crit"
             icon={Zap}
-            label={`Deliver Shock #${shocks.length + 1} · ${joules}J`}
-            sub={`${waveformLabel(waveformFor(joules))} — logs and timestamps`}
+            label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules })}
+            sub={t('hud.grid.shock.waveformSub', { waveform: t(`waveform.${waveformFor(joules)}`) })}
             onClick={() => {
               deliverShock(joules);
               setShowEnergy(false);
@@ -218,8 +225,8 @@ export function InterventionGrid() {
           <BigButton
             variant="good"
             icon={Check}
-            label={`${airwayType === 'SGA' ? 'Supraglottic' : 'ETT'} airway placed`}
-            sub="Continuous compressions active · tap to unmark"
+            label={t('hud.grid.airwayPlaced', { type: airwayType === 'SGA' ? 'SGA' : 'ETT' })}
+            sub={t('hud.grid.airwayActiveSub')}
             disabled={!canLog}
             onClick={() => markAirwayPlaced()}
           />
@@ -228,16 +235,16 @@ export function InterventionGrid() {
             <BigButton
               variant="neutral"
               icon={Wind}
-              label="ETT placed"
-              sub="Advanced airway"
+              label={t('hud.grid.ett')}
+              sub={t('hud.grid.ettSub')}
               disabled={!canLog}
               onClick={() => markAirwayPlaced('ETT')}
             />
             <BigButton
               variant="neutral"
               icon={Wind}
-              label="SGA placed"
-              sub="Supraglottic"
+              label={t('hud.grid.sga')}
+              sub={t('hud.grid.sgaSub')}
               disabled={!canLog}
               onClick={() => markAirwayPlaced('SGA')}
             />
@@ -246,7 +253,7 @@ export function InterventionGrid() {
       </div>
 
       <div className="mt-3 border-t border-line pt-3">
-        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-mute">Epi re-dose interval</p>
+        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-mute">{t('hud.grid.epiInterval')}</p>
         <div className="grid grid-cols-3 gap-2">
           {[3, 4, 5].map((min) => {
             const ms = min * 60_000;
@@ -265,15 +272,18 @@ export function InterventionGrid() {
             className="touch-hit min-h-[64px] w-full rounded-xl border border-warn/50 bg-warn/10 px-1 text-xs font-bold leading-tight text-warn active:scale-[0.98] disabled:opacity-40"
           >
             Mg 1–2 g
-            <span className="block text-[10px] font-semibold opacity-80">Torsades</span>
+            <span className="block text-[10px] font-semibold opacity-80">{t('hud.grid.mgIndication')}</span>
           </button>
           <button
             type="button"
-            onClick={() => logEvent('rhythm', 'Pulse check — no pulse', 'Continue CPR')}
+            onClick={() => {
+              const m = keyed('ev.pulseCheck', undefined, 'ev.pulseCheck.detail');
+              logEvent('rhythm', m.label, m.detail, m.i18n);
+            }}
             disabled={!canLog}
             className="touch-hit min-h-[64px] w-full rounded-xl border border-line bg-panel2 px-2 text-sm font-bold active:scale-[0.98] disabled:opacity-40"
           >
-            Log no pulse
+            {t('hud.grid.logNoPulse')}
           </button>
           <button
             type="button"
@@ -281,7 +291,7 @@ export function InterventionGrid() {
             disabled={!canUndo}
             className="touch-hit flex min-h-[64px] w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-panel2 px-2 text-sm font-bold text-mute active:scale-[0.98] disabled:opacity-40"
           >
-            <Undo2 className="h-4 w-4" /> Undo last log
+            <Undo2 className="h-4 w-4 rtl:-scale-x-100" /> {t('hud.grid.undo')}
           </button>
         </div>
       </div>

@@ -4,14 +4,17 @@ import { useCodeStore } from '../../engine/store';
 import { nextAclsStep } from '../../content/algorithm';
 import type { RhythmBranch as Branch } from '../../engine/types';
 import { Panel } from '../ui/Panel';
+import { useT } from '../../i18n/useT';
+import type { MessageKey } from '../../i18n/en';
 
-const BRANCHES: Array<{ id: Branch; title: string; sub: string; on: string }> = [
-  { id: 'shockable', title: 'Shockable', sub: 'VF / Pulseless VT', on: 'border-crit bg-crit/20 text-crit' },
-  { id: 'nonshockable', title: 'Non-shockable', sub: 'Asystole / PEA', on: 'border-cyber bg-cyber/20 text-cyber' },
+const BRANCHES: Array<{ id: Branch; titleKey: MessageKey; subKey: MessageKey; on: string }> = [
+  { id: 'shockable', titleKey: 'hud.branch.shockable.title', subKey: 'hud.branch.shockable.sub', on: 'border-crit bg-crit/20 text-crit' },
+  { id: 'nonshockable', titleKey: 'hud.branch.nonshockable.title', subKey: 'hud.branch.nonshockable.sub', on: 'border-cyber bg-cyber/20 text-cyber' },
 ];
 
 /** AHA/ERC algorithm branch selector with a live "do this next" sequence. */
 export function RhythmBranch() {
+  const { t } = useT();
   const s = useCodeStore(
     useShallow((st) => ({
       branch: st.rhythmBranch,
@@ -25,7 +28,7 @@ export function RhythmBranch() {
   const view = nextAclsStep(s);
 
   return (
-    <Panel title="Rhythm branch" icon={Activity} accent={s.branch === 'shockable' ? 'crit' : s.branch ? 'cyber' : 'none'}>
+    <Panel title={t('hud.branch.title')} icon={Activity} accent={s.branch === 'shockable' ? 'crit' : s.branch ? 'cyber' : 'none'}>
       <div className="grid grid-cols-2 gap-2">
         {BRANCHES.map((b) => {
           const selected = s.branch === b.id;
@@ -42,16 +45,16 @@ export function RhythmBranch() {
             >
               <span className="flex items-center gap-1.5 text-lg font-bold leading-tight">
                 {b.id === 'shockable' ? <Zap className="h-5 w-5" /> : <Activity className="h-5 w-5" />}
-                {b.title}
+                {t(b.titleKey)}
               </span>
-              <span className="text-xs font-semibold opacity-80">{b.sub}</span>
+              <span className="text-xs font-semibold opacity-80">{t(b.subKey)}</span>
             </button>
           );
         })}
       </div>
 
       <div className="mt-2 rounded-xl border border-line bg-black/20 p-2.5">
-        <p className="mb-1.5 text-xs font-bold uppercase tracking-widest text-mute">{view.title}</p>
+        <p className="mb-1.5 text-xs font-bold uppercase tracking-widest text-mute">{t(view.titleKey as MessageKey)}</p>
         {view.steps.length ? (
           <ol className="space-y-1">
             {view.steps.map((step) => (
@@ -67,18 +70,18 @@ export function RhythmBranch() {
                 {step.state === 'done' ? (
                   <Check className="h-4 w-4 shrink-0 text-good" />
                 ) : step.state === 'current' ? (
-                  <ArrowRight className="h-4 w-4 shrink-0" />
+                  <ArrowRight className="h-4 w-4 shrink-0 rtl:-scale-x-100" />
                 ) : (
                   <span className="h-4 w-4 shrink-0" />
                 )}
-                {step.label}
+                {t(step.key as MessageKey)}
               </li>
             ))}
           </ol>
         ) : null}
         <p className={`text-xs leading-snug text-mute ${view.steps.length ? 'mt-1.5 border-t border-line pt-1.5' : ''}`}>
-          {view.focus == null && view.steps.length ? <strong className="text-ink">Then: </strong> : null}
-          {view.ongoing}
+          {view.focus == null && view.steps.length ? <strong className="text-ink">{t('hud.branch.then')} </strong> : null}
+          {t(view.ongoingKey as MessageKey)}
         </p>
       </div>
     </Panel>

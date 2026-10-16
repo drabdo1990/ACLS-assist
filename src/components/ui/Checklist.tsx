@@ -2,7 +2,16 @@ import { Check } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import type { EventCategory } from '../../engine/types';
-import { checklistOffLabel, checklistOnLabel, isChecklistItemOn } from '../../engine/checklist';
+import {
+  checklistOffLabel,
+  checklistOnLabel,
+  checklistToggle,
+  isChecklistItemOn,
+  POST_ROSC_CHECKLIST_I18N,
+} from '../../engine/checklist';
+import { POST_ROSC_PREFIX } from '../../engine/eventQueries';
+import { useT } from '../../i18n/useT';
+import type { MessageKey } from '../../i18n/en';
 
 export interface ChecklistItemLike {
   id: string;
@@ -20,8 +29,16 @@ export function useLoggedChecklist(category: EventCategory, prefix: string) {
 
   const isOn = (text: string) => isChecklistItemOn(events, prefix, text);
 
-  const toggle = (text: string) =>
-    logEvent(category, isOn(text) ? checklistOffLabel(prefix, text) : checklistOnLabel(prefix, text));
+  const toggle = (item: ChecklistItemLike | string) => {
+    if (typeof item === 'string') {
+      logEvent(category, isOn(item) ? checklistOffLabel(prefix, item) : checklistOnLabel(prefix, item));
+    } else if (prefix === POST_ROSC_PREFIX) {
+      const res = checklistToggle(events, prefix, item, POST_ROSC_CHECKLIST_I18N);
+      logEvent(category, res.label, undefined, res.i18n);
+    } else {
+      logEvent(category, isOn(item.text) ? checklistOffLabel(prefix, item.text) : checklistOnLabel(prefix, item.text));
+    }
+  };
 
   return { isOn, toggle };
 }
@@ -38,20 +55,23 @@ export function Checklist({
   prefix: string;
   icon?: LucideIcon;
 }) {
+  const { t } = useT();
   const { isOn, toggle } = useLoggedChecklist(category, prefix);
 
   return (
     <ul className="space-y-1.5">
       {items.map((item) => {
         const on = isOn(item.text);
+        // Only the post-ROSC bundle has translated item keys; other checklists show their own text.
+        const itemLabel = prefix === POST_ROSC_PREFIX ? t(`postRosc.${item.id}` as MessageKey) : item.text;
         return (
           <li key={item.id}>
             <button
               type="button"
               aria-pressed={on}
-              onClick={() => toggle(item.text)}
+              onClick={() => toggle(item)}
               className={[
-                'touch-hit flex min-h-[64px] w-full items-center gap-3 rounded-xl border px-3 text-left active:scale-[0.98]',
+                'touch-hit flex min-h-[64px] w-full items-center gap-3 rounded-xl border px-3 text-start active:scale-[0.98]',
                 on ? 'border-good bg-good/10' : item.critical ? 'border-crit/50 bg-crit/5' : 'border-line bg-panel2',
               ].join(' ')}
             >
@@ -66,7 +86,7 @@ export function Checklist({
               <span
                 className={`text-sm leading-tight ${on ? 'text-good' : item.critical ? 'font-bold text-ink' : 'text-ink'}`}
               >
-                {item.text}
+                {itemLabel}
               </span>
             </button>
           </li>

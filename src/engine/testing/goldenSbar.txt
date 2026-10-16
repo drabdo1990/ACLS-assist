@@ -1,0 +1,77 @@
+ResusCode — RESUSCITATION SUMMARY
+Total arrest time: 06:45 (6m 45s)
+Outcome: ROSC achieved
+(PHI-free — no patient identifiers recorded)
+
+=== SITUATION ===
+Adult in-hospital cardiac arrest — Code Blue resuscitation per SHA ACLS 2024 (AHA/ERC-aligned).
+Code activated at 01:13:20. Arrest duration: 6m 45s.
+ROSC achieved at [06:45] (01:20:05).
+
+=== BACKGROUND ===
+Rhythm branch: Shockable (VF / pulseless VT)
+CPR cycles completed: 1
+Advanced airway: ETT placed (continuous compressions + 1 breath/6 s)
+Shocks delivered: 1
+Epinephrine: 1 dose (total 1 mg)
+Amiodarone doses: 1 (300 mg)
+Lidocaine doses: 0
+
+=== ASSESSMENT ===
+Rhythms documented: VF
+Defibrillation energies: 200J Biphasic
+Reversible causes addressed: Hypoxia, Thrombosis (coronary)
+POCUS findings: RV dilatation / strain
+
+=== CODE STATISTICS ===
+TRAINING / SIMULATION — not a real patient
+(Times are from code activation, as logged.)
+Outcome: ROSC achieved
+Arrest time (ROSC periods excluded): 06:45
+First ROSC: 06:45
+First shock: 00:45
+First epinephrine: 01:10
+Shocks: 1 (200J)
+Epinephrine doses: 1
+Epinephrine interval (mean / longest): —
+Amiodarone: 1 (300 mg)
+Lidocaine doses: 0
+Magnesium doses: 0
+CPR cycles completed: 1
+Time logged as paused: 00:00
+Advanced airway: ETT at 02:40
+Rhythms documented: VF
+H's & T's addressed: Hypoxia, Thrombosis (coronary)
+POCUS findings: RV dilatation / strain
+Post-ROSC bundle: 1/8 recorded
+
+=== POST-ROSC CARE ===
+Completed (1/8):
+  [x] Optimise ventilation & oxygenation — ETT if not yet placed; SpO₂ 92–98%; avoid hyperventilation
+Not yet recorded:
+  [ ] Hypotension (SBP < 90): IV fluid up to 2 L, then Dopamine 5–10 mcg/kg/min (or norepinephrine / epinephrine infusion); target MAP ≥ 65
+  [ ] 12-lead ECG — STEMI → Cath Lab; decides ICU vs CCU
+  [ ] Unresponsive: temperature control 32–37.5 °C for 12–24 h; seizure control; maintain cerebral perfusion
+  [ ] Correct glucose > 10 mmol/L and prevent hypoglycaemia
+  [ ] Correct electrolytes, hypoxia and acidosis — revisit H’s & T’s
+  [ ] Frequent vital signs; report any deterioration immediately
+  [ ] Transfer stable & transfer-ready to ICU / CCU; complete resuscitation record; debrief
+
+=== RECOMMENDATIONS ===
+- Post-ROSC bundle: secure airway (ETT), SpO₂ 92–98%, avoid hyperventilation.
+- Hypotension: IV fluid up to 2 L, then dopamine 5–10 mcg/kg/min (or norepinephrine/epinephrine); MAP ≥ 65 mmHg.
+- 12-lead ECG — Cath Lab for STEMI; if unresponsive, temperature control 32–37.5 °C for 12–24 h.
+- Correct glucose > 10 mmol/L, electrolytes and acidosis; transfer to ICU/CCU; team debrief.
+
+=== TIMELINE ===
+[00:00] 01:13:20  Code Blue activated
+[00:45] 01:14:05  Defibrillation: Shock #1 (200J Biphasic)
+[01:10] 01:14:30  Epinephrine 1 mg IV/IO — Dose #1 · repeat every 3–5 min
+[02:00] 01:15:20  Cycle 1 completed — Rhythm: VF · switch compressors
+[02:00] 01:15:20  Rhythm check — VF
+[02:40] 01:16:00  Advanced airway placed — ETT
+[04:20] 01:17:40  Amiodarone 300 mg IV/IO — First dose
+[06:45] 01:20:05  ROSC declared — Total arrest duration: 6m 45s. Total shocks: 1. Total epi: 1 mg.
+[06:50] 01:20:10  Post-ROSC: Optimise ventilation & oxygenation — ETT if not yet placed; SpO₂ 92–98%; avoid hyperventilation
+[07:00] 01:20:20  Post-ROSC: Hypotension (SBP < 90): IV fluid up to 2 L, then Dopamine 5–10 mcg/kg/min (or norepinephrine / epinephrine infusion); target MAP ≥ 65
+[07:10] 01:20:30  Post-ROSC (unchecked): Hypotension (SBP < 90): IV fluid up to 2 L, then Dopamine 5–10 mcg/kg/min (or norepinephrine / epinephrine infusion); target MAP ≥ 65

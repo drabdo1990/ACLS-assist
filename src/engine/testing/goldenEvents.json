@@ -1,0 +1,222 @@
+[
+  [
+    "system",
+    "Code Blue activated",
+    "Cardiac arrest recognised — CPR started"
+  ],
+  [
+    "cpr",
+    "Chest compressions started",
+    "Rate 100–120/min, depth 5–6 cm, full recoil"
+  ],
+  [
+    "system",
+    "CPR paused",
+    null
+  ],
+  [
+    "system",
+    "CPR resumed",
+    null
+  ],
+  [
+    "cycle",
+    "Cycle 1 completed",
+    "Rhythm: VF · switch compressors"
+  ],
+  [
+    "rhythm",
+    "Rhythm check — VF",
+    null
+  ],
+  [
+    "rhythm",
+    "Rhythm branch: Shockable (VF / pVT)",
+    null
+  ],
+  [
+    "shock",
+    "Defibrillation: Shock #1 (200J Biphasic)",
+    null
+  ],
+  [
+    "cycle",
+    "Cycle 2 completed",
+    "Rhythm check / switch compressors"
+  ],
+  [
+    "rhythm",
+    "Rhythm branch: Non-shockable (Asystole / PEA)",
+    null
+  ],
+  [
+    "shock",
+    "Defibrillation: Shock #2 (360J Monophasic)",
+    "Logged while on non-shockable branch"
+  ],
+  [
+    "drug",
+    "Epinephrine 1 mg IV/IO",
+    "Dose #1 · 20 mL NS flush, elevate arm 10–20 s · repeat every 3–5 min"
+  ],
+  [
+    "cycle",
+    "Cycle 3 completed",
+    "Rhythm: Asystole · switch compressors"
+  ],
+  [
+    "rhythm",
+    "Rhythm check — Asystole",
+    null
+  ],
+  [
+    "cycle",
+    "Cycle 4 completed",
+    "Rhythm: Pulse · switch compressors"
+  ],
+  [
+    "rhythm",
+    "Rhythm check — Pulse",
+    null
+  ],
+  [
+    "cycle",
+    "Cycle 5 completed",
+    "Rhythm: PEA · switch compressors"
+  ],
+  [
+    "rhythm",
+    "Rhythm check — PEA",
+    null
+  ],
+  [
+    "cycle",
+    "Cycle 6 completed",
+    "Rhythm: pVT · switch compressors"
+  ],
+  [
+    "rhythm",
+    "Rhythm check — pVT",
+    null
+  ],
+  [
+    "rhythm",
+    "Rhythm branch: Shockable (VF / pVT)",
+    null
+  ],
+  [
+    "drug",
+    "Amiodarone 300 mg IV/IO",
+    "First dose"
+  ],
+  [
+    "drug",
+    "Amiodarone 150 mg IV/IO",
+    "Second dose"
+  ],
+  [
+    "drug",
+    "Amiodarone 150 mg IV/IO",
+    "Additional dose"
+  ],
+  [
+    "drug",
+    "Lidocaine 70–105 mg IV/IO",
+    "Dose #1 · 1–1.5 mg/kg (70 kg) · cumulative ≥ 70 of max 210 mg (3 mg/kg)"
+  ],
+  [
+    "drug",
+    "Lidocaine 35–53 mg IV/IO",
+    "Dose #2 · 0.5–0.75 mg/kg (70 kg) · cumulative ≥ 105 of max 210 mg (3 mg/kg)"
+  ],
+  [
+    "drug",
+    "Lidocaine 35–53 mg IV/IO",
+    "Dose #3 · 0.5–0.75 mg/kg (70 kg) · cumulative ≥ 140 of max 210 mg (3 mg/kg)"
+  ],
+  [
+    "drug",
+    "Lidocaine 35–53 mg IV/IO",
+    "Dose #4 · 0.5–0.75 mg/kg (70 kg) · cumulative ≥ 175 of max 210 mg (3 mg/kg)"
+  ],
+  [
+    "drug",
+    "Lidocaine 35–53 mg IV/IO",
+    "Dose #5 · 0.5–0.75 mg/kg (70 kg) · cumulative ≥ 210 of max 210 mg (3 mg/kg)"
+  ],
+  [
+    "drug",
+    "Lidocaine 35–53 mg IV/IO",
+    "Dose #6 · 0.5–0.75 mg/kg (70 kg) · cumulative ≥ 245 of max 210 mg (3 mg/kg) · EXCEEDS 3 mg/kg"
+  ],
+  [
+    "drug",
+    "Magnesium sulfate 1–2 g IV/IO",
+    "Torsades de pointes"
+  ],
+  [
+    "airway",
+    "Advanced airway placed — ETT",
+    "Continuous compressions + 1 breath every 6 s (10/min)"
+  ],
+  [
+    "airway",
+    "Advanced airway unmarked",
+    "Returned to 30:2 compression-ventilation"
+  ],
+  [
+    "airway",
+    "Advanced airway placed — Supraglottic airway",
+    "Continuous compressions + 1 breath every 6 s (10/min)"
+  ],
+  [
+    "cause",
+    "Cause addressed — Hypoxia",
+    "Patent airway, supplemental 100% O₂, BVM ventilation, advanced airway; confirm with capnography."
+  ],
+  [
+    "cause",
+    "Cause unchecked — Hypoxia",
+    null
+  ],
+  [
+    "pocus",
+    "POCUS — Absent lung sliding",
+    "Rule in tension pneumothorax → decompress (confirm bilateral ventilation first)."
+  ],
+  [
+    "pocus",
+    "POCUS unchecked — Absent lung sliding",
+    null
+  ],
+  [
+    "rhythm",
+    "Pulse check — no pulse",
+    "Continue CPR"
+  ],
+  [
+    "rosc",
+    "ROSC declared",
+    "Total arrest duration: 6m 45s. Total shocks: 2. Total epi: 1 mg."
+  ],
+  [
+    "post",
+    "Post-ROSC: 12-lead ECG — STEMI → Cath Lab; decides ICU vs CCU",
+    null
+  ],
+  [
+    "post",
+    "Post-ROSC (unchecked): 12-lead ECG — STEMI → Cath Lab; decides ICU vs CCU",
+    null
+  ],
+  [
+    "system",
+    "Re-arrest",
+    "CPR resumed"
+  ],
+  [
+    "system",
+    "Code ended",
+    "Resuscitation ceased · total duration 8m 25s"
+  ]
+]

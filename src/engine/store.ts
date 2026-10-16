@@ -6,6 +6,7 @@ import type {
   CodeEvent,
   DoseEvent,
   EventCategory,
+  EventI18n,
   MetronomeState,
   PersistedSession,
   PocusId,
@@ -15,7 +16,7 @@ import type {
   Settings,
   ShockEvent,
 } from './types';
-import { CYCLE_MS, formatDuration, masterElapsedMs } from './timing';
+import { CYCLE_MS, masterElapsedMs } from './timing';
 import { clockNow } from './clock';
 import {
   clearPersisted,
@@ -27,11 +28,7 @@ import {
 import {
   AIRWAY_EVENT_PREFIX,
   BRANCH_EVENT_PREFIX,
-  CODE_ENDED_LABEL,
-  REARREST_LABEL,
   RHYTHM_CHECK_PREFIX,
-  ROSC_LABEL,
-  SGA_LABEL,
   airwayFromEvents,
   branchFromEvents,
 } from './eventQueries';
@@ -40,14 +37,13 @@ import { haptic } from './haptics';
 import { CAUSES } from '../content/causes';
 import { POCUS_ITEMS } from '../content/pocus';
 import {
-  EPINEPHRINE,
-  MAGNESIUM,
   amiodaroneDoseMg,
   lidocaineBudget,
   lidocaineDose,
   waveformFor,
-  waveformLabel,
 } from '../content/calc';
+import { keyed } from '../i18n/enText';
+import type { MessageKey } from '../i18n/en';
 
 let idCounter = 0;
 function uid(): string {
@@ -61,15 +57,15 @@ function mkEvent(
   detail: string | undefined,
   at: number,
   t: number,
+  i18n?: EventI18n,
 ): CodeEvent {
-  return { id: uid(), at, t, category, label, detail };
+  const e: CodeEvent = { id: uid(), at, t, category, label, detail };
+  if (i18n?.key) e.key = i18n.key;
+  if (i18n?.params) e.params = i18n.params;
+  if (i18n?.detailKey) e.detailKey = i18n.detailKey;
+  if (i18n?.detailParams) e.detailParams = i18n.detailParams;
+  return e;
 }
-
-const BRANCH_LABEL: Record<RhythmBranch, string> = {
-  shockable: 'Shockable (VF / pVT)',
-  nonshockable: 'Non-shockable (Asystole / PEA)',
-};
-const AIRWAY_LABEL: Record<AirwayType, string> = { ETT: 'ETT', SGA: SGA_LABEL };
 
 export interface CodeStore extends PersistedSession {
   /** ticker-driven clock value; excluded from persistence */
@@ -92,7 +88,7 @@ export interface CodeStore extends PersistedSession {
   terminateCode: () => void;
   reArrest: () => void;
 
-  logEvent: (category: EventCategory, label: string, detail?: string) => void;
+  logEvent: (category: EventCategory, label: string, detail?: string, i18n?: EventI18n) => void;
   setRhythmBranch: (branch: RhythmBranch) => void;
   administerEpi: () => void;
   deliverShock: (joules: number) => void;
@@ -200,6 +196,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       apply((s) => {
         if (s.status !== 'idle') return {};
         const at = clockNow();
+        const ev1 = keyed('ev.start', undefined, 'ev.start.detail');
+        const ev2 = keyed('ev.compressions', undefined, 'ev.compressions.detail');
         return {
           status: 'active' as SessionStatus,
           startedAt: at,
@@ -212,8 +210,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           cycleIndex: 1,
           events: [
             ...s.events,
-            mkEvent('system', 'Code Blue activated', 'Cardiac arrest recognised — CPR started', at, 0),
-            mkEvent('cpr', 'Chest compressions started', 'Rate 100–120/min, depth 5–6 cm, full recoil', at, 0),
+            mkEvent('system', ev1.label, ev1.detail, at, 0, ev1.i18n),
+            mkEvent('cpr', ev2.label, ev2.detail, at, 0, ev2.i18n),
           ],
         };
       }),
@@ -222,10 +220,11 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       apply((s) => {
         if (s.status !== 'active') return {};
         const at = clockNow();
+        const ev = keyed('ev.pause');
         return {
           status: 'paused' as SessionStatus,
           pausedAt: at,
-          events: [...s.events, mkEvent('system', 'CPR paused', undefined, at, el(s, at))],
+          events: [...s.events, mkEvent('system', ev.label, undefined, at, el(s, at), ev.i18n)],
         };
       }),
 
@@ -234,12 +233,13 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         if (s.status !== 'paused') return {};
         const at = clockNow();
         const delta = s.pausedAt != null ? at - s.pausedAt : 0;
+        const ev = keyed('ev.resume');
         return {
           status: 'active' as SessionStatus,
           pausedAt: null,
           pausedAccumMs: s.pausedAccumMs + delta,
           cyclePausedAccumMs: s.cycleStartedAt != null ? s.cyclePausedAccumMs + delta : 0,
-          events: [...s.events, mkEvent('system', 'CPR resumed', undefined, at, el(s, at))],
+          events: [...s.events, mkEvent('system', ev.label, undefined, at, el(s, at), ev.i18n)],
         };
       }),
 
@@ -250,23 +250,27 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const ref = s.pausedAt ?? at;
         const completed = s.cycleIndex;
         const t = el(s, at);
+        const cycleEv = keyed(
+          'ev.cycle',
+          { n: completed },
+          rhythm ? 'ev.cycle.detailRhythm' : 'ev.cycle.detail',
+          rhythm ? { rhythm: `@rhythm.${rhythm}` } : undefined,
+        );
         const events: CodeEvent[] = [
           ...s.events,
-          mkEvent(
-            'cycle',
-            `Cycle ${completed} completed`,
-            rhythm ? `Rhythm: ${rhythm} · switch compressors` : 'Rhythm check / switch compressors',
-            at,
-            t,
-          ),
+          mkEvent('cycle', cycleEv.label, cycleEv.detail, at, t, cycleEv.i18n),
         ];
-        if (rhythm) events.push(mkEvent('rhythm', `${RHYTHM_CHECK_PREFIX}${rhythm}`, undefined, at, t));
+        if (rhythm) {
+          const rEv = keyed('ev.rhythmCheck', { rhythm: `@rhythm.${rhythm}` });
+          events.push(mkEvent('rhythm', rEv.label, undefined, at, t, rEv.i18n));
+        }
         // Keep the algorithm branch in step with the rhythm just logged. The branch event is
         // appended last so a mis-tapped rhythm can be corrected with Undo.
         const branch = rhythm ? RHYTHM_BRANCH[rhythm] : null;
         const branchPatch: Partial<CodeStore> = {};
         if (branch && branch !== s.rhythmBranch) {
-          events.push(mkEvent('rhythm', `${BRANCH_EVENT_PREFIX}${BRANCH_LABEL[branch]}`, undefined, at, t));
+          const bEv = keyed('ev.branch', { branch: `@branch.${branch}` });
+          events.push(mkEvent('rhythm', bEv.label, undefined, at, t, bEv.i18n));
           branchPatch.rhythmBranch = branch;
         }
         return {
@@ -286,6 +290,11 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         playChime();
         haptic.rosc();
         const closesPause = s.status === 'paused' && s.pausedAt != null;
+        const roscEv = keyed('ev.rosc', undefined, 'ev.rosc.detail', {
+          durationMs: t,
+          shocks: s.shocks.length,
+          epiMg: totalEpiMg(s.epi),
+        });
         return {
           status: 'rosc' as SessionStatus,
           endedAt: at,
@@ -294,13 +303,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
-            mkEvent(
-              'rosc',
-              ROSC_LABEL,
-              `Total arrest duration: ${formatDuration(t)}. Total shocks: ${s.shocks.length}. Total epi: ${totalEpiMg(s.epi)} mg.`,
-              at,
-              t,
-            ),
+            mkEvent('rosc', roscEv.label, roscEv.detail, at, t, roscEv.i18n),
           ],
         };
       }),
@@ -312,6 +315,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const t = el(s, at);
         playClose();
         const closesPause = s.status === 'paused' && s.pausedAt != null;
+        const endEv = keyed('ev.end', undefined, 'ev.end.detail', { durationMs: t });
         return {
           status: 'terminated' as SessionStatus,
           endedAt: s.status === 'rosc' ? s.endedAt : at,
@@ -320,7 +324,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
-            mkEvent('system', CODE_ENDED_LABEL, `Resuscitation ceased · total duration ${formatDuration(t)}`, at, t),
+            mkEvent('system', endEv.label, endEv.detail, at, t, endEv.i18n),
           ],
         };
       }),
@@ -330,6 +334,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         if (s.status !== 'rosc') return {};
         const at = clockNow();
         const roscDelta = s.endedAt != null ? Math.max(0, at - s.endedAt) : 0;
+        const reEv = keyed('ev.rearrest', undefined, 'ev.resume');
         return {
           status: 'active' as SessionStatus,
           pausedAt: null,
@@ -338,14 +343,14 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           cycleStartedAt: at,
           cyclePausedAccumMs: 0,
           cycleIndex: s.cycleIndex + 1,
-          events: [...s.events, mkEvent('system', REARREST_LABEL, 'CPR resumed', at, el(s, at))],
+          events: [...s.events, mkEvent('system', reEv.label, reEv.detail, at, el(s, at), reEv.i18n)],
         };
       }),
 
-    logEvent: (category, label, detail) =>
+    logEvent: (category, label, detail, i18n) =>
       apply((s) => {
         const at = clockNow();
-        return { events: [...s.events, mkEvent(category, label, detail, at, el(s, at))] };
+        return { events: [...s.events, mkEvent(category, label, detail, at, el(s, at), i18n)] };
       }),
 
     setRhythmBranch: (branch) =>
@@ -353,11 +358,12 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         if (s.rhythmBranch === branch) return {};
         const at = clockNow();
         haptic.confirm();
+        const bEv = keyed('ev.branch', { branch: `@branch.${branch}` });
         return {
           rhythmBranch: branch,
           events: [
             ...s.events,
-            mkEvent('rhythm', `${BRANCH_EVENT_PREFIX}${BRANCH_LABEL[branch]}`, undefined, at, el(s, at)),
+            mkEvent('rhythm', bEv.label, undefined, at, el(s, at), bEv.i18n),
           ],
         };
       }),
@@ -370,11 +376,12 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const label = 'Epinephrine 1 mg IV/IO';
         playConfirm();
         haptic.confirm();
+        const epiEv = keyed('ev.epi', undefined, 'ev.epi.detail', { n });
         return {
           epi: [...s.epi, { at, t, label, mg: 1 }],
           events: [
             ...s.events,
-            mkEvent('drug', label, `Dose #${n} · ${EPINEPHRINE.flush} · repeat every 3–5 min`, at, t),
+            mkEvent('drug', epiEv.label, epiEv.detail, at, t, epiEv.i18n),
           ],
         };
       }),
@@ -388,17 +395,16 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const shockable = s.rhythmBranch !== 'nonshockable';
         const shock: ShockEvent = { at, t, joules, shockable, waveform };
         haptic.confirm();
+        const shockEv = keyed(
+          'ev.shock',
+          { n, joules, waveform: `@waveform.${waveform}` },
+          shockable ? undefined : 'ev.shock.nonshockable',
+        );
         return {
           shocks: [...s.shocks, shock],
           events: [
             ...s.events,
-            mkEvent(
-              'shock',
-              `Defibrillation: Shock #${n} (${joules}J ${waveformLabel(waveform)})`,
-              shockable ? undefined : 'Logged while on non-shockable branch',
-              at,
-              t,
-            ),
+            mkEvent('shock', shockEv.label, shockEv.detail, at, t, shockEv.i18n),
           ],
         };
       }),
@@ -419,11 +425,13 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const label = `Amiodarone ${mg} mg IV/IO`;
         playConfirm();
         haptic.confirm();
+        const detailKey: MessageKey = count === 0 ? 'ev.dose.first' : count === 1 ? 'ev.dose.second' : 'ev.dose.additional';
+        const amioEv = keyed('ev.amio', { mg }, detailKey);
         return {
           amio: [...s.amio, { at, t, label, mg }],
           events: [
             ...s.events,
-            mkEvent('drug', label, count === 0 ? 'First dose' : count === 1 ? 'Second dose' : 'Additional dose', at, t),
+            mkEvent('drug', amioEv.label, amioEv.detail, at, t, amioEv.i18n),
           ],
         };
       }),
@@ -435,22 +443,26 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const d = lidocaineDose(s.weightKg, s.lido.length);
         const budget = lidocaineBudget(s.weightKg, s.lido.map((x) => x.mg ?? 0));
         const label = `Lidocaine ${d.minMg}–${d.maxMg} mg IV/IO`;
-        const cumulative = `cumulative ≥ ${budget.givenMg + d.minMg} of max ${budget.maxMg} mg (3 mg/kg)`;
         playConfirm();
         haptic.confirm();
+        const detailKey: MessageKey = budget.nextExceeds ? 'ev.lido.detailExceeds' : 'ev.lido.detail';
+        const lidoEv = keyed(
+          'ev.lido',
+          { minMg: d.minMg, maxMg: d.maxMg },
+          detailKey,
+          {
+            n: d.doseNo,
+            perKg: d.perKgLabel,
+            kg: s.weightKg,
+            cumMg: budget.givenMg + d.minMg,
+            maxMg: budget.maxMg,
+          },
+        );
         return {
           lido: [...s.lido, { at, t, label, mg: d.minMg }],
           events: [
             ...s.events,
-            mkEvent(
-              'drug',
-              label,
-              `Dose #${d.doseNo} · ${d.perKgLabel} (${s.weightKg} kg) · ${cumulative}${
-                budget.nextExceeds ? ' · EXCEEDS 3 mg/kg' : ''
-              }`,
-              at,
-              t,
-            ),
+            mkEvent('drug', lidoEv.label, lidoEv.detail, at, t, lidoEv.i18n),
           ],
         };
       }),
@@ -460,8 +472,9 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         playConfirm();
         haptic.confirm();
+        const magEv = keyed('ev.mag', undefined, 'ev.mag.detail');
         return {
-          events: [...s.events, mkEvent('drug', MAGNESIUM.label, MAGNESIUM.indication, at, el(s, at))],
+          events: [...s.events, mkEvent('drug', magEv.label, magEv.detail, at, el(s, at), magEv.i18n)],
         };
       }),
 
@@ -470,27 +483,23 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         haptic.confirm();
         if (s.airwayPlaced) {
+          const offEv = keyed('ev.airwayOff', undefined, 'ev.airwayOff.detail');
           return {
             airwayPlaced: false,
             airwayType: null,
             events: [
               ...s.events,
-              mkEvent('airway', 'Advanced airway unmarked', 'Returned to 30:2 compression-ventilation', at, el(s, at)),
+              mkEvent('airway', offEv.label, offEv.detail, at, el(s, at), offEv.i18n),
             ],
           };
         }
+        const onEv = keyed('ev.airway', { airway: `@airway.${type}` }, 'ev.airway.detail');
         return {
           airwayPlaced: true,
           airwayType: type,
           events: [
             ...s.events,
-            mkEvent(
-              'airway',
-              `${AIRWAY_EVENT_PREFIX} — ${AIRWAY_LABEL[type]}`,
-              'Continuous compressions + 1 breath every 6 s (10/min)',
-              at,
-              el(s, at),
-            ),
+            mkEvent('airway', onEv.label, onEv.detail, at, el(s, at), onEv.i18n),
           ],
         };
       }),
@@ -498,21 +507,22 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     toggleCause: (id) =>
       apply((s) => {
         const next = { ...s.causes, [id]: !s.causes[id] };
-        const cause = CAUSES.find((c) => c.id === id);
         const at = clockNow();
         if (s.causes[id]) {
           // Unticking is recorded, not erased, so the timeline stays an honest audit trail.
+          const offEv = keyed('ev.causeOff', { cause: `@cause.${id}.label` });
           return {
             causes: next,
-            events: [...s.events, mkEvent('cause', `${CAUSE_UNCHECK_PREFIX}${cause?.label ?? id}`, undefined, at, el(s, at))],
+            events: [...s.events, mkEvent('cause', offEv.label, undefined, at, el(s, at), offEv.i18n)],
           };
         }
         haptic.warn();
+        const onEv = keyed('ev.causeOn', { cause: `@cause.${id}.label` }, `cause.${id}.action`);
         return {
           causes: next,
           events: [
             ...s.events,
-            mkEvent('cause', `Cause addressed — ${cause?.label ?? id}`, cause?.action, at, el(s, at)),
+            mkEvent('cause', onEv.label, onEv.detail, at, el(s, at), onEv.i18n),
           ],
         };
       }),
@@ -520,18 +530,19 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     togglePocus: (id) =>
       apply((s) => {
         const next = { ...s.pocus, [id]: !s.pocus[id] };
-        const item = POCUS_ITEMS.find((p) => p.id === id);
         const at = clockNow();
         if (s.pocus[id]) {
+          const offEv = keyed('ev.pocusOff', { item: `@pocus.${id}.label` });
           return {
             pocus: next,
-            events: [...s.events, mkEvent('pocus', `${POCUS_UNCHECK_PREFIX}${item?.label ?? id}`, undefined, at, el(s, at))],
+            events: [...s.events, mkEvent('pocus', offEv.label, undefined, at, el(s, at), offEv.i18n)],
           };
         }
         haptic.confirm();
+        const onEv = keyed('ev.pocusOn', { item: `@pocus.${id}.label` }, `pocus.${id}.meaning`);
         return {
           pocus: next,
-          events: [...s.events, mkEvent('pocus', `POCUS — ${item?.label ?? id}`, item?.meaning, at, el(s, at))],
+          events: [...s.events, mkEvent('pocus', onEv.label, onEv.detail, at, el(s, at), onEv.i18n)],
         };
       }),
 

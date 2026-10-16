@@ -14,6 +14,7 @@ import {
 import { playKlaxon, playWarningChimes } from '../../engine/audio';
 import { haptic } from '../../engine/haptics';
 import type { RhythmLoop } from '../../engine/types';
+import { useT } from '../../i18n/useT';
 
 const R = 108;
 const C = 2 * Math.PI * R;
@@ -33,6 +34,7 @@ const RHYTHMS: RhythmLoop[] = ['VF', 'pVT', 'PEA', 'Asystole', 'Pulse'];
  * it never disturbs the arrest duration.
  */
 export function CyclePanel() {
+  const { t } = useT();
   const now = useNow();
   const cyclic = useCodeStore(
     useShallow((s) => ({
@@ -77,11 +79,11 @@ export function CyclePanel() {
 
   const label = !active
     ? cyclic.status === 'idle'
-      ? 'Awaiting start'
-      : 'Cycle stopped'
+      ? t('hud.cycle.awaiting')
+      : t('hud.cycle.stopped')
     : expired
-      ? 'Cycle complete'
-      : 'Cycle remaining';
+      ? t('hud.cycle.complete')
+      : t('hud.cycle.remaining');
 
   return (
     <div
@@ -91,17 +93,17 @@ export function CyclePanel() {
     >
       <div className="mb-1 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-mute">
-          <Timer className="h-4 w-4" /> 2-min CPR cycle
+          <Timer className="h-4 w-4" /> {t('hud.cycle.title')}
         </span>
         <span className="tnum rounded-full border border-line px-2 py-0.5 text-xs font-bold text-mute">
-          Cycle {cyclic.cycleIndex}
+          {t('hud.cycle.index', { n: cyclic.cycleIndex })}
         </span>
       </div>
 
       {expired ? (
         <div className="animate-flash-bg mb-2 rounded-2xl border-2 border-crit px-3 py-4 text-center text-white">
-          <p className="text-2xl font-black leading-tight tracking-tight sm:text-3xl">RHYTHM CHECK</p>
-          <p className="text-xl font-black leading-tight tracking-tight sm:text-2xl">SWITCH COMPRESSORS</p>
+          <p className="text-2xl font-black leading-tight tracking-tight sm:text-3xl">{t('hud.cycle.rhythmCheck')}</p>
+          <p className="text-xl font-black leading-tight tracking-tight sm:text-2xl">{t('hud.cycle.switchCompressors')}</p>
         </div>
       ) : null}
 
@@ -121,7 +123,7 @@ export function CyclePanel() {
           />
         </svg>
         <div className="flex flex-col items-center">
-          <span
+          <span dir="ltr"
             className={`tnum font-mono text-6xl font-bold leading-none ${
               expired || warning ? 'animate-flash text-crit' : ''
             }`}
@@ -142,7 +144,7 @@ export function CyclePanel() {
       {expired ? (
         <div className="mb-2 rounded-xl border border-crit p-2">
           <p className="mb-2 flex items-center justify-center gap-2 text-center text-sm font-bold text-crit">
-            <Waves className="h-4 w-4" /> Log the rhythm — resets the cycle
+            <Waves className="h-4 w-4" /> {t('hud.cycle.logRhythm')}
           </p>
           <div className="grid grid-cols-5 gap-1.5">
             {RHYTHMS.map((r) => (
@@ -172,10 +174,10 @@ export function CyclePanel() {
         ].join(' ')}
       >
         <RotateCcw className="h-6 w-6" />
-        Reset 2-Min Cycle
+        {t('hud.cycle.resetBtn')}
       </button>
       <p className="mt-1 text-center text-[11px] text-mute">
-        Total arrest clock keeps running · cycle length {CYCLE_MS / 1000}s
+        {t('hud.cycle.subtext', { length: CYCLE_MS / 1000 })}
       </p>
     </div>
   );

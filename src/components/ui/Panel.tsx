@@ -28,7 +28,7 @@ export function Panel({ title, icon: Icon, right, children, className = '', acce
         <header className="mb-2 flex items-center gap-2">
           {Icon ? <Icon className="h-4 w-4 text-mute" aria-hidden /> : null}
           <h2 className="text-xs font-bold uppercase tracking-widest text-mute">{title}</h2>
-          {right ? <div className="ml-auto">{right}</div> : null}
+          {right ? <div className="ms-auto">{right}</div> : null}
         </header>
       ) : null}
       {children}

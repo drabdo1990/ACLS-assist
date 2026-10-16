@@ -305,6 +305,19 @@ interface UploadPayload {
 - No horizontal scroll at 360 px width.
 - Legacy events without `key` render their English label.
 
+**Corrections made during implementation (phase 3 plan, 2026-10-16):**
+- **Event details are translated too.** `CodeEvent` also gains `detailKey` and `detailParams`, because details are clinical text.
+- **How params are stored.** Params hold raw values only: `'@'` + a message key for ids, and numbers as numbers. Params named `*Ms` are durations.
+- **The store writes English through `enText()`.** A golden test pins every English label and detail, so the audit trail can't change.
+- **Malformed translation fields** are dropped from that one event. The session is never rejected over them.
+- **Durations in Arabic** render as clock format (`6:45`), which avoids Arabic plural forms.
+- **SBAR language** goes in the existing options object, `buildSbar(input, now, { lang, relativeOnly })`, not as a third positional argument.
+  - Arabic SBAR times are wrapped in LRI…PDI direction marks (U+2066/U+2069).
+  - "Generated:" uses a single Gregorian/Latin-digit date formatter in both languages.
+- **Release-gate wording.** The enrollment privacy notice is consent wording, so it also carries the review marker.
+- **Review switch.** `AR_CLINICAL_REVIEWED` (`src/i18n/review.ts`) controls the Arabic draft notice. The review checklist is in `docs/i18n/arabic-clinical-review.md`.
+- **Guard tests.** Two guard tests keep this from regressing: hard-coded English in `.tsx` files, and physical left/right Tailwind classes.
+
 ---
 
 ## 7. Testing summary
