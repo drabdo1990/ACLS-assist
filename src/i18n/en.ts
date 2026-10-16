@@ -446,8 +446,8 @@ const UI = {
   'ui.weight.set': 'Set this weight',
 
   // ---- Causes & POCUS ----
-  'causes.title': 'Reversible causes — 5 H’s & 5 T’s',
-  'causes.group.H': '5 H’s — Reversible Causes',
+  'causes.title': 'Reversible causes — 6 H’s & 5 T’s',
+  'causes.group.H': '6 H’s — Reversible Causes',
   'causes.group.T': '5 T’s — Reversible Causes',
   'pocus.title': 'Point-of-care ultrasound',
   'pocus.warning': 'Scan during the rhythm check only — never extend the pause beyond 10 s.',

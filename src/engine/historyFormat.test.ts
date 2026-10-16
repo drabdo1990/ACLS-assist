@@ -62,7 +62,7 @@ describe('aggregateRows', () => {
       computeAggregates([mkRecord(1), mkRecord(2, {}, { outcome: 'terminated', roscCount: 0 })]),
       'ar',
     );
-    expect(val(rows, 'النداءات المحصاة')).toBe('2');
+    expect(val(rows, 'النداءات المحتسبة')).toBe('2');
     expect(val(rows, 'أي ROSC')).toBe('1 من 2');
     expect(val(rows, 'وسيط أول إبينفرين')).toBe('\u206602:00\u2069 (n=2)');
   });
