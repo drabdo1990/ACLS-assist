@@ -35,6 +35,7 @@ export function recordTitle(r: CodeRecord, offsetMin?: number, lang: Lang = 'en'
 
 export function recordFlags(r: CodeRecord, lang: Lang = 'en'): string[] {
   return [
+    r.stats.population === 'pediatric' ? translate(lang, 'history.flag.pediatric') : '',
     r.training ? translate(lang, 'history.flag.training') : '',
     r.voided ? translate(lang, 'history.flag.void') : '',
   ].filter(Boolean);

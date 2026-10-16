@@ -308,6 +308,9 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'history.status.rejected': 'مرفوض من الجدول', // draft — clinician review required
   'history.flag.training': 'تدريب', // draft — clinician review required
   'history.flag.void': 'ملغى', // draft — clinician review required
+  'history.flag.pediatric': 'أطفال', // draft — clinician review required
+  'history.agg.adult': 'نداءات البالغين ({n})', // draft — clinician review required
+  'history.agg.pediatric': 'نداءات الأطفال ({n})', // draft — clinician review required
   'history.agg.codesCounted': 'النداءات المحتسبة', // draft — clinician review required
   'history.agg.incomplete': '{count} غير مكتمل', // draft — clinician review required
   'history.agg.excluded': '{count} تدريب/ملغى', // draft — clinician review required

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Download, History as HistoryIcon, Trash2 } from 'lucide-react';
 import { computeAggregates } from '../../engine/history';
 import { aggregateRows, recordFlags, recordTitle, uploadStatusLabel } from '../../engine/historyFormat';
+import { translate } from '../../i18n/translate';
 import { csvFilename, recordsToCsv } from '../../engine/csv';
 import { clearAllHistory } from '../../engine/service';
 import { useHistoryRecords } from '../../hooks/useService';
@@ -37,6 +38,33 @@ export function HistoryPanel() {
               </div>
             ))}
           </dl>
+          {/* Totals and medians per population, each with its own n — shown once pediatric codes exist. */}
+          {agg.byPopulation.pediatric.total > 0 ? (
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {(
+                [
+                  ['history.agg.adult', agg.byPopulation.adult],
+                  ['history.agg.pediatric', agg.byPopulation.pediatric],
+                ] as const
+              ).map(([key, part]) => (
+                <div key={key} className="rounded-xl border border-line bg-panel2/40 p-2">
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-mute">
+                    {t(key, { n: part.total })}
+                  </p>
+                  <dl className="grid grid-cols-1 gap-1">
+                    {aggregateRows(part, lang)
+                      .filter((r) => r.label !== translate(lang, 'history.agg.codesCounted'))
+                      .map((r) => (
+                        <div key={r.label} className="flex items-baseline justify-between gap-3 px-1 py-0.5">
+                          <dt className="text-xs text-mute">{r.label}</dt>
+                          <dd dir="auto" className="tnum text-end text-sm font-bold text-ink">{r.value}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <ul className="mt-3 flex flex-col gap-1">
             {shown.map((r) => (
               <li key={r.id}>

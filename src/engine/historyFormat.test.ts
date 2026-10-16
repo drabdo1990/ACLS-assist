@@ -67,3 +67,14 @@ describe('aggregateRows', () => {
     expect(val(rows, 'وسيط أول إبينفرين')).toBe('\u206602:00\u2069 (n=2)');
   });
 });
+
+describe('recordFlags (phase 4a)', () => {
+  it('tags pediatric records and keeps training/void flags', () => {
+    expect(recordFlags(mkRecord(1), 'en')).toEqual([]);
+    expect(recordFlags(mkRecord(2, {}, { population: 'pediatric' }), 'en')).toEqual(['Pediatric']);
+    expect(recordFlags(mkRecord(3, { training: true }, { population: 'pediatric' }), 'ar')).toEqual([
+      'أطفال',
+      'تدريب',
+    ]);
+  });
+});
