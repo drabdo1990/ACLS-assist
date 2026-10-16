@@ -6,14 +6,16 @@
  * (Algorithm 11.1), consistent with AHA 2020/2023 post-cardiac arrest care.
  */
 
-export interface ChecklistItem {
-  id: string;
+export type PostRoscId = 'airway' | 'bp' | 'ecg' | 'neuro' | 'glucose' | 'cause' | 'vitals' | 'icu';
+
+export interface ChecklistItem<Id extends string = string> {
+  id: Id;
   text: string;
   /** emphasis renders in bold / brighter ink — reserved for time-critical acts */
   critical?: boolean;
 }
 
-export const POST_ROSC_BUNDLE: ChecklistItem[] = [
+export const POST_ROSC_BUNDLE: ChecklistItem<PostRoscId>[] = [
   {
     id: 'airway',
     text: 'Optimise ventilation & oxygenation — ETT if not yet placed; SpO₂ 92–98%; avoid hyperventilation',

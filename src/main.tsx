@@ -6,6 +6,10 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useCodeStore } from './engine/store';
 import { startService } from './engine/service';
 import { takeEnrollFragment } from './engine/enrollLink';
+import { applyDocumentLang, getLang } from './i18n/lang';
+
+// Before the first render, so an Arabic device never flashes a left-to-right layout.
+applyDocumentLang(getLang());
 
 // Ensure PWA updates apply immediately when no code is actively running.
 // Workbox serves precached assets first and updates the Service Worker in the
