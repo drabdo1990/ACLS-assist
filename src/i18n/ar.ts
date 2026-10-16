@@ -13,6 +13,63 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'lang.ar': 'العربية',
   'i18n.draftNotice': 'النص السريري العربي مسودة بانتظار مراجعة طبية — النص الإنجليزي هو المرجع.',
 
+  // ---- Event log ----
+  'ev.start': 'تفعيل نداء الإنعاش (Code Blue)', // draft — clinician review required
+  'ev.start.detail': 'تم التعرف على توقف القلب — بدء الإنعاش (CPR)', // draft — clinician review required
+  'ev.compressions': 'بدء الضغطات الصدرية', // draft — clinician review required
+  'ev.compressions.detail': 'المعدل 100–120/min، العمق 5–6 cm، ارتداد كامل للصدر', // draft — clinician review required
+  'ev.pause': 'إيقاف مؤقت للإنعاش (CPR)', // draft — clinician review required
+  'ev.resume': 'استئناف الإنعاش (CPR)', // draft — clinician review required
+  'ev.cycle': 'اكتملت الدورة {n}', // draft — clinician review required
+  'ev.cycle.detail': 'فحص النظم / تبديل القائم بالضغطات', // draft — clinician review required
+  'ev.cycle.detailRhythm': 'النظم: {rhythm} · تبديل القائم بالضغطات', // draft — clinician review required
+  'ev.rhythmCheck': 'فحص النظم — {rhythm}', // draft — clinician review required
+  'ev.branch': 'مسار النظم: {branch}', // draft — clinician review required
+  'ev.rosc': 'إعلان عودة الدورة الدموية التلقائية (ROSC)', // draft — clinician review required
+  'ev.rosc.detail': 'إجمالي مدة التوقف: {durationMs}. إجمالي الصدمات: {shocks}. إجمالي Epinephrine: {epiMg} mg.', // draft — clinician review required
+  'ev.end': 'إنهاء الإنعاش', // draft — clinician review required
+  'ev.end.detail': 'أُوقف الإنعاش · المدة الإجمالية {durationMs}', // draft — clinician review required
+  'ev.rearrest': 'توقف قلبي متكرر', // draft — clinician review required
+  'ev.epi': 'Epinephrine 1 mg IV/IO', // draft — clinician review required
+  'ev.epi.detail': 'الجرعة رقم {n} · دفع 20 mL NS ورفع الذراع 10–20 s · تُكرر كل 3–5 min', // draft — clinician review required
+  'ev.shock': 'إزالة الرجفان: الصدمة رقم {n} ({joules}J {waveform})', // draft — clinician review required
+  'ev.shock.nonshockable': 'سُجّلت أثناء المسار غير القابل للصدمة', // draft — clinician review required
+  'ev.amio': 'Amiodarone {mg} mg IV/IO', // draft — clinician review required
+  'ev.dose.first': 'الجرعة الأولى', // draft — clinician review required
+  'ev.dose.second': 'الجرعة الثانية', // draft — clinician review required
+  'ev.dose.additional': 'جرعة إضافية', // draft — clinician review required
+  'ev.lido': 'Lidocaine {minMg}–{maxMg} mg IV/IO', // draft — clinician review required
+  'ev.lido.detail': 'الجرعة رقم {n} · {perKg} ({kg} kg) · التراكمي ≥ {cumMg} من حد أقصى {maxMg} mg (3 mg/kg)', // draft — clinician review required
+  'ev.lido.detailExceeds':
+    'الجرعة رقم {n} · {perKg} ({kg} kg) · التراكمي ≥ {cumMg} من حد أقصى {maxMg} mg (3 mg/kg) · يتجاوز 3 mg/kg', // draft — clinician review required
+  'ev.mag': 'Magnesium sulfate 1–2 g IV/IO', // draft — clinician review required
+  'ev.mag.detail': 'Torsades de pointes', // draft — clinician review required
+  'ev.airway': 'وضع مجرى هواء متقدم — {airway}', // draft — clinician review required
+  'ev.airway.detail': 'ضغطات مستمرة + نَفَس واحد كل 6 s (10/min)', // draft — clinician review required
+  'ev.airwayOff': 'إلغاء تسجيل مجرى الهواء المتقدم', // draft — clinician review required
+  'ev.airwayOff.detail': 'العودة إلى ضغطات/تهوية 30:2', // draft — clinician review required
+  'ev.causeOn': 'تمت معالجة السبب — {cause}', // draft — clinician review required
+  'ev.causeOff': 'أُلغي تحديد السبب — {cause}', // draft — clinician review required
+  'ev.pocusOn': 'POCUS — {item}', // draft — clinician review required
+  'ev.pocusOff': 'أُلغي تحديد POCUS — {item}', // draft — clinician review required
+  'ev.pulseCheck': 'فحص النبض — لا يوجد نبض', // draft — clinician review required
+  'ev.pulseCheck.detail': 'متابعة الإنعاش (CPR)', // draft — clinician review required
+  'ev.postRosc.on': 'رعاية ما بعد ROSC: {item}', // draft — clinician review required
+  'ev.postRosc.off': 'رعاية ما بعد ROSC (أُلغي التحديد): {item}', // draft — clinician review required
+
+  // ---- Event param values ----
+  'rhythm.VF': 'VF',
+  'rhythm.pVT': 'pVT',
+  'rhythm.PEA': 'PEA',
+  'rhythm.Asystole': 'توقف الانقباض (Asystole)', // draft — clinician review required
+  'rhythm.Pulse': 'يوجد نبض', // draft — clinician review required
+  'branch.shockable': 'قابل للصدمة (VF / pVT)', // draft — clinician review required
+  'branch.nonshockable': 'غير قابل للصدمة (Asystole / PEA)', // draft — clinician review required
+  'waveform.biphasic': 'ثنائية الطور', // draft — clinician review required
+  'waveform.monophasic': 'أحادية الطور', // draft — clinician review required
+  'airway.ETT': 'ETT',
+  'airway.SGA': 'مجرى هواء فوق المزمار (SGA)', // draft — clinician review required
+
   // ---- Reversible causes (H's & T's) ----
   'cause.hypoxia.label': 'نقص الأكسجة', // draft — clinician review required
   'cause.hypoxia.clue': 'مرض قلبي/رئوي مزمن، انسداد مجرى الهواء، انزياح الأنبوب؛ زُرقة.', // draft — clinician review required

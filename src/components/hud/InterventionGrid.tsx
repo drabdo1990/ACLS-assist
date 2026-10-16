@@ -18,6 +18,7 @@ import { BigButton } from '../ui/BigButton';
 import { Chip } from '../ui/Chip';
 import { Panel } from '../ui/Panel';
 import { WeightControl } from '../ui/WeightControl';
+import { keyed } from '../../i18n/enText';
 
 /** Ring that marks the button the algorithm expects next. */
 const FOCUS_RING = 'ring-4 ring-warn/70 ring-offset-2 ring-offset-bg';
@@ -269,7 +270,10 @@ export function InterventionGrid() {
           </button>
           <button
             type="button"
-            onClick={() => logEvent('rhythm', 'Pulse check — no pulse', 'Continue CPR')}
+            onClick={() => {
+              const m = keyed('ev.pulseCheck', undefined, 'ev.pulseCheck.detail');
+              logEvent('rhythm', m.label, m.detail, m.i18n);
+            }}
             disabled={!canLog}
             className="touch-hit min-h-[64px] w-full rounded-xl border border-line bg-panel2 px-2 text-sm font-bold active:scale-[0.98] disabled:opacity-40"
           >

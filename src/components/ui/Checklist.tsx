@@ -2,7 +2,14 @@ import { Check } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import type { EventCategory } from '../../engine/types';
-import { checklistOffLabel, checklistOnLabel, isChecklistItemOn } from '../../engine/checklist';
+import {
+  checklistOffLabel,
+  checklistOnLabel,
+  checklistToggle,
+  isChecklistItemOn,
+  POST_ROSC_CHECKLIST_I18N,
+} from '../../engine/checklist';
+import { POST_ROSC_PREFIX } from '../../engine/eventQueries';
 
 export interface ChecklistItemLike {
   id: string;
@@ -20,8 +27,16 @@ export function useLoggedChecklist(category: EventCategory, prefix: string) {
 
   const isOn = (text: string) => isChecklistItemOn(events, prefix, text);
 
-  const toggle = (text: string) =>
-    logEvent(category, isOn(text) ? checklistOffLabel(prefix, text) : checklistOnLabel(prefix, text));
+  const toggle = (item: ChecklistItemLike | string) => {
+    if (typeof item === 'string') {
+      logEvent(category, isOn(item) ? checklistOffLabel(prefix, item) : checklistOnLabel(prefix, item));
+    } else if (prefix === POST_ROSC_PREFIX) {
+      const res = checklistToggle(events, prefix, item, POST_ROSC_CHECKLIST_I18N);
+      logEvent(category, res.label, undefined, res.i18n);
+    } else {
+      logEvent(category, isOn(item.text) ? checklistOffLabel(prefix, item.text) : checklistOnLabel(prefix, item.text));
+    }
+  };
 
   return { isOn, toggle };
 }
@@ -49,7 +64,7 @@ export function Checklist({
             <button
               type="button"
               aria-pressed={on}
-              onClick={() => toggle(item.text)}
+              onClick={() => toggle(item)}
               className={[
                 'touch-hit flex min-h-[64px] w-full items-center gap-3 rounded-xl border px-3 text-left active:scale-[0.98]',
                 on ? 'border-good bg-good/10' : item.critical ? 'border-crit/50 bg-crit/5' : 'border-line bg-panel2',
