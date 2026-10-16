@@ -1,7 +1,7 @@
 import { Activity, ArrowRight, Check, Zap } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useCodeStore } from '../../engine/store';
-import { nextAclsStep } from '../../content/algorithm';
+import { profileFor } from '../../content/profiles';
 import type { RhythmBranch as Branch } from '../../engine/types';
 import { Panel } from '../ui/Panel';
 import { useT } from '../../i18n/useT';
@@ -25,7 +25,9 @@ export function RhythmBranch() {
     })),
   );
   const setRhythmBranch = useCodeStore((st) => st.setRhythmBranch);
-  const view = nextAclsStep(s);
+  const population = useCodeStore((st) => st.population);
+  // Through the profile, never the adult algorithm directly (pediatric shows weight-based steps).
+  const view = profileFor(population).algorithm(s);
 
   return (
     <Panel title={t('hud.branch.title')} icon={Activity} accent={s.branch === 'shockable' ? 'crit' : s.branch ? 'cyber' : 'none'}>
