@@ -81,6 +81,25 @@ const UI = {
   'waveform.monophasic': 'Monophasic',
   'airway.ETT': 'ETT',
   'airway.SGA': SGA_LABEL,
+
+  // ---- Algorithm (prompts and steps) ----
+  'algo.title.none': 'Select rhythm branch',
+  'algo.ongoing.none': 'Attach monitor/defibrillator, check rhythm, then choose Shockable or Non-shockable.',
+  'algo.title.shockable': 'VF / pulseless VT',
+  'algo.ongoing.shockable1':
+    'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min · Amiodarone 150 mg (or Lidocaine 0.5–0.75 mg/kg q5–10 min, max 3 mg/kg) 2nd dose.',
+  'algo.ongoing.shockable2': 'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min · treat H’s & T’s.',
+  'algo.title.nonshockable': 'Asystole / PEA',
+  'algo.ongoing.nonshockable': 'CPR 2 min → recheck rhythm · Epi every 3–5 min · if shockable, switch branch and shock.',
+  'algo.step.shock1': 'Shock #1',
+  'algo.step.cpr1': 'CPR 2 min · IV/IO access',
+  'algo.step.shock2': 'Shock #2',
+  'algo.step.shockableEpi': 'CPR 2 min + Epinephrine 1 mg · consider advanced airway',
+  'algo.step.shock3': 'Shock #3',
+  'algo.step.aa': 'CPR 2 min + Amiodarone 300 mg / Lidocaine · treat H’s & T’s',
+  'algo.step.nonshockableEpi': 'CPR 2 min + Epinephrine 1 mg ASAP',
+  'algo.step.access': 'IV/IO access · consider advanced airway + capnography',
+  'algo.step.causes': 'Identify reversible causes (H’s & T’s)',
 } as const;
 
 type CauseKey = `cause.${CauseId}.${'label' | 'clue' | 'action'}`;

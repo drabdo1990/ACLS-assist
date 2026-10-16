@@ -70,6 +70,27 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'airway.ETT': 'ETT',
   'airway.SGA': 'مجرى هواء فوق المزمار (SGA)', // draft — clinician review required
 
+  // ---- Algorithm (prompts and steps) ----
+  'algo.title.none': 'اختيار مسار النظم', // draft — clinician review required
+  'algo.ongoing.none': 'وصل جهاز المراقبة / مزيل الرجفان، فحص النظم، ثم اختيار قابل أو غير قابل للصدمة.', // draft — clinician review required
+  'algo.title.shockable': 'رجفان بطيني / تسرع بطيني عديم النبض (VF / pVT)', // draft — clinician review required
+  'algo.ongoing.shockable1':
+    'صدمة عند كل فحص دوري (كل دقيقتين) ما دام VF/pVT مستمراً · Epinephrine كل 3–5 min · جرعة ثانية من Amiodarone 150 mg (أو Lidocaine 0.5–0.75 mg/kg كل 5–10 min، أقصى جرعة 3 mg/kg).', // draft — clinician review required
+  'algo.ongoing.shockable2':
+    'صدمة عند كل فحص دوري (كل دقيقتين) ما دام VF/pVT مستمراً · Epinephrine كل 3–5 min · معالجة الأسباب H’s و T’s.', // draft — clinician review required
+  'algo.title.nonshockable': 'سكون القلب / نشاط كهربائي عديم النبض (Asystole / PEA)', // draft — clinician review required
+  'algo.ongoing.nonshockable':
+    'إنعاش قلبي رئوي (CPR) لمدة دقيقتين ← إعادة فحص النظم · Epinephrine كل 3–5 min · إذا أصبح قابلاً للصدمة، بدّل المسار واصدم.', // draft — clinician review required
+  'algo.step.shock1': 'صدمة رقم 1', // draft — clinician review required
+  'algo.step.cpr1': 'CPR دقيقتان · مدخل وريدي / عظمي IV/IO', // draft — clinician review required
+  'algo.step.shock2': 'صدمة رقم 2', // draft — clinician review required
+  'algo.step.shockableEpi': 'CPR دقيقتان + Epinephrine 1 mg · النظر في مجرى هواء متقدم', // draft — clinician review required
+  'algo.step.shock3': 'صدمة رقم 3', // draft — clinician review required
+  'algo.step.aa': 'CPR دقيقتان + Amiodarone 300 mg / Lidocaine · معالجة H’s و T’s', // draft — clinician review required
+  'algo.step.nonshockableEpi': 'CPR دقيقتان + Epinephrine 1 mg بأسرع ما يمكن', // draft — clinician review required
+  'algo.step.access': 'مدخل IV/IO · النظر في مجرى هواء متقدم + قياس CO₂ الزفيري (capnography)', // draft — clinician review required
+  'algo.step.causes': 'تحديد الأسباب القابلة للعكس (H’s و T’s)', // draft — clinician review required
+
   // ---- Reversible causes (H's & T's) ----
   'cause.hypoxia.label': 'نقص الأكسجة', // draft — clinician review required
   'cause.hypoxia.clue': 'مرض قلبي/رئوي مزمن، انسداد مجرى الهواء، انزياح الأنبوب؛ زُرقة.', // draft — clinician review required
