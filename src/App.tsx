@@ -145,7 +145,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
 
         <p className="mt-4 text-center text-[10px] leading-relaxed text-mute">
           Clinical decision-support aid only, benchmarked to the SHA ACLS Provider Manual 2024 (AHA/ERC-aligned). Verify every dose against your local protocol.
-          Not a substitute for clinical judgement. PHI-free — no identifiers stored; no data leaves this device.
+          Not a substitute for clinical judgement. PHI-free — no patient identifiers are recorded. Data stays on this device unless your unit has enrolled it for code upload (Settings).
         </p>
       </main>
 

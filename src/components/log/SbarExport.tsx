@@ -102,7 +102,7 @@ export function SbarExport() {
           onComplete={reset}
         />
         <p className="mt-1 text-[11px] text-mute">
-          Hold 2.5 s to clear this code from the device. No data was ever sent anywhere.
+          Hold 2.5 s to clear the current code from the screen. Finished codes stay in History on this device.
         </p>
       </div>
     </Panel>

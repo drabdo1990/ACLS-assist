@@ -3,7 +3,7 @@
  * rotation, or the OS killing a backgrounded tab never loses a code.
  *
  * No PHI is stored: the payload contains only timestamps, dosing inputs, and
- * event labels. Nothing ever leaves the device.
+ * event labels. Nothing leaves the device unless an admin has enrolled it for upload (see history.ts / outbox.ts).
  */
 
 import type {

@@ -25,7 +25,7 @@ export default defineConfig({
         name: 'ResusCode — Adult ACLS Code Blue Command',
         short_name: 'ResusCode',
         description:
-          'Universal adult ACLS Code Blue command HUD: CPR cycle timer, interventions, H’s & T’s, post-ROSC and SBAR export. PHI-free and offline-first.',
+          'Universal adult ACLS Code Blue command HUD: CPR cycle timer, interventions, H’s & T’s, post-ROSC and SBAR export. PHI-free and offline-first, with optional anonymous statistics upload when your unit enrolls the device.',
         theme_color: '#06080e',
         background_color: '#06080e',
         display: 'standalone',

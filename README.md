@@ -8,14 +8,15 @@ Emergency Departments, ICUs, and rapid-response resuscitation leaders.
 
 > **Clinical safety notice:** ResusCode is a decision-support and documentation aid that
 > follows AHA / ERC adult ACLS. It is **not** a substitute for clinical judgement. Verify
-> every dose against your local protocol. It records **no patient identifiers (PHI-free)**,
-> has **no telemetry**, and sends **no data** anywhere — everything stays on the device.
+> every dose against your local protocol. It records **no patient identifiers (PHI-free)** and
+> has **no third-party analytics**. Data stays on the device unless your unit's admin enrols it
+> for the optional statistics upload (off by default — see [Optional code upload](#optional-code-upload)).
 
 ---
 
 ## High-stress ergonomic laws
 
-- **Zero navigation latency.** Three workspaces, one bottom tab bar, no router, no modals.
+- **Zero navigation latency.** Three workspaces, one bottom tab bar, no router. Settings is a full-screen sheet; there are no other modals.
   Every intervention is **one tap**. Only lifecycle transitions that are unsafe to trigger
   by accident (ROSC, End code, New session) are press-and-hold.
 - **Gloved-hand targets.** Action buttons are 64–84 px tall, high contrast, with an
@@ -70,6 +71,23 @@ Emergency Departments, ICUs, and rapid-response resuscitation leaders.
   as `.txt`.
 
 ---
+
+## Optional code upload
+
+ResusCode keeps a compact **History** of finished codes on the device (statistics only — no
+event log, no patient identifiers) with aggregates and a CSV export.
+
+A unit can additionally enrol a device to upload each finished code to **its own Google Sheet**
+through an Apps Script web app that the unit's admin owns. This is **off by default**: nothing is
+queued or sent until an admin issues an enrollment link/code and the user confirms it in
+Settings. What is sent: the code's statistics, its start date/time, the unit label, and an SBAR
+summary with relative times only. What is never sent: patient identifiers. Uploads never block or
+slow a running code, and a device can stop uploading at any time. Setup for admins:
+[admin/SETUP.md](admin/SETUP.md).
+
+> Start date/time plus unit can identify a patient indirectly. Do not enrol a unit for real use
+> before your hospital's data-governance team has approved what is sent, who can open the sheet,
+> and retention.
 
 ## Tech stack
 

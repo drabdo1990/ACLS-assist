@@ -189,6 +189,17 @@ interface CodeRecord {
 
 **Settings sheet** (gear icon in the header): language (phase 3), unit enrollment, upload status and retention.
 
+#### Plan decisions (phase 2 implementation plan)
+
+- `sheetCore` is `.js` + `.d.ts` (not `.ts`): the build script copies it verbatim into Apps Script.
+- No standalone feasibility spike: delivery is adaptive (readable reply, or `no-cors` fallback) and Settings has a **Send test record** button that shows which outcome applies.
+- A device-owned `start_month` column (`YYYY-MM`) lets the Dashboard group by month.
+- "ROSC rate" means "any ROSC" (`rosc` or `rosc_then_terminated`).
+- The uploaded SBAR is built with `relativeOnly` (relative times only, English only, no training/void banners).
+- Enrollment URLs must match `https://script.google.com/macros/s/<id>/exec` (or the Workspace form); the enrollment JSON may carry an optional `unit` label (≤ 60 chars).
+- `setupAdminSheet()` creates the `Codes`, `Units` and `Dashboard` tabs, the validations and the Dashboard formulas.
+- Test count after phase 1: 129 (the "96" figure above is stale).
+
 ### 5.2 Google Sheets channel
 
 **Ownership:** the admin's Google account owns the Sheet and an Apps Script web app, deployed with "Execute as: me" and "Who has access: anyone". The app has no Google login.
