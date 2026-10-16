@@ -81,6 +81,7 @@ export interface ProtocolProfile {
 }
 
 import { adultProfile } from './adult';
+import { pediatricProfile } from './pediatric';
 
 /**
  * Clinical sign-off gate (spec §10): every pediatric value in `pediatric.ts` needs review
@@ -91,10 +92,6 @@ export const PEDIATRIC_CLINICAL_REVIEWED = false;
 
 /** One router for the whole HUD — screens never import a profile directly. */
 export function profileFor(population: Population): ProtocolProfile {
-  if (population === 'pediatric') {
-    // Replaced by the pediatric profile in the next task; requesting it before then is a bug.
-    throw new Error('pediatric profile not implemented yet');
-  }
-  return adultProfile;
+  return population === 'pediatric' ? pediatricProfile : adultProfile;
 }
 

@@ -76,6 +76,35 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'cpr.adult.rate': 'المعدل 100–120/min', // draft — clinician review required
   'cpr.adult.airway': 'ضغطات متواصلة + نفسة كل 6 s (10/min)', // draft — clinician review required
 
+  // ---- Pediatric CPR / ventilation (values from content/profiles/pediatric.ts — clinician review required) ----
+  'p.cpr.ratio': '15:2 (منقذان) / 30:2 (منقذ واحد)', // draft — clinician review required
+  'p.cpr.depth': 'حوالي ثلث عمق الصدر (≈4 cm للرضيع، ≈5 cm للطفل)', // draft — clinician review required
+  'p.cpr.rate': 'المعدل 100–120/min', // draft — clinician review required
+  'p.cpr.airway': 'ضغطات متواصلة + نفسة كل 2–3 s (20–30/min)', // draft — clinician review required
+
+  // ---- Pediatric algorithm ----
+  'p.algo.title.shockable': 'رجفان بطيني / تسرع بطيني عديم النبض عند الأطفال (VF / pVT)', // draft — clinician review required
+  'p.algo.title.nonshockable': 'توقف قلبي عند الأطفال — Asystole / PEA', // draft — clinician review required
+  'p.algo.ongoing.shockable': 'الصدمة عند كل فحص كل دقيقتين طالما استمر VF/pVT · Epinephrine كل 3–5 min.', // draft — clinician review required
+  'p.algo.ongoing.nonshockable': 'الإنعاش دقيقتين ← إعادة فحص النظم · Epinephrine كل 3–5 min.', // draft — clinician review required
+  'p.algo.step.shock1': 'صدمة — 2 J/kg', // draft — clinician review required
+  'p.algo.step.shock2': 'صدمة — 4 J/kg', // draft — clinician review required
+  'p.algo.step.shock3': 'صدمة — ≥ 4 J/kg', // draft — clinician review required
+  'p.algo.step.epi': 'الإنعاش دقيقتين + Epinephrine 0.01 mg/kg · يُنظر في مجرى هواء متقدم', // draft — clinician review required
+  'p.algo.step.aa': 'الإنعاش دقيقتين + Amiodarone 5 mg/kg أو Lidocaine 1 mg/kg · معالجة H’s & T’s', // draft — clinician review required
+  'p.algo.step.nonshockableEpi': 'الإنعاش دقيقتين + Epinephrine 0.01 mg/kg بأسرع وقت', // draft — clinician review required
+  'p.algo.step.access': 'IV/IO + مجرى هواء متقدم + قياس ثاني أكسيد الكربون (capnography)', // draft — clinician review required
+
+  // ---- Pediatric post-ROSC bundle ----
+  'pPostRosc.spo2': 'SpO₂ 94–99% — تجنب فرط الأكسجة', // draft — clinician review required
+  'pPostRosc.co2': 'CO₂ طبيعي — تحقق بالـ capnography / تحليل الغازات', // draft — clinician review required
+  'pPostRosc.bp': 'تجنب انخفاض ضغط الدم (SBP دون المئين الخامس للعمر) — سوائل أو موسعات وعائية حسب البروتوكول المحلي', // draft — clinician review required
+  'pPostRosc.temp': 'معالجة الحمى؛ التحكم بالحرارة حسب البروتوكول المحلي', // draft — clinician review required
+  'pPostRosc.glucose': 'فحص السكر وتصحيحه', // draft — clinician review required
+  'pPostRosc.ecg': 'تخطيط قلب 12-lead / إيكو حسب الحاجة', // draft — clinician review required
+  'pPostRosc.seizure': 'مراقبة التشنجات ومعالجتها', // draft — clinician review required
+  'pPostRosc.picu': 'النقل إلى العناية المركزة للأطفال (PICU)؛ إكمال السجل؛ مناقشة الفريق (debrief)', // draft — clinician review required
+
   // ---- Algorithm (prompts and steps) ----
   'algo.title.none': 'اختيار مسار النظم', // draft — clinician review required
   'algo.ongoing.none': 'وصل جهاز المراقبة / مزيل الرجفان، فحص النظم، ثم اختيار قابل أو غير قابل للصدمة.', // draft — clinician review required

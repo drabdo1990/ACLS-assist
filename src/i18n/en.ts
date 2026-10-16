@@ -88,6 +88,35 @@ const UI = {
   'cpr.adult.rate': 'Rate 100–120/min',
   'cpr.adult.airway': 'Continuous compressions + 1 breath every 6 s (10/min)',
 
+  // ---- Pediatric CPR / ventilation (values from content/profiles/pediatric.ts — clinician review required) ----
+  'p.cpr.ratio': '15:2 (2 rescuers) / 30:2 (1 rescuer)',
+  'p.cpr.depth': 'About ⅓ of chest depth (≈4 cm infant, ≈5 cm child)',
+  'p.cpr.rate': 'Rate 100–120/min',
+  'p.cpr.airway': 'Continuous compressions + 1 breath every 2–3 s (20–30/min)',
+
+  // ---- Pediatric algorithm ----
+  'p.algo.title.shockable': 'Pediatric VF / pulseless VT',
+  'p.algo.title.nonshockable': 'Pediatric asystole / PEA',
+  'p.algo.ongoing.shockable': 'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min.',
+  'p.algo.ongoing.nonshockable': 'CPR 2 min → recheck rhythm · Epi every 3–5 min.',
+  'p.algo.step.shock1': 'Shock — 2 J/kg',
+  'p.algo.step.shock2': 'Shock — 4 J/kg',
+  'p.algo.step.shock3': 'Shock — ≥ 4 J/kg',
+  'p.algo.step.epi': 'CPR 2 min + Epinephrine 0.01 mg/kg · consider advanced airway',
+  'p.algo.step.aa': 'CPR 2 min + Amiodarone 5 mg/kg or Lidocaine 1 mg/kg · treat H’s & T’s',
+  'p.algo.step.nonshockableEpi': 'CPR 2 min + Epinephrine 0.01 mg/kg ASAP',
+  'p.algo.step.access': 'IV/IO + advanced airway + capnography',
+
+  // ---- Pediatric post-ROSC bundle ----
+  'pPostRosc.spo2': 'SpO₂ 94–99% — avoid hyperoxia',
+  'pPostRosc.co2': 'Normal CO₂ — check capnography / blood gas',
+  'pPostRosc.bp': 'Avoid hypotension (SBP < 5th centile for age) — fluids or vasoactives per local protocol',
+  'pPostRosc.temp': 'Treat fever; temperature control per local protocol',
+  'pPostRosc.glucose': 'Check glucose and correct it',
+  'pPostRosc.ecg': '12-lead ECG / echo as indicated',
+  'pPostRosc.seizure': 'Monitor and treat seizures',
+  'pPostRosc.picu': 'Transfer to PICU; complete the record; team debrief',
+
   // ---- Algorithm (prompts and steps) ----
   'algo.title.none': 'Select rhythm branch',
   'algo.ongoing.none': 'Attach monitor/defibrillator, check rhythm, then choose Shockable or Non-shockable.',
