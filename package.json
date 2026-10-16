@@ -1,7 +1,6 @@
 {
   "name": "resuscode",
   "private": true,
-  "license": "MIT",
   "version": "0.2.0",
   "type": "module",
   "description": "ResusCode - Universal Adult ACLS Code Blue Command Engine. PHI-free offline PWA for Code Blue, ED, ICU and rapid response resuscitation leaders.",
