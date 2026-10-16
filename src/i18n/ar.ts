@@ -237,6 +237,19 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'sbar.rec.rosc3': '- تخطيط قلب 12-lead — مختبر القسطرة عند STEMI؛ في حال عدم الاستجابة، ضبط الحرارة 32–37.5 °C لمدة 12–24 h.', // draft — clinician review required
   'sbar.rec.rosc4': '- تصحيح الغلوكوز > 10 mmol/L، الشوارد والحماض؛ النقل إلى ICU/CCU؛ جلسة استخلاص الفريق (debrief).', // draft — clinician review required
   'sbar.rec.terminated': '- توثيق وقت إنهاء الإنعاش / التسليم؛ التواصل مع العائلة؛ جلسة استخلاص الفريق (debrief).', // draft — clinician review required
+  'sbar.peds.situation': 'توقف قلبي داخل المستشفى لدى طفل — وفق بروتوكول PALS (SHA).', // draft — clinician review required
+  'sbar.peds.weight.measured': 'الوزن {kg} kg (مقاس).', // draft — clinician review required
+  'sbar.peds.weight.estimated': 'الوزن ≈{kg} kg (تقديري من العمر {years} y).', // draft — clinician review required
+  'sbar.peds.weight.estimatedMonths': 'الوزن ≈{kg} kg (تقديري من العمر {months} m).', // draft — clinician review required
+  'sbar.peds.weight.none': 'الوزن غير محدد — الجرعات غير محسوبة.', // draft — clinician review required
+  'sbar.peds.epi': 'Epinephrine: {count} × 0.01 mg/kg {details}', // draft — clinician review required
+  'sbar.peds.amio': 'Amiodarone: {count} × 5 mg/kg {details}', // draft — clinician review required
+  'sbar.peds.lido': 'Lidocaine: {count} × 1 mg/kg {details}', // draft — clinician review required
+  'sbar.peds.dosesNotCalculated': 'جرعات غير محسوبة', // draft — clinician review required
+  'sbar.peds.rec.rosc1': '- SpO₂ 94–99% — تجنب فرط الأكسجة؛ CO₂ طبيعي.', // draft — clinician review required
+  'sbar.peds.rec.rosc2': '- تجنب انخفاض الضغط (SBP دون المئين الخامس للعمر) — سوائل أو موسعات وعائية حسب البروتوكول المحلي.', // draft — clinician review required
+  'sbar.peds.rec.rosc3': '- تخطيط قلب 12-lead / إيكو عند الحاجة؛ معالجة الحمى وضبط الحرارة حسب البروتوكول المحلي.', // draft — clinician review required
+  'sbar.peds.rec.rosc4': '- فحص السكر وتصحيحه؛ مراقبة التشنجات؛ النقل إلى PICU؛ مناقشة الفريق (debrief).', // draft — clinician review required
   'sbar.rec.none': '- لم يتم تسجيل إنعاش.', // draft — clinician review required
   'sbar.timeline.empty': '(لا توجد أحداث)', // draft — clinician review required
 
