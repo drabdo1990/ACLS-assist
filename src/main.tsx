@@ -5,6 +5,7 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useCodeStore } from './engine/store';
 import { startService } from './engine/service';
+import { takeEnrollFragment } from './engine/enrollLink';
 
 // Ensure PWA updates apply immediately when no code is actively running.
 // Workbox serves precached assets first and updates the Service Worker in the
@@ -26,12 +27,15 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 
 startService();
 
+// Read once, before render: StrictMode double-invokes initialisers and the fragment is removed from the URL.
+const pendingEnroll = takeEnrollFragment();
+
 const root = document.getElementById('root');
 if (root) {
   createRoot(root).render(
     <StrictMode>
       <ErrorBoundary>
-        <App />
+        <App pendingEnroll={pendingEnroll} />
       </ErrorBoundary>
     </StrictMode>,
   );

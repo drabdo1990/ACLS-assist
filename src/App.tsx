@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { HeartPulse, ListOrdered, Lock, LockOpen, Search, Siren, WifiOff } from 'lucide-react';
+import { HeartPulse, ListOrdered, Lock, LockOpen, Search, Settings, Siren, WifiOff } from 'lucide-react';
 import { useCodeStore } from './engine/store';
 import { useTicker } from './hooks/useNow';
 import { useWakeLock } from './hooks/useWakeLock';
@@ -8,6 +8,9 @@ import { CausesScreen } from './screens/CausesScreen';
 import { LogScreen } from './screens/LogScreen';
 import { AudioHint, SaveFailedChip } from './components/ui/StatusChips';
 import { ClockChangeNotice } from './components/ui/ClockChangeNotice';
+import { EnrollConfirm } from './components/EnrollConfirm';
+import { SettingsSheet } from './components/SettingsSheet';
+import type { EnrollFragment } from './engine/enrollLink';
 
 type Tab = 'hud' | 'causes' | 'log';
 
@@ -32,11 +35,12 @@ function useOnline(): boolean {
   return online;
 }
 
-export default function App() {
+export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }) {
   useTicker();
   const { active: wakeActive, supported: wakeSupported } = useWakeLock();
   const online = useOnline();
   const [tab, setTab] = useState<Tab>('hud');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const status = useCodeStore((s) => s.status);
   const restored = useCodeStore((s) => s.restored);
   const dismissRestored = useCodeStore((s) => s.dismissRestored);
@@ -89,12 +93,21 @@ export default function App() {
                 <WifiOff className="h-3 w-3" /> OFFLINE
               </span>
             ) : null}
+            <button
+              type="button"
+              aria-label="Settings"
+              onClick={() => setSettingsOpen(true)}
+              className="touch-hit flex h-9 w-9 items-center justify-center rounded-full border border-line text-mute"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </header>
 
       {/* Body */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-3 pt-3 pb-appbar">
+        <EnrollConfirm fragment={pendingEnroll} onEnrolled={() => setSettingsOpen(true)} />
         <ClockChangeNotice />
         {restored ? (
           <div className="mb-3 flex items-center gap-2 rounded-xl border border-warn/60 bg-warn/10 p-3 text-xs font-semibold text-warn">
@@ -167,6 +180,8 @@ export default function App() {
           })}
         </div>
       </nav>
+
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
