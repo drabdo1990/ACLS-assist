@@ -3,7 +3,7 @@
  * rotation, or the OS killing a backgrounded tab never loses a code.
  *
  * No PHI is stored: the payload contains only timestamps, dosing inputs, and
- * event labels. Nothing ever leaves the device.
+ * event labels. Nothing leaves the device unless an admin has enrolled it for upload (see history.ts / outbox.ts).
  */
 
 import type {
@@ -375,6 +375,11 @@ function setSaveOk(ok: boolean): void {
   if (ok === saveOk) return;
   saveOk = ok;
   saveListeners.forEach((fn) => fn());
+}
+
+/** Lets other storage writers (history) surface a failure through the same NOT SAVED chip. */
+export function reportSaveStatus(ok: boolean): void {
+  setSaveOk(ok);
 }
 
 /** Returns whether the write succeeded (quota / blocked storage -> false). */

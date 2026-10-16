@@ -60,12 +60,19 @@ const BRANCH_LABEL: Record<RhythmBranch, string> = {
   nonshockable: 'Non-shockable (Asystole / PEA)',
 };
 
-/** Timeline row: `[MM:SS] HH:MM:SS  Label — detail`. */
-function line(e: CodeEvent): string {
+export interface SbarOptions {
+  /** Relative `[MM:SS]` times only: no wall-clock, no "Generated:" line, no training / void banners (upload variant). */
+  relativeOnly?: boolean;
+}
+
+/** Timeline row: `[MM:SS] HH:MM:SS  Label — detail` (or `[MM:SS]  Label — detail` when relative-only). */
+function line(e: CodeEvent, relativeOnly: boolean): string {
+  if (relativeOnly) return `[${formatClock(e.t)}]  ${e.label}${e.detail ? ` — ${e.detail}` : ''}`;
   return `[${formatClock(e.t)}] ${formatWallClock(e.at)}  ${e.label}${e.detail ? ` — ${e.detail}` : ''}`;
 }
 
-export function buildSbar(input: SbarInput, now: number = Date.now()): string {
+export function buildSbar(input: SbarInput, now: number = Date.now(), opts: SbarOptions = {}): string {
+  const rel = !!opts.relativeOnly;
   const total = masterElapsedMs(input, now);
   const arrest = input.startedAt != null;
   const rosc = input.events.find((e) => e.category === 'rosc');
@@ -80,7 +87,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   const out: string[] = [];
 
   out.push('ResusCode — RESUSCITATION SUMMARY');
-  out.push(`Generated: ${new Date(now).toLocaleString()}`);
+  if (!rel) out.push(`Generated: ${new Date(now).toLocaleString()}`);
   if (arrest) {
     out.push(`Total arrest time: ${formatClock(total)} (${formatDuration(total)})`);
     out.push(`Outcome: ${STATUS_LABEL[input.status]}`);
@@ -93,8 +100,9 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   out.push('=== SITUATION ===');
   if (arrest) {
     out.push('Adult in-hospital cardiac arrest — Code Blue resuscitation per SHA ACLS 2024 (AHA/ERC-aligned).');
-    out.push(`Code activated at ${formatWallClock(input.startedAt!)}. Arrest duration: ${formatDuration(total)}.`);
-    if (rosc) out.push(`ROSC achieved at [${formatClock(rosc.t)}] (${formatWallClock(rosc.at)}).`);
+    if (rel) out.push(`Arrest duration: ${formatDuration(total)}.`);
+    else out.push(`Code activated at ${formatWallClock(input.startedAt!)}. Arrest duration: ${formatDuration(total)}.`);
+    if (rosc) out.push(`ROSC achieved at [${formatClock(rosc.t)}]${rel ? '.' : ` (${formatWallClock(rosc.at)}).`}`);
   } else {
     out.push('No cardiac arrest recorded.');
   }
@@ -136,8 +144,8 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
 
   if (input.stats) {
     out.push('=== CODE STATISTICS ===');
-    if (input.training) out.push('TRAINING / SIMULATION — not a real patient');
-    if (input.voided) out.push('VOIDED — excluded from statistics');
+    if (!rel && input.training) out.push('TRAINING / SIMULATION — not a real patient');
+    if (!rel && input.voided) out.push('VOIDED — excluded from statistics');
     out.push(`(${STATS_TIME_NOTE})`);
     for (const r of statsRows(input.stats)) out.push(`${r.label}: ${r.value}${r.flag ? ' ⚠ over 5:00' : ''}`);
     out.push('');
@@ -174,7 +182,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now()): string {
   // Absolute timestamps order correctly even while the arrest clock is frozen (pause / ROSC).
   const events = [...input.events].sort((a, b) => a.at - b.at);
   if (!events.length) out.push('(no events)');
-  for (const e of events) out.push(line(e));
+  for (const e of events) out.push(line(e, rel));
 
   return out.join('\n');
 }

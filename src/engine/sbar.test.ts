@@ -5,6 +5,7 @@ import { formatWallClock } from './timing';
 import { POST_ROSC_BUNDLE } from '../content/protocols';
 import { statsRows } from './statsFormat';
 import { computeCodeStats } from './stats';
+import { mkStats } from './testing/fixtures';
 
 const T0 = 1_700_000_000_000;
 
@@ -141,5 +142,53 @@ describe('CODE STATISTICS section', () => {
     expect(text).toContain('TRAINING / SIMULATION');
     expect(text).toContain('Times are from code activation, as logged.');
     for (const r of statsRows(stats)) expect(text).toContain(`${r.label}: ${r.value}`);
+  });
+});
+
+describe('buildSbar relativeOnly (upload variant)', () => {
+  const T = 1_700_000_000_000;
+  const input = {
+    status: 'rosc' as const,
+    startedAt: T,
+    endedAt: T + 300_000,
+    roscAccumMs: 0,
+    events: [
+      { id: '1', at: T, t: 0, category: 'system' as const, label: 'Code Blue activated' },
+      { id: '2', at: T + 300_000, t: 300_000, category: 'rosc' as const, label: 'ROSC declared', detail: 'Total arrest duration: 5m 0s.' },
+    ],
+    shocks: [],
+    epi: [],
+    amio: [],
+    lido: [],
+    rhythmBranch: null,
+    airwayPlaced: false,
+    airwayType: null,
+    causes: {},
+    pocus: {},
+    weightKg: 70,
+  };
+  it('has no Generated line and no wall-clock timestamps', () => {
+    const out = buildSbar(input, T + 400_000, { relativeOnly: true });
+    expect(out).not.toContain('Generated:');
+    expect(out).not.toContain(formatWallClock(T));
+    expect(out).not.toContain(formatWallClock(T + 300_000));
+    expect(out).toContain('[00:00]');
+    expect(out).toContain('[05:00]');
+    expect(out).toContain('ROSC achieved at [05:00].');
+  });
+  it('default output is unchanged (still has Generated and wall-clock)', () => {
+    const out = buildSbar(input, T + 400_000);
+    expect(out).toContain('Generated:');
+    expect(out).toContain(formatWallClock(T));
+  });
+  it('does not vary with the training / void flags: they are separate sheet columns, so toggling one must not rewrite the SBAR cell', () => {
+    const withStats = { ...input, stats: mkStats({ startedAt: T }) };
+    const a = buildSbar({ ...withStats, training: false, voided: false }, T + 400_000, { relativeOnly: true });
+    const b = buildSbar({ ...withStats, training: true, voided: true }, T + 400_000, { relativeOnly: true });
+    expect(b).toBe(a);
+    expect(a).not.toContain('TRAINING / SIMULATION');
+    // the on-screen / pasted SBAR still shows the flags
+    expect(buildSbar({ ...withStats, training: true }, T + 400_000)).toContain('TRAINING / SIMULATION');
+    expect(buildSbar({ ...withStats, voided: true }, T + 400_000)).toContain('VOIDED');
   });
 });
