@@ -10,6 +10,7 @@ Emergency Departments, ICUs, and rapid-response resuscitation leaders.
 > follows AHA / ERC adult ACLS. It is **not** a substitute for clinical judgement. Verify
 > every dose against your local protocol. It records **no patient identifiers (PHI-free)**,
 > has **no telemetry**, and sends **no data** anywhere — everything stays on the device.
+> See the full [clinical disclaimer](DISCLAIMER.md).
 
 ---
 
@@ -157,4 +158,4 @@ Total arrest time runs from code activation to the end of the code. Time logged 
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE). Use is also subject to the [clinical disclaimer](DISCLAIMER.md).
