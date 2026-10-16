@@ -4,8 +4,8 @@ title: "ResusCode: Universal Adult ACLS Code Blue Command Engine"
 type: software
 version: 0.2.0
 authors:
-  - given-names: "Mohamed"
-    family-names: "Abdelwahab Mansour"
+  - given-names: "Mohamed Abdelwahab"
+    family-names: "Mansour"
 license: MIT
 repository-code: "https://github.com/drabdo1990/ACLS-assist"
 url: "https://drabdo1990.github.io/ACLS-assist/"
