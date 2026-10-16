@@ -3,6 +3,7 @@ message: "If you use this software, please cite it as below."
 title: "ResusCode: Universal Adult ACLS Code Blue Command Engine"
 type: software
 version: 0.2.0
+doi: 10.5281/zenodo.23410467
 authors:
   - given-names: "Mohamed Abdelwahab"
     family-names: "Mansour"

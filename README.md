@@ -1,5 +1,7 @@
 # ResusCode — Universal Adult ACLS Code Blue Command Engine
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23410467.svg)](https://doi.org/10.5281/zenodo.23410467)
+
 A mobile-first, high-reliability **Progressive Web App** that serves as the real-time
 cognitive command HUD and timekeeper for adult cardiac arrest — built for Code Blue teams,
 Emergency Departments, ICUs, and rapid-response resuscitation leaders.
