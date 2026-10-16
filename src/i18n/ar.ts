@@ -70,6 +70,12 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'airway.ETT': 'ETT',
   'airway.SGA': 'مجرى هواء فوق المزمار (SGA)', // draft — clinician review required
 
+  // ---- CPR guidance cards (adult values; pediatric profile has its own keys) ----
+  'cpr.adult.ratio': '30:2',
+  'cpr.adult.depth': 'العمق 5–6 cm، ارتداد كامل للصدر', // draft — clinician review required
+  'cpr.adult.rate': 'المعدل 100–120/min', // draft — clinician review required
+  'cpr.adult.airway': 'ضغطات متواصلة + نفسة كل 6 s (10/min)', // draft — clinician review required
+
   // ---- Algorithm (prompts and steps) ----
   'algo.title.none': 'اختيار مسار النظم', // draft — clinician review required
   'algo.ongoing.none': 'وصل جهاز المراقبة / مزيل الرجفان، فحص النظم، ثم اختيار قابل أو غير قابل للصدمة.', // draft — clinician review required

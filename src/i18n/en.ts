@@ -82,6 +82,12 @@ const UI = {
   'airway.ETT': 'ETT',
   'airway.SGA': SGA_LABEL,
 
+  // ---- CPR guidance cards (adult values; pediatric profile has its own keys) ----
+  'cpr.adult.ratio': '30:2',
+  'cpr.adult.depth': 'Depth 5–6 cm, full recoil',
+  'cpr.adult.rate': 'Rate 100–120/min',
+  'cpr.adult.airway': 'Continuous compressions + 1 breath every 6 s (10/min)',
+
   // ---- Algorithm (prompts and steps) ----
   'algo.title.none': 'Select rhythm branch',
   'algo.ongoing.none': 'Attach monitor/defibrillator, check rhythm, then choose Shockable or Non-shockable.',
