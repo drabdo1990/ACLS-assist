@@ -91,6 +91,131 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'algo.step.access': 'مدخل IV/IO · النظر في مجرى هواء متقدم + قياس CO₂ الزفيري (capnography)', // draft — clinician review required
   'algo.step.causes': 'تحديد الأسباب القابلة للعكس (H’s و T’s)', // draft — clinician review required
 
+  // ---- SBAR ----
+  'sbar.title': 'ResusCode — ملخص الإنعاش', // draft — clinician review required
+  'sbar.generated': 'تاريخ التقرير: {date}', // draft — clinician review required
+  'sbar.totalArrestTime': 'إجمالي مدة التوقف: {clock}', // draft — clinician review required
+  'sbar.outcome': 'النتيجة: {outcome}', // draft — clinician review required
+  'sbar.outcome.none': 'لم يتم تسجيل توقف للقلب', // draft — clinician review required
+  'sbar.phiNotice': '(خالٍ من المعلومات الصحية المحمية PHI — لم تُسجَّل أي بيانات تعريفية للمريض)', // draft — clinician review required
+  'sbar.section.situation': '=== الوضع ===', // draft — clinician review required
+  'sbar.section.background': '=== الخلفية ===', // draft — clinician review required
+  'sbar.section.assessment': '=== التقييم ===', // draft — clinician review required
+  'sbar.section.stats': '=== إحصاءات النداء ===', // draft — clinician review required
+  'sbar.section.postRosc': '=== رعاية ما بعد ROSC ===', // draft — clinician review required
+  'sbar.section.recommendations': '=== التوصيات ===', // draft — clinician review required
+  'sbar.section.timeline': '=== التسلسل الزمني ===', // draft — clinician review required
+  'sbar.situation.adultArrest': 'توقف قلبي داخل المستشفى لشخص بالغ — إنعاش نداء الإنعاش (Code Blue) وفقاً لـ SHA ACLS 2024 (المتوافق مع AHA/ERC).', // draft — clinician review required
+  'sbar.situation.activated': 'تم تفعيل النداء في {time}. مدة التوقف: {duration}.', // draft — clinician review required
+  'sbar.situation.durationRel': 'مدة التوقف: {duration}.', // draft — clinician review required
+  'sbar.situation.roscAt': 'تحققت ROSC في [{clock}] ({time}).', // draft — clinician review required
+  'sbar.situation.roscAtRel': 'تحققت ROSC في [{clock}].', // draft — clinician review required
+  'sbar.situation.none': 'لم يتم تسجيل توقف للقلب.', // draft — clinician review required
+  'sbar.branch': 'مسار النظم: {branch}', // draft — clinician review required
+  'sbar.branch.none': 'لم يتم الاختيار', // draft — clinician review required
+  'sbar.branch.shockable': 'قابل للصدمة (VF / pVT)', // draft — clinician review required
+  'sbar.branch.nonshockable': 'غير قابل للصدمة (Asystole / PEA)', // draft — clinician review required
+  'sbar.cycles': 'دورات الإنعاش (CPR) المكتملة: {n}', // draft — clinician review required
+  'sbar.airway.placed': 'مجرى هواء متقدم: تم وضع {type} (ضغطات مستمرة + نَفَس واحد/6 s)', // draft — clinician review required
+  'sbar.airway.ett': 'ETT', // draft — clinician review required
+  'sbar.airway.sga': 'مجرى هواء فوق المزمار (SGA)', // draft — clinician review required
+  'sbar.airway.none': 'مجرى هواء متقدم: لم يوضع (30:2)', // draft — clinician review required
+  'sbar.shocks': 'الصدمات المقدمة: {n}', // draft — clinician review required
+  'sbar.epi': 'Epinephrine: {count} {doses} (إجمالي {mg} mg)', // draft — clinician review required
+  'sbar.epi.dose': 'جرعة', // draft — clinician review required
+  'sbar.epi.doses': 'جرعات', // draft — clinician review required
+  'sbar.amio': 'جرعات Amiodarone: {count}{details}', // draft — clinician review required
+  'sbar.lido': 'جرعات Lidocaine: {count}{details}', // draft — clinician review required
+  'sbar.lido.weight': ' (وزن الجرعة {kg} kg)', // draft — clinician review required
+  'sbar.mag': 'جرعات Magnesium sulfate: {count}', // draft — clinician review required
+  'sbar.rhythms': 'النظم الموثقة: {rhythms}', // draft — clinician review required
+  'sbar.noneRecorded': 'لم يُسجَّل شيء', // draft — clinician review required
+  'sbar.shocks.energies': 'طاقات إزالة الرجفان: {energies}', // draft — clinician review required
+  'sbar.causes': 'الأسباب القابلة للعكس المعالجة: {causes}', // draft — clinician review required
+  'sbar.pocus': 'نتائج POCUS: {findings}', // draft — clinician review required
+  'sbar.stats.training': 'تدريب / محاكاة — ليس مريضاً حقيقياً', // draft — clinician review required
+  'sbar.stats.voided': 'ملغى — مُستبعَد من الإحصاءات', // draft — clinician review required
+  'sbar.stats.over5': ' ⚠ يتجاوز 05:00', // draft — clinician review required
+  'sbar.postRosc.completed': 'المكتمل ({done}/{total}):', // draft — clinician review required
+  'sbar.postRosc.pending': 'لم يُسجَّل بعد:', // draft — clinician review required
+  'sbar.postRosc.noneRecorded': '  (لم يُسجَّل شيء)', // draft — clinician review required
+  'sbar.postRosc.none': '  (لا يوجد)', // draft — clinician review required
+  'sbar.rec.rosc1': '- حزمة ما بعد ROSC: تأمين مجرى الهواء (ETT)، SpO₂ 92–98%، تجنب فرط التهوية.', // draft — clinician review required
+  'sbar.rec.rosc2': '- انخفاض الضغط: سوائل IV حتى 2 L، ثم dopamine 5–10 mcg/kg/min (أو norepinephrine/epinephrine)؛ الهدف MAP ≥ 65 mmHg.', // draft — clinician review required
+  'sbar.rec.rosc3': '- تخطيط قلب 12 اتجاهاً — مختبر القسطرة لـ STEMI؛ في حال عدم الاستجابة، ضبط الحرارة 32–37.5 °C لمدة 12–24 h.', // draft — clinician review required
+  'sbar.rec.rosc4': '- تصحيح الغلوكوز > 10 mmol/L، الشوارد والحماض؛ النقل إلى ICU/CCU؛ جلسة استخلاص الفريق (debrief).', // draft — clinician review required
+  'sbar.rec.terminated': '- توثيق وقت إنهاء الإنعاش / التسليم؛ التواصل مع العائلة؛ جلسة استخلاص الفريق (debrief).', // draft — clinician review required
+  'sbar.rec.none': '- لم يتم تسجيل إنعاش.', // draft — clinician review required
+  'sbar.timeline.empty': '(لا توجد أحداث)', // draft — clinician review required
+
+  // ---- Status & Outcomes ----
+  'status.idle': 'لم يبدأ', // draft — clinician review required
+  'status.active': 'قيد التنفيذ — الإنعاش (CPR) مستمر', // draft — clinician review required
+  'status.paused': 'قيد التنفيذ — الإنعاش (CPR) متوقف مؤقتاً', // draft — clinician review required
+  'status.rosc': 'تحققت ROSC', // draft — clinician review required
+  'status.terminated': 'أُنهي الإنعاش', // draft — clinician review required
+  'outcome.rosc': 'تحققت ROSC', // draft — clinician review required
+  'outcome.rosc_then_terminated': 'تحققت ROSC ثم أُنهي الإنعاش', // draft — clinician review required
+  'outcome.terminated': 'أُنهي دون ROSC', // draft — clinician review required
+  'outcome.incomplete': 'غير مكتمل (لم يُنهَ النداء)', // draft — clinician review required
+
+  // ---- Statistics Panel & Formatter ----
+  'stats.outcome': 'النتيجة', // draft — clinician review required
+  'stats.episodes': ' ({count} نوبة ROSC)', // draft — clinician review required
+  'stats.arrestTime': 'مدة التوقف (باستثناء فترات ROSC)', // draft — clinician review required
+  'stats.firstRosc': 'أول ROSC', // draft — clinician review required
+  'stats.firstShock': 'أول صدمة', // draft — clinician review required
+  'stats.firstEpi': 'أول إبينفرين', // draft — clinician review required
+  'stats.firstEpi.branch': ' (مسار {branch})', // draft — clinician review required
+  'stats.branch.shockable': 'قابل للصدمة', // draft — clinician review required
+  'stats.branch.nonshockable': 'غير قابل للصدمة', // draft — clinician review required
+  'stats.shocks': 'الصدمات', // draft — clinician review required
+  'stats.epiDoses': 'جرعات الإبينفرين', // draft — clinician review required
+  'stats.epiInterval': 'فترة الإبينفرين (المتوسط / الأطول)', // draft — clinician review required
+  'stats.amiodarone': 'Amiodarone', // draft — clinician review required
+  'stats.lidoDoses': 'جرعات Lidocaine', // draft — clinician review required
+  'stats.magDoses': 'جرعات Magnesium', // draft — clinician review required
+  'stats.cycles': 'دورات CPR المكتملة', // draft — clinician review required
+  'stats.pausedTime': 'الوقت المسجل كإيقاف مؤقت', // draft — clinician review required
+  'stats.airway': 'مجرى هواء متقدم', // draft — clinician review required
+  'stats.airway.sga': 'مجرى هواء فوق المزمار في {time}', // draft — clinician review required
+  'stats.airway.ett': 'ETT في {time}', // draft — clinician review required
+  'stats.rhythms': 'النظم الموثقة', // draft — clinician review required
+  'stats.causes': 'الأسباب المعالجة (H’s & T’s)', // draft — clinician review required
+  'stats.pocus': 'نتائج POCUS', // draft — clinician review required
+  'stats.postRosc': 'حزمة رعاية ما بعد ROSC', // draft — clinician review required
+  'stats.postRosc.recorded': '{done}/{total} تم تسجيلها', // draft — clinician review required
+  'stats.timeNote': 'الأوقات من تفعيل النداء، كما تم تسجيلها.', // draft — clinician review required
+
+  // ---- History Panel & Formatter ----
+  'history.status.local': 'على هذا الجهاز فقط', // draft — clinician review required
+  'history.status.queued': 'في انتظار الإرسال', // draft — clinician review required
+  'history.status.sent': 'تم الإرسال ✓', // draft — clinician review required
+  'history.status.sent_unconfirmed': 'تم الإرسال (غير مؤكد)', // draft — clinician review required
+  'history.status.failed': 'ستتم إعادة المحاولة', // draft — clinician review required
+  'history.status.rejected': 'مرفوض من الجدول', // draft — clinician review required
+  'history.flag.training': 'تدريب', // draft — clinician review required
+  'history.flag.void': 'ملغى', // draft — clinician review required
+  'history.agg.codesCounted': 'النداءات المحصاة', // draft — clinician review required
+  'history.agg.incomplete': '{count} غير مكتمل', // draft — clinician review required
+  'history.agg.excluded': '{count} تدريب/ملغى', // draft — clinician review required
+  'history.agg.anyRosc': 'أي ROSC', // draft — clinician review required
+  'history.agg.ratio': '{count} من {total}', // draft — clinician review required
+  'history.agg.medianFirstEpi': 'وسيط أول إبينفرين', // draft — clinician review required
+  'history.agg.medianFirstShock': 'وسيط أول صدمة', // draft — clinician review required
+  'history.agg.medianArrest': 'وسيط مدة التوقف', // draft — clinician review required
+
+  // ---- Upload & Rejection Labels ----
+  'upload.reject.key': 'التسجيل غير صالح — اتصل بالمسؤول', // draft — clinician review required
+  'upload.reject.update': 'حدّث التطبيق', // draft — clinician review required
+  'upload.reject.size': 'السجل كبير جداً بالنسبة للجدول — اتصل بالمسؤول', // draft — clinician review required
+  'upload.test.notEnrolled': 'هذا الجهاز غير مسجل بعد.', // draft — clinician review required
+  'upload.test.sent': 'تم التسليم والتأكيد ✓ — يجب أن يظهر صف تجريبي في الجدول الآن.', // draft — clinician review required
+  'upload.test.sentUnconfirmed': 'تم الإرسال، لكن هذا المتصفح لا يستطيع قراءة الرد، لذا لم يتم تأكيد التسليم. تحقق من الجدول لرؤية الصف التجريبي.', // draft — clinician review required
+  'upload.test.offline': 'أنت غير متصل بالإنترنت — حاول مرة أخرى عند الاتصال.', // draft — clinician review required
+  'upload.test.notJson': 'أجاب البرنامج النصي بصفحة خطأ. تحقق من ضبط النشر على "أي شخص" وأنه أحدث إصدار.', // draft — clinician review required
+  'upload.test.failed': 'تعذر الوصول إلى البرنامج النصي ({reason}).', // draft — clinician review required
+
   // ---- Reversible causes (H's & T's) ----
   'cause.hypoxia.label': 'نقص الأكسجة', // draft — clinician review required
   'cause.hypoxia.clue': 'مرض قلبي/رئوي مزمن، انسداد مجرى الهواء، انزياح الأنبوب؛ زُرقة.', // draft — clinician review required

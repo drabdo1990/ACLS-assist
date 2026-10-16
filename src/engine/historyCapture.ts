@@ -53,7 +53,7 @@ export function createCapture(deps: CaptureDeps) {
     if (!res.changed) return;
     deps.onChanged?.();
     if (prefs.enrollment) {
-      deps.onRecorded?.(res.record, buildSbar({ ...s, stats: rec.stats }, now, { relativeOnly: true }));
+      deps.onRecorded?.(res.record, buildSbar({ ...s, stats: rec.stats }, now, { relativeOnly: true, lang: 'en' }));
     }
   }
 

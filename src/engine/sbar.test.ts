@@ -9,8 +9,14 @@ import { mkStats } from './testing/fixtures';
 
 const T0 = 1_700_000_000_000;
 
-function ev(t: number, category: CodeEvent['category'], label: string, detail?: string): CodeEvent {
-  return { id: `${t}-${label}`, at: T0 + t, t, category, label, detail };
+function ev(
+  t: number,
+  category: CodeEvent['category'],
+  label: string,
+  detail?: string,
+  i18n?: { key?: string; params?: Record<string, string | number>; detailKey?: string; detailParams?: Record<string, string | number> },
+): CodeEvent {
+  return { id: `${t}-${label}`, at: T0 + t, t, category, label, detail, ...i18n };
 }
 
 const base: SbarInput = {
@@ -19,14 +25,37 @@ const base: SbarInput = {
   endedAt: T0 + 405_000,
   roscAccumMs: 0,
   events: [
-    ev(0, 'system', 'Code Blue activated'),
-    ev(45_000, 'shock', 'Defibrillation: Shock #1 (200J Biphasic)'),
-    ev(70_000, 'drug', 'Epinephrine 1 mg IV/IO', 'Dose #1 · repeat every 3–5 min'),
-    ev(120_000, 'cycle', 'Cycle 1 completed', 'Rhythm: VF · switch compressors'),
-    ev(120_000, 'rhythm', 'Rhythm check — VF'),
-    ev(160_000, 'airway', 'Advanced airway placed — ETT'),
-    ev(260_000, 'drug', 'Amiodarone 300 mg IV/IO', 'First dose'),
-    ev(405_000, 'rosc', 'ROSC declared', 'Total arrest duration: 6m 45s. Total shocks: 1. Total epi: 1 mg.'),
+    ev(0, 'system', 'Code Blue activated', undefined, { key: 'ev.start' }),
+    ev(45_000, 'shock', 'Defibrillation: Shock #1 (200J Biphasic)', undefined, {
+      key: 'ev.shock',
+      params: { n: 1, joules: 200, waveform: '@waveform.biphasic' },
+    }),
+    ev(70_000, 'drug', 'Epinephrine 1 mg IV/IO', 'Dose #1 · repeat every 3–5 min', {
+      key: 'ev.epi',
+      detailKey: 'ev.epi.detail',
+      detailParams: { n: 1 },
+    }),
+    ev(120_000, 'cycle', 'Cycle 1 completed', 'Rhythm: VF · switch compressors', {
+      key: 'ev.cycle',
+      params: { n: 1 },
+      detailKey: 'ev.cycle.detailRhythm',
+      detailParams: { rhythm: 'VF' },
+    }),
+    ev(120_000, 'rhythm', 'Rhythm check — VF', undefined, { key: 'ev.rhythmCheck', params: { rhythm: 'VF' } }),
+    ev(160_000, 'airway', 'Advanced airway placed — ETT', undefined, {
+      key: 'ev.airway',
+      params: { airway: '@airway.ETT' },
+    }),
+    ev(260_000, 'drug', 'Amiodarone 300 mg IV/IO', 'First dose', {
+      key: 'ev.amio',
+      params: { mg: 300 },
+      detailKey: 'ev.dose.first',
+    }),
+    ev(405_000, 'rosc', 'ROSC declared', 'Total arrest duration: 6m 45s. Total shocks: 1. Total epi: 1 mg.', {
+      key: 'ev.rosc',
+      detailKey: 'ev.rosc.detail',
+      detailParams: { durationMs: 405_000, shocks: 1, epiMg: 1 },
+    }),
   ],
   shocks: [{ at: T0 + 45_000, t: 45_000, joules: 200, shockable: true, waveform: 'biphasic' }],
   epi: [{ at: T0 + 70_000, t: 70_000, label: 'Epinephrine 1 mg IV/IO', mg: 1 }],
@@ -190,5 +219,63 @@ describe('buildSbar relativeOnly (upload variant)', () => {
     // the on-screen / pasted SBAR still shows the flags
     expect(buildSbar({ ...withStats, training: true }, T + 400_000)).toContain('TRAINING / SIMULATION');
     expect(buildSbar({ ...withStats, voided: true }, T + 400_000)).toContain('VOIDED');
+  });
+});
+
+describe('golden English SBAR comparison & Arabic SBAR', () => {
+  const [first, second] = POST_ROSC_BUNDLE;
+  const allEvents = [
+    ...base.events,
+    ev(410_000, 'post', `Post-ROSC: ${first.text}`),
+    ev(420_000, 'post', `Post-ROSC: ${second.text}`),
+    ev(430_000, 'post', `Post-ROSC (unchecked): ${second.text}`),
+  ];
+  const fullSession: SbarInput = {
+    ...base,
+    events: allEvents,
+    stats: computeCodeStats({ ...base, events: allEvents, pausedAt: base.endedAt, pausedAccumMs: 0 }, T0 + 500_000),
+    training: true,
+  };
+
+  it('English SBAR output is byte-identical to golden copy (ignoring Generated line)', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const golden = fs.readFileSync(path.resolve('src/engine/testing/goldenSbar.txt'), 'utf8');
+
+    const actual = buildSbar(fullSession, T0 + 500_000, { lang: 'en' });
+    const actualWithoutGenerated = actual
+      .split('\n')
+      .filter((l) => !l.startsWith('Generated:'))
+      .join('\n');
+
+    expect(actualWithoutGenerated).toBe(golden);
+  });
+
+  it('Arabic SBAR has Arabic section headings, translated events and LRI-wrapped timestamps', () => {
+    const arText = buildSbar(fullSession, T0 + 500_000, { lang: 'ar' });
+
+    // Section headings
+    expect(arText).toContain('=== الوضع ===');
+    expect(arText).toContain('=== الخلفية ===');
+    expect(arText).toContain('=== التقييم ===');
+    expect(arText).toContain('=== إحصاءات النداء ===');
+    expect(arText).toContain('=== رعاية ما بعد ROSC ===');
+    expect(arText).toContain('=== التوصيات ===');
+    expect(arText).toContain('=== التسلسل الزمني ===');
+
+    // Title and outcome
+    expect(arText).toContain('ResusCode — ملخص الإنعاش');
+    expect(arText).toContain('النتيجة: تحققت ROSC');
+    expect(arText).toContain('إجمالي مدة التوقف: \u206606:45\u2069');
+
+    // LRI-wrapped times
+    expect(arText).toContain('\u2066[00:00]\u2069');
+    expect(arText).toContain('\u2066[00:45]\u2069');
+    expect(arText).toContain('\u2066[06:45]\u2069');
+
+    // Translated events
+    expect(arText).toContain('تفعيل نداء الإنعاش (Code Blue)');
+    expect(arText).toContain('إزالة الرجفان: الصدمة رقم 1 (200J ثنائية الطور)');
+    expect(arText).toContain('إعلان عودة الدورة الدموية التلقائية (ROSC)');
   });
 });

@@ -15,7 +15,10 @@ import { useCodeStore } from '../engine/store';
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
 /** Keys whose Arabic deliberately differs in params (keep this list short and justified). */
-const PARAM_EXCEPTIONS: readonly string[] = [];
+const PARAM_EXCEPTIONS: readonly string[] = [
+  // Arabic avoids repeating the clock duration twice: '06:45 (06:45)'
+  'sbar.totalArrestTime',
+];
 
 describe('dictionaries', () => {
   it('every en key exists in ar with the same {params}', () => {

@@ -1,7 +1,10 @@
-/** Labels and rows for the History panel — pure, so they are unit-tested (the panel itself has no DOM tests). */
 import { isoWithOffset, type Aggregates, type CodeRecord, type Median, type UploadStatus } from './history';
-import { OUTCOME_LABEL, type StatRow } from './statsFormat';
+import { outcomeLabel, OUTCOME_LABEL, type StatRow } from './statsFormat';
 import { formatClock } from './timing';
+import type { Lang } from '../i18n/lang';
+import { translate } from '../i18n/translate';
+import type { MessageKey } from '../i18n/en';
+import { ltr } from '../i18n/format';
 
 export const UPLOAD_STATUS_LABEL: Record<UploadStatus, string> = {
   local: 'On this device only',
@@ -12,32 +15,52 @@ export const UPLOAD_STATUS_LABEL: Record<UploadStatus, string> = {
   rejected: 'Rejected by the sheet',
 };
 
+export function uploadStatusLabel(status: UploadStatus, lang: Lang = 'en'): string {
+  return translate(lang, `history.status.${status}` as MessageKey);
+}
+
 const DASH = '—';
 
-export function recordTitle(r: CodeRecord, offsetMin?: number): string {
+export function recordTitle(r: CodeRecord, offsetMin?: number, lang: Lang = 'en'): string {
   const when = isoWithOffset(r.startedAt, offsetMin).slice(0, 16).replace('T', ' ');
-  return `${when} · ${OUTCOME_LABEL[r.stats.outcome].split(',')[0].replace(' (code not ended)', '')} · ${formatClock(r.stats.arrestMs)}`;
+  const rawOutcome = lang === 'en' ? OUTCOME_LABEL[r.stats.outcome] : outcomeLabel(r.stats.outcome, lang);
+  const outcome = rawOutcome
+    .split('،')[0]
+    .split(',')[0]
+    .replace(' (code not ended)', '')
+    .replace(' (لم يُنهَ النداء)', '');
+  const clock = lang === 'ar' ? ltr(formatClock(r.stats.arrestMs)) : formatClock(r.stats.arrestMs);
+  return `${when} · ${outcome} · ${clock}`;
 }
 
-export function recordFlags(r: CodeRecord): string[] {
-  return [r.training ? 'Training' : '', r.voided ? 'Void' : ''].filter(Boolean);
+export function recordFlags(r: CodeRecord, lang: Lang = 'en'): string[] {
+  return [
+    r.training ? translate(lang, 'history.flag.training') : '',
+    r.voided ? translate(lang, 'history.flag.void') : '',
+  ].filter(Boolean);
 }
 
-export const medianLabel = (m: Median): string => `${m.value == null ? DASH : formatClock(m.value)} (n=${m.n})`;
+export const medianLabel = (m: Median, lang: Lang = 'en'): string => {
+  const val = m.value == null ? DASH : lang === 'ar' ? ltr(formatClock(m.value)) : formatClock(m.value);
+  return `${val} (n=${m.n})`;
+};
 
-export function aggregateRows(a: Aggregates): StatRow[] {
-  const extras = [a.incomplete ? `${a.incomplete} incomplete` : '', a.excluded ? `${a.excluded} training/void` : ''].filter(Boolean);
+export function aggregateRows(a: Aggregates, lang: Lang = 'en'): StatRow[] {
+  const extras = [
+    a.incomplete ? translate(lang, 'history.agg.incomplete', { count: a.incomplete }) : '',
+    a.excluded ? translate(lang, 'history.agg.excluded', { count: a.excluded }) : '',
+  ].filter(Boolean);
   const any =
     a.counted === 0
       ? DASH
       : a.showRates && a.roscRate != null
         ? `${Math.round(a.roscRate * 100)}% (${a.anyRosc}/${a.counted})`
-        : `${a.anyRosc} of ${a.counted}`;
+        : translate(lang, 'history.agg.ratio', { count: a.anyRosc, total: a.counted });
   return [
-    { label: 'Codes counted', value: [String(a.counted), ...extras].join(' · ') },
-    { label: 'Any ROSC', value: any },
-    { label: 'Median first epinephrine', value: medianLabel(a.firstEpi) },
-    { label: 'Median first shock', value: medianLabel(a.firstShock) },
-    { label: 'Median arrest time', value: medianLabel(a.arrest) },
+    { label: translate(lang, 'history.agg.codesCounted'), value: [String(a.counted), ...extras].join(' · ') },
+    { label: translate(lang, 'history.agg.anyRosc'), value: any },
+    { label: translate(lang, 'history.agg.medianFirstEpi'), value: medianLabel(a.firstEpi, lang) },
+    { label: translate(lang, 'history.agg.medianFirstShock'), value: medianLabel(a.firstShock, lang) },
+    { label: translate(lang, 'history.agg.medianArrest'), value: medianLabel(a.arrest, lang) },
   ];
 }

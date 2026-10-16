@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeAggregates } from './history';
-import { aggregateRows, medianLabel, recordFlags, recordTitle, UPLOAD_STATUS_LABEL } from './historyFormat';
+import { aggregateRows, medianLabel, recordFlags, recordTitle, UPLOAD_STATUS_LABEL, uploadStatusLabel } from './historyFormat';
 import { mkRecord } from './testing/fixtures';
 
 describe('recordTitle / recordFlags', () => {
@@ -14,7 +14,13 @@ describe('recordTitle / recordFlags', () => {
   it('has a label for every upload status', () => {
     for (const s of ['local', 'queued', 'sent', 'sent_unconfirmed', 'failed', 'rejected'] as const) {
       expect(UPLOAD_STATUS_LABEL[s]).toBeTruthy();
+      expect(uploadStatusLabel(s, 'ar')).toBeTruthy();
     }
+  });
+  it('supports Arabic for title, flags and upload status', () => {
+    expect(recordTitle(mkRecord(1), 0, 'ar')).toBe('2023-11-14 23:13 · تحققت ROSC · \u206610:00\u2069');
+    expect(recordFlags(mkRecord(1, { training: true, voided: true }), 'ar')).toEqual(['تدريب', 'ملغى']);
+    expect(uploadStatusLabel('sent', 'ar')).toBe('تم الإرسال ✓');
   });
 });
 
@@ -49,5 +55,15 @@ describe('aggregateRows', () => {
   it('medianLabel formats value and n', () => {
     expect(medianLabel({ value: 150_000, n: 3 })).toBe('02:30 (n=3)');
     expect(medianLabel({ value: null, n: 0 })).toBe('— (n=0)');
+  });
+
+  it('translates aggregate rows to Arabic', () => {
+    const rows = aggregateRows(
+      computeAggregates([mkRecord(1), mkRecord(2, {}, { outcome: 'terminated', roscCount: 0 })]),
+      'ar',
+    );
+    expect(val(rows, 'النداءات المحصاة')).toBe('2');
+    expect(val(rows, 'أي ROSC')).toBe('1 من 2');
+    expect(val(rows, 'وسيط أول إبينفرين')).toBe('\u206602:00\u2069 (n=2)');
   });
 });

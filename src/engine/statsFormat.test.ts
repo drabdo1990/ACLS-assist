@@ -67,4 +67,18 @@ describe('statsRows', () => {
     }
     expect(row('Epinephrine interval (mean / longest)', empty).flag).toBe(false);
   });
+
+  it('translates rows and outcomes to Arabic with LRI-wrapped clock times', () => {
+    const arRows = statsRows(base, 'ar');
+    const arRow = (label: string) => arRows.find((r) => r.label === label)!;
+
+    expect(arRow('النتيجة').value).toBe('تحققت ROSC');
+    expect(arRow('أول صدمة').value).toBe('\u206600:45\u2069');
+    expect(arRow('أول إبينفرين').value).toBe('\u206601:10\u2069 (مسار قابل للصدمة)');
+    expect(arRow('مجرى هواء متقدم').value).toBe('مجرى هواء فوق المزمار في \u206602:40\u2069');
+    expect(arRow('الأسباب المعالجة (H’s & T’s)').value).toBe('نقص الأكسجة');
+    expect(arRow('نتائج POCUS').value).toBe('انصباب تاموري');
+    expect(arRow('حزمة رعاية ما بعد ROSC').value).toBe('2/8 تم تسجيلها');
+  });
 });
+

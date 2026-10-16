@@ -21,4 +21,19 @@ describe('testResultMessage', () => {
     expect(rejectionMessage('version')).toBe('Update app');
     expect(rejectionMessage('size')).toContain('too large');
   });
+
+  it('translates rejection and test result messages to Arabic', () => {
+    expect(rejectionMessage('key', 'ar')).toBe('التسجيل غير صالح — اتصل بالمسؤول');
+    expect(rejectionMessage('version', 'ar')).toBe('حدّث التطبيق');
+    expect(rejectionMessage('size', 'ar')).toBe('السجل كبير جداً بالنسبة للجدول — اتصل بالمسؤول');
+    expect(testResultMessage('not_enrolled', 'ar')).toEqual({ tone: 'warn', text: 'هذا الجهاز غير مسجل بعد.' });
+    expect(testResultMessage({ status: 'sent' }, 'ar')).toEqual({
+      tone: 'good',
+      text: 'تم التسليم والتأكيد ✓ — يجب أن يظهر صف تجريبي في الجدول الآن.',
+    });
+    expect(testResultMessage({ status: 'rejected', error: 'key' }, 'ar')).toEqual({
+      tone: 'crit',
+      text: 'التسجيل غير صالح — اتصل بالمسؤول.',
+    });
+  });
 });

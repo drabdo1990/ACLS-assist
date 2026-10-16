@@ -198,4 +198,20 @@ describe('enrollment-aware output', () => {
     createCapture({ kv, now: () => T0 + 130_000, onChanged }).handle(ended(), active({ rev: 4 }));
     expect(onChanged).toHaveBeenCalled();
   });
+
+  it('the upload SBAR is English while the app is in Arabic', async () => {
+    const { setLang } = await import('../i18n/lang');
+    const kv = memoryKV();
+    setLang('ar', kv);
+    enroll(kv);
+    const onRecorded = vi.fn();
+    const cap = createCapture({ kv, now: () => T0 + 130_000, onRecorded });
+    cap.handle(ended(), active({ rev: 4 }));
+    expect(onRecorded).toHaveBeenCalledTimes(1);
+    const [, sbar] = onRecorded.mock.calls[0] as [unknown, string];
+    expect(sbar).toContain('RESUSCITATION SUMMARY');
+    expect(sbar).toContain('=== SITUATION ===');
+    expect(sbar).not.toContain('=== الوضع ===');
+    setLang('en', kv);
+  });
 });
