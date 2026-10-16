@@ -377,6 +377,11 @@ function setSaveOk(ok: boolean): void {
   saveListeners.forEach((fn) => fn());
 }
 
+/** Lets other storage writers (history) surface a failure through the same NOT SAVED chip. */
+export function reportSaveStatus(ok: boolean): void {
+  setSaveOk(ok);
+}
+
 /** Returns whether the write succeeded (quota / blocked storage -> false). */
 export function writePersisted(session: PersistedSession): boolean {
   if (!isBrowser()) return true;
