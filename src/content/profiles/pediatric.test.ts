@@ -29,6 +29,23 @@ describe('pediatric dose engine — weight table (spec §9)', () => {
     }
   });
 
+  it('epinephrine mg is exact at infant weights (logged dose = dose calculated), not rounded to 0.01', () => {
+    // weights are stored to 0.1 kg; 5.5 kg and 8.5 kg are the 3-month / 9-month APLS estimates
+    const rows: Array<[number, number, number]> = [
+      //   kg   mg     mL
+      [0.5, 0.005, 0.05],
+      [1.5, 0.015, 0.15],
+      [3.5, 0.035, 0.35],
+      [5.5, 0.055, 0.55],
+      [8.5, 0.085, 0.85],
+    ];
+    for (const [kg, mg, mL] of rows) {
+      const r = peds.epinephrine(kg, 0)!;
+      expect(r.mg, `${kg} kg mg`).toBe(mg);
+      expect(r.mL, `${kg} kg mL`).toBe(mL);
+    }
+  });
+
   it('shock 1 = 2 J/kg, shock 2 = 4 J/kg, shock 3+ = 4 J/kg (≤ 10 J/kg on escalate), ceiling 200 J', () => {
     const shock: Record<number, [number, number, number]> = {
       //        [shock1 J, shock2 J, escalate J]

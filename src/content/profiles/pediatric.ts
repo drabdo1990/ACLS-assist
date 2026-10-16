@@ -32,8 +32,8 @@ export function estimateWeightFromAgeMonths(ageMonths: number): number | null {
 /** Idle-screen age chips: newborn, 3/6/9 months, then 1–12 years (in months). */
 export const AGE_CHIPS: readonly number[] = [0, 3, 6, 9, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 132, 144];
 
+const round3 = (v: number) => Math.round(v * 1000) / 1000;
 const round2 = (v: number) => Math.round(v * 100) / 100;
-const round1 = (v: number) => Math.round(v * 10) / 10;
 
 export type PediatricPostRoscId = 'spo2' | 'co2' | 'bp' | 'temp' | 'glucose' | 'ecg' | 'seizure' | 'picu';
 
@@ -131,9 +131,11 @@ export const pediatricProfile: ProtocolProfile = {
     const kg = weightKg as number;
     const raw = 0.01 * kg;
     const capped = raw >= 1;
+    // Weights are stored to 0.1 kg, so 0.01 mg/kg is exact to 0.001 mg (and 0.01 mL at 0.1 mg/mL).
+    // Rounding to 0.01 mg logged +9% at 5.5 kg and +100% at 0.5 kg — the log must equal the dose given.
     return {
-      mg: round2(Math.min(raw, 1)),
-      mL: round1(Math.min(raw, 1) * 10),
+      mg: round3(Math.min(raw, 1)),
+      mL: round2(Math.min(raw, 1) * 10),
       perKgLabel: '0.01 mg/kg',
       capped,
     };
