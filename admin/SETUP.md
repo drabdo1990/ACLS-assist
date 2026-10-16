@@ -92,7 +92,12 @@ real upload.*
 When a new version of the app adds columns or fixes the script:
 
 1. Copy the new `admin/apps-script/Code.gs` over the old code in **Extensions → Apps Script**.
-2. Run `setupAdminSheet` once more (it only adds what is missing; it never clears data).
+2. Run `setupAdminSheet` once more. It appends any new device columns to the end of the `Codes`
+   header row (for example `population`, `weight_kg`, `weight_source`), then rebuilds the
+   Dashboard formulas. It never moves or clears existing rows. **Run it before you deploy
+   (step 3) and again if you notice a blank Dashboard column** — the Dashboard cannot reference
+   a column that does not exist yet. Existing rows have no population value; the Dashboard counts
+   them as adult.
 3. **Deploy → Manage deployments → ✏ → Version: New version → Deploy** — this keeps the same URL.
    Never create a new deployment: it changes the `/exec` URL and every enrolled device stops
    working until it is re-enrolled.

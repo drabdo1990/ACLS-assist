@@ -6,6 +6,7 @@ import {
   DEVICE_COLUMNS,
   MAX_CELL_CHARS,
   handleUpload,
+  missingDeviceColumns,
   neutralise,
   type SheetAdapter,
   type UnitRow,
@@ -183,6 +184,26 @@ describe('safety', () => {
     const s = memorySheet();
     expect(send(s, buildTestPayload(DEVICE, KEY, T0, 0))).toEqual({ ok: true });
     expect(s.rows[0]).toMatchObject({ record_id: `TEST-${DEVICE}`, training: true, unit: 'ICU' });
+  });
+});
+
+describe('missingDeviceColumns — setup on an existing (pre-4a) sheet', () => {
+  it('lists the device columns an older sheet lacks, in canonical order', () => {
+    const old = DEVICE_COLUMNS.filter((c) => !['population', 'weight_kg', 'weight_source'].includes(c));
+    expect(missingDeviceColumns([...old, ...ADMIN_COLUMNS])).toEqual(['population', 'weight_kg', 'weight_source']);
+  });
+
+  it('is empty for a current sheet and for a fresh header row', () => {
+    expect(missingDeviceColumns([...DEVICE_COLUMNS, ...ADMIN_COLUMNS])).toEqual([]);
+    expect(missingDeviceColumns([...DEVICE_COLUMNS])).toEqual([]);
+  });
+
+  it('wants every device column when the sheet has no header yet', () => {
+    expect(missingDeviceColumns([])).toEqual(DEVICE_COLUMNS);
+  });
+
+  it('never proposes an admin column (the script must not write those)', () => {
+    expect(missingDeviceColumns(['record_id'])).not.toContain('reviewed');
   });
 });
 

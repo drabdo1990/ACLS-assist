@@ -25,6 +25,17 @@ export const DEVICE_COLUMNS = [
   'post_rosc_done', 'post_rosc_total', 'sbar', 'payload_version', 'stats_version', 'last_upload_iso',
 ];
 
+/**
+ * Device columns an existing sheet's header row lacks (e.g. the phase 4a population / weight columns),
+ * in canonical order. `setupAdminSheet` appends them so Dashboard formulas can reference every column
+ * on a sheet created by an older script; existing columns and rows are never moved.
+ */
+export function missingDeviceColumns(headers) {
+  return DEVICE_COLUMNS.filter(function (c) {
+    return headers.indexOf(c) < 0;
+  });
+}
+
 /** Written only by the admin; the script never touches them. */
 export const ADMIN_COLUMNS = [
   'debrief_note', 'issue_category', 'action_status', 'reviewed', 'reviewer', 'review_date', 'exclude', 'duplicate_of',

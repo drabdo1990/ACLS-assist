@@ -28,6 +28,17 @@ const DEVICE_COLUMNS = [
   'post_rosc_done', 'post_rosc_total', 'sbar', 'payload_version', 'stats_version', 'last_upload_iso',
 ];
 
+/**
+ * Device columns an existing sheet's header row lacks (e.g. the phase 4a population / weight columns),
+ * in canonical order. `setupAdminSheet` appends them so Dashboard formulas can reference every column
+ * on a sheet created by an older script; existing columns and rows are never moved.
+ */
+function missingDeviceColumns(headers) {
+  return DEVICE_COLUMNS.filter(function (c) {
+    return headers.indexOf(c) < 0;
+  });
+}
+
 /** Written only by the admin; the script never touches them. */
 const ADMIN_COLUMNS = [
   'debrief_note', 'issue_category', 'action_status', 'reviewed', 'reviewer', 'review_date', 'exclude', 'duplicate_of',
@@ -300,6 +311,12 @@ function setupAdminSheet() {
   // --- Codes ---
   const all = DEVICE_COLUMNS.concat(ADMIN_COLUMNS);
   if (codes.getLastColumn() === 0) codes.getRange(1, 1, 1, all.length).setValues([all]);
+  // Upgrade-safe: a sheet made by an older script lacks newer device columns (e.g. population).
+  // Append them so the Dashboard formulas below can reference every column — existing columns and
+  // rows are never moved or cleared.
+  const existingHeader = codes.getRange(1, 1, 1, codes.getLastColumn()).getValues()[0].map(String);
+  const missingCols = missingDeviceColumns(existingHeader);
+  if (missingCols.length) codes.getRange(1, existingHeader.length + 1, 1, missingCols.length).setValues([missingCols]);
   codes.setFrozenRows(1);
   if (codes.getMaxRows() < last) codes.insertRowsAfter(codes.getMaxRows(), last - codes.getMaxRows());
   const header = codes.getRange(1, 1, 1, codes.getLastColumn()).getValues()[0].map(String);
@@ -325,6 +342,7 @@ function setupAdminSheet() {
 
   // --- Dashboard (formulas; verify in Sheets after the first real upload) ---
   const R = function (name) {
+    if (!col(name)) throw new Error('Codes sheet has no "' + name + '" column — re-run setupAdminSheet');
     const c = letter_(col(name));
     return 'Codes!$' + c + '$2:$' + c + '$' + last;
   };
