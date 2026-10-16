@@ -10,6 +10,7 @@ Emergency Departments, ICUs, and rapid-response resuscitation leaders.
 > follows AHA / ERC adult ACLS. It is **not** a substitute for clinical judgement. Verify
 > every dose against your local protocol. It records **no patient identifiers (PHI-free)**,
 > has **no telemetry**, and sends **no data** anywhere — everything stays on the device.
+> See the full [clinical disclaimer](DISCLAIMER.md).
 
 ---
 
@@ -154,3 +155,7 @@ your institution's protocol.
 ## Arrest clock
 
 Total arrest time runs from code activation to the end of the code. Time logged as **CPR paused counts** (the patient is still in arrest); only **ROSC periods** are excluded. The 2-minute CPR cycle timer still pauses with CPR. Statistics report "time logged as paused" separately, and all statistic times are from activation, as logged.
+
+## License
+
+Released under the [MIT License](LICENSE). Use is also subject to the [clinical disclaimer](DISCLAIMER.md).
