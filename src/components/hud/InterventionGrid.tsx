@@ -20,11 +20,15 @@ import { Chip } from '../ui/Chip';
 import { Panel } from '../ui/Panel';
 import { WeightControl } from '../ui/WeightControl';
 import { WeightCard } from './WeightCard';
+import { appliedPerKg, chosenShock, defaultShockChip, pediatricShockChips } from './shockChips';
 import { keyed } from '../../i18n/enText';
 import { useT } from '../../i18n/useT';
 
 /** Ring that marks the button the algorithm expects next. */
 const FOCUS_RING = 'ring-4 ring-warn/70 ring-offset-2 ring-offset-bg';
+
+/** Energies offered when logging a pediatric shock with no weight (the value set on the defibrillator). */
+const MANUAL_PEDS_JOULES = [5, 10, 20, 30, 50, 70, 100, 150, 200] as const;
 
 /**
  * One-tap ACLS intervention grid. Every press is auto-timestamped by the store.
@@ -67,7 +71,9 @@ export function InterventionGrid() {
 
   const [showEnergy, setShowEnergy] = useState(false);
   const [joules, setJoules] = useState<number>(defaultJoules);
-  const [escalate, setEscalate] = useState(false);
+  // Index of the pediatric energy chip the clinician tapped (null = follow the algorithm default).
+  const [tappedChip, setTappedChip] = useState<number | null>(null);
+  const [manualJoules, setManualJoules] = useState<number | null>(null);
   const [waveform360, setWaveform360] = useState<WaveformType>('biphasic');
   const [showWeight, setShowWeight] = useState(false);
 
@@ -105,7 +111,16 @@ export function InterventionGrid() {
   // ---- Pediatric dose labels (null weight → "Set weight", logging stays available) ----
   const pedsEpi = peds && weightKg != null ? profile.epinephrine(weightKg, epi.length) : null;
   const pedsMag = peds && weightKg != null ? profile.magnesium(weightKg) : null;
-  const nextShock = peds && weightKg != null ? profile.shockEnergy(weightKg, shocks.length, escalate) : null;
+  const shockChips = peds && weightKg != null ? pediatricShockChips(profile, weightKg) : [];
+  const chosenChip = tappedChip ?? defaultShockChip(shocks.length);
+  // One value drives the highlighted chip, the Deliver label and the energy that is logged.
+  const nextShock = chosenShock(shockChips, tappedChip, shocks.length)?.energy ?? null;
+
+  // A new shock, a new code or a population switch starts from the algorithm default again.
+  useEffect(() => {
+    setTappedChip(null);
+    setManualJoules(null);
+  }, [shocks.length, status, population]);
 
   const isLido = antiarrhythmic === 'lidocaine';
   // Adult HUD: null weight falls back to the 70 kg default (pediatric uses its own card).
@@ -129,9 +144,7 @@ export function InterventionGrid() {
   const aaSub = peds
     ? noWeight
       ? t('peds.setWeightBanner')
-      : isLido
-        ? t('peds.grid.logNoWeight')
-        : amioSubPeds(amio.length, t)
+      : amioSubPeds(aaCount, t)
     : isLido
       ? lidoBudget.nextExceeds
         ? t('hud.grid.lido.exceeds', { given: lidoBudget.givenMg, max: lidoBudget.maxMg })
@@ -219,7 +232,7 @@ export function InterventionGrid() {
             noWeight
               ? t('peds.setWeight')
               : peds && nextShock
-                ? `${t('peds.grid.shock.jkg', { joules: nextShock.joules, perKg: nextShock.perKg ?? 0 })}${nextShock.capped ? ` ${t('peds.max')}` : ''}`
+                ? `${t('peds.grid.shock.jkg', { joules: nextShock.joules, perKg: appliedPerKg(nextShock, weightKg as number) })}${nextShock.capped ? ` ${t('peds.max')}` : ''}`
                 : shocks.length
                   ? t('hud.grid.shock.titleCount', { n: shocks.length })
                   : t('hud.grid.shock.title')
@@ -241,16 +254,27 @@ export function InterventionGrid() {
         />
       </div>
 
-      {/* Pediatric "log anyway" for epi — dose not calculated, recorded with no mg */}
+      {/* Pediatric "log anyway" — dose/energy not calculated: epi is recorded with no mg, a shock with the
+          energy the clinician set on the defibrillator and no J/kg. Logging is never blocked by a missing weight. */}
       {noWeight && canLog ? (
-        <button
-          type="button"
-          onClick={administerEpi}
-          disabled={!canLog}
-          className="mt-2 min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-mute active:scale-[0.98] disabled:opacity-40"
-        >
-          {t(logAnyway)}
-        </button>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={administerEpi}
+            disabled={!canLog}
+            className="min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-mute active:scale-[0.98] disabled:opacity-40"
+          >
+            {t('peds.grid.epi.logNoWeight')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowEnergy((v) => !v)}
+            disabled={!canLog}
+            className="min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-mute active:scale-[0.98] disabled:opacity-40"
+          >
+            {t('peds.grid.shock.logNoWeight')}
+          </button>
+        </div>
       ) : null}
 
       {showEnergy ? (
@@ -258,33 +282,19 @@ export function InterventionGrid() {
           <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
             <div className="grid grid-cols-3 gap-1.5">
-              {(
-                [
-                  ['peds.grid.shock.chip2', profile.shockEnergy(weightKg, 0, false)],
-                  ['peds.grid.shock.chip4', profile.shockEnergy(weightKg, 1, false)],
-                  ['peds.grid.shock.escalate', profile.shockEnergy(weightKg, 1, true)],
-                ] as const
-              ).map(([chipKey, e], i) => {
-                if (!e) return null;
-                // default selection follows the algorithm: shock 1 at 2 J/kg, later shocks at 4 J/kg
-                const selected = i === 2 ? escalate : !escalate && i === (shocks.length < 1 ? 0 : 1);
-                return (
-                  <Chip
-                    key={chipKey}
-                    selected={selected}
-                    onClick={() => {
-                      if (i === 2) setEscalate(true);
-                      else setEscalate(false);
-                    }}
-                    className="min-w-0 flex-col px-1 leading-tight"
-                  >
-                    <span className="text-[11px]">{t(chipKey as never)}</span>
-                    <span className="tnum text-[10px] font-semibold opacity-70" dir="ltr">
-                      {e.joules}J{e.capped ? ` ${t('peds.max')}` : ''}
-                    </span>
-                  </Chip>
-                );
-              })}
+              {shockChips.map((c, i) => (
+                <Chip
+                  key={c.key}
+                  selected={i === chosenChip}
+                  onClick={() => setTappedChip(i)}
+                  className="min-w-0 flex-col px-1 leading-tight"
+                >
+                  <span className="text-[11px]">{t(c.key)}</span>
+                  <span className="tnum text-[10px] font-semibold opacity-70" dir="ltr">
+                    {c.energy.joules}J{c.energy.capped ? ` ${t('peds.max')}` : ''}
+                  </span>
+                </Chip>
+              ))}
             </div>
             <p className="mt-1.5 text-[11px] text-mute">{t('peds.grid.energyNote')}</p>
             <BigButton
@@ -292,10 +302,40 @@ export function InterventionGrid() {
               variant="crit"
               icon={Zap}
               label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules: nextShock?.joules ?? 0 })}
-              sub={t('peds.grid.shock.jkg', { joules: nextShock?.joules ?? 0, perKg: nextShock?.perKg ?? 0 })}
+              sub={t('peds.grid.shock.jkg', {
+                joules: nextShock?.joules ?? 0,
+                perKg: nextShock ? appliedPerKg(nextShock, weightKg) : 0,
+              })}
               onClick={() => {
-                if (nextShock) deliverShock(nextShock.joules, nextShock.perKg);
+                // Log the J/kg actually applied (the 200 J ceiling can make it lower than the nominal rate).
+                if (nextShock) deliverShock(nextShock.joules, appliedPerKg(nextShock, weightKg));
                 setShowEnergy(false);
+              }}
+            />
+          </div>
+        ) : peds ? (
+          <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {MANUAL_PEDS_JOULES.map((j) => (
+                <Chip key={j} selected={manualJoules === j} onClick={() => setManualJoules(j)} className="min-w-0 px-0.5">
+                  <span className="tnum" dir="ltr">
+                    {j}J
+                  </span>
+                </Chip>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-mute">{t('peds.grid.shock.manualNote')}</p>
+            <BigButton
+              className="mt-2"
+              variant="crit"
+              icon={Zap}
+              disabled={manualJoules == null}
+              label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules: manualJoules ?? 0 })}
+              onClick={() => {
+                if (manualJoules != null) deliverShock(manualJoules, null);
+                setShowEnergy(false);
+                setManualJoules(null);
               }}
             />
           </div>
@@ -474,6 +514,15 @@ export function InterventionGrid() {
             <Undo2 className="h-4 w-4 rtl:-scale-x-100" /> {t('hud.grid.undo')}
           </button>
         </div>
+        {peds && noWeight && canLog ? (
+          <button
+            type="button"
+            onClick={administerMagnesium}
+            className="mt-2 min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-mute active:scale-[0.98]"
+          >
+            {t('peds.grid.mag.logNoWeight')}
+          </button>
+        ) : null}
       </div>
     </Panel>
   );

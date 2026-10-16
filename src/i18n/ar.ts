@@ -100,6 +100,10 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'peds.setWeightBanner': 'حدد الوزن — حساب الجرعات يحتاج وزنًا', // draft — clinician review required
   'peds.setWeight': 'حدد الوزن', // draft — clinician review required
   'peds.grid.logNoWeight': 'سجّل — الجرعة غير محسوبة', // draft — clinician review required
+  'peds.grid.epi.logNoWeight': 'سجّل Epinephrine — الجرعة غير محسوبة', // draft — clinician review required
+  'peds.grid.shock.logNoWeight': 'سجّل الصدمة — أدخل الطاقة', // draft — clinician review required
+  'peds.grid.shock.manualNote': 'الوزن غير محدد — اختر الطاقة المضبوطة على جهاز الصدمات. لم تُحسب J/kg.', // draft — clinician review required
+  'peds.grid.mag.logNoWeight': 'سجّل Magnesium — الجرعة غير محسوبة', // draft — clinician review required
   'peds.grid.epi.title': 'Epi {mg} mg = {mL} mL', // draft — clinician review required
   'peds.grid.shock.title': 'صدمة', // draft — clinician review required
   'peds.grid.shock.jkg': '{joules} J · {perKg} J/kg', // draft — clinician review required

@@ -265,6 +265,16 @@ describe('pediatric dosing', () => {
     expect(lastEvent().label).toBe('Magnesium given — dose not calculated (no weight)');
   });
 
+  it('an unweighted pediatric shock logs with the energy set on the device and no per-kg value', () => {
+    s().setPopulation('pediatric');
+    s().startCode();
+    s().deliverShock(20, null); // what the "Log shock — enter energy" button calls
+    expect(s().shocks).toHaveLength(1);
+    expect(s().shocks[0].joules).toBe(20);
+    expect(s().shocks[0].perKg).toBeUndefined();
+    expect(lastEvent().category).toBe('shock');
+  });
+
   it('undo removes an unweighted dose like any other', () => {
     s().startCode();
     s().administerEpi();
