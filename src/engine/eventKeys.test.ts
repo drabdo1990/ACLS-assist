@@ -116,12 +116,19 @@ describe('sanitizeSession drops bad translation fields, never the session', () =
     expect(b.key).toBeUndefined();
     expect(b.params).toBeUndefined();
     expect(c.params).toBeUndefined();
+    // Invalid params drop the key too, so Arabic never shows a raw "{n}" (review fix).
+    expect(c.key).toBeUndefined();
     expect(d.detailKey).toBeUndefined();
     expect(d.detailParams).toBeUndefined();
     expect(d.key).toBe('ev.pause');
     expect(e.key).toBeUndefined();
     expect(f).toEqual(ok);
     expect(sess!.events.every((x) => x.label === 'CPR paused')).toBe(true);
+  });
+
+  it('a known key missing a template param is displayed as English, never with a raw {placeholder}', () => {
+    const e: CodeEvent = { ...ok, label: 'Cycle 3 completed', key: 'ev.cycle' };
+    expect(eventText(e, 'ar').label).toBe('Cycle 3 completed');
   });
 
   it('keeps an unknown (newer-app) key: it is displayed as English', () => {

@@ -198,23 +198,25 @@ function sanitizeEvent(raw: unknown): CodeEvent {
   };
   if (typeof e.detail === 'string') ev.detail = e.detail;
 
+  // A key is kept only with valid params (or none): a key without its params would render a raw
+  // "{n}" in Arabic, so an invalid pair is dropped and the event shows its English text instead.
+  const validParams = (p: unknown) => isObj(p) && Object.values(p).every((v) => typeof v === 'string' || isNum(v));
+
   if (typeof e.key === 'string' && KEY_RE.test(e.key)) {
     if (e.params === undefined) {
       ev.key = e.key;
-    } else if (isObj(e.params)) {
+    } else if (validParams(e.params)) {
       ev.key = e.key;
-      const valid = Object.values(e.params).every((v) => typeof v === 'string' || isNum(v));
-      if (valid) ev.params = e.params as Record<string, string | number>;
+      ev.params = e.params as Record<string, string | number>;
     }
   }
 
   if (typeof e.detailKey === 'string' && KEY_RE.test(e.detailKey)) {
     if (e.detailParams === undefined) {
       ev.detailKey = e.detailKey;
-    } else if (isObj(e.detailParams)) {
+    } else if (validParams(e.detailParams)) {
       ev.detailKey = e.detailKey;
-      const valid = Object.values(e.detailParams).every((v) => typeof v === 'string' || isNum(v));
-      if (valid) ev.detailParams = e.detailParams as Record<string, string | number>;
+      ev.detailParams = e.detailParams as Record<string, string | number>;
     }
   }
 

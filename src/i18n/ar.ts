@@ -278,6 +278,8 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'hud.grid.epi.next': 'Epi مؤهل بعد {lockout}', // draft — clinician review required
   'hud.grid.epi.eligible': 'مؤهل الآن — اضغط للتسجيل', // draft — clinician review required
   'hud.grid.epi.flush': 'IV/IO + دفع 20 mL NS', // draft — clinician review required
+  'hud.grid.shock.title': 'صدمة', // draft — clinician review required
+  'hud.grid.shock.titleCount': 'صدمة · ×{n}', // draft — clinician review required
   'hud.grid.shock.last': 'آخر صدمة: #{n} {joules}J', // draft — clinician review required
   'hud.grid.shock.select': 'اختيار الطاقة', // draft — clinician review required
   'hud.grid.shock.deliver': 'توجيه الصدمة رقم {n} · {joules}J', // draft — clinician review required

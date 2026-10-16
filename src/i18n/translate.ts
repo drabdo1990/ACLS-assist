@@ -29,9 +29,15 @@ export function translate(lang: Lang, key: MessageKey, params?: Params): string 
   }
 }
 
-/** True when the key and every `@key` param are known, so a full translation is possible. */
+/**
+ * True when the key, every `@key` param and every `{placeholder}` of its template are covered, so a
+ * full translation is possible. Otherwise callers show the stored English rather than a raw "{n}".
+ */
 export function canTranslate(key: unknown, params?: Params): boolean {
   if (!hasKey(key)) return false;
+  for (const m of EN[key].matchAll(/\{(\w+)\}/g)) {
+    if (params?.[m[1]] === undefined) return false;
+  }
   if (!params) return true;
   return Object.values(params).every((v) => typeof v !== 'string' || !v.startsWith('@') || hasKey(v.slice(1)));
 }

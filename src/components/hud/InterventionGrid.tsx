@@ -151,7 +151,7 @@ export function InterventionGrid() {
         <BigButton
           variant="cyber"
           icon={Zap}
-          label={`Shock${shocks.length ? ` · ×${shocks.length}` : ''}`}
+          label={shocks.length ? t('hud.grid.shock.titleCount', { n: shocks.length }) : t('hud.grid.shock.title')}
           sub={
             shocks.length
               ? t('hud.grid.shock.last', { n: shocks.length, joules: shocks[shocks.length - 1].joules })

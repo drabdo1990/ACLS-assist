@@ -286,6 +286,8 @@ const UI = {
   'hud.grid.epi.next': 'Next Epi eligible in {lockout}',
   'hud.grid.epi.eligible': 'ELIGIBLE NOW — tap to log',
   'hud.grid.epi.flush': 'IV/IO + 20 mL NS flush',
+  'hud.grid.shock.title': 'Shock',
+  'hud.grid.shock.titleCount': 'Shock · ×{n}',
   'hud.grid.shock.last': 'Last: #{n} {joules}J',
   'hud.grid.shock.select': 'Select energy',
   'hud.grid.shock.deliver': 'Deliver Shock #{n} · {joules}J',

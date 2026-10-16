@@ -118,9 +118,17 @@ function extractSuspiciousStrings(_filePath: string, content: string): string[] 
       sourceType: 'module',
       plugins: ['jsx', 'typescript'],
     });
-  } catch {
-    return issues;
+  } catch (err) {
+    // Fail closed: an unparsable file must never pass as "clean".
+    return [`parse error: ${(err as Error).message}`];
   }
+
+  /** Literal text of a string or template literal (template `${…}` parts are skipped). */
+  const literalText = (n: any): string | null => {
+    if (n?.type === 'StringLiteral') return String(n.value ?? '');
+    if (n?.type === 'TemplateLiteral') return n.quasis.map((q: any) => q.value?.cooked ?? '').join(' ');
+    return null;
+  };
 
   function walk(node: any) {
     if (!node || typeof node !== 'object') return;
@@ -138,16 +146,16 @@ function extractSuspiciousStrings(_filePath: string, content: string): string[] 
           if (text && !isAllowedText(text)) {
             issues.push(`attr ${attrName}: "${text}"`);
           }
-        } else if (
-          node.value?.type === 'JSXExpressionContainer' &&
-          node.value.expression?.type === 'StringLiteral'
-        ) {
-          const text = String(node.value.expression.value || '').trim();
+        } else if (node.value?.type === 'JSXExpressionContainer') {
+          const text = literalText(node.value.expression)?.trim();
           if (text && !isAllowedText(text)) {
             issues.push(`attr ${attrName}: "${text}"`);
           }
         }
       }
+      // A literal attribute value is fully handled here: never re-scan it as visible JSX text
+      // (className={`…`} is styling, and a text attribute must not be reported twice).
+      if (node.value?.type === 'JSXExpressionContainer' && literalText(node.value.expression) != null) return;
     } else if (node.type === 'ObjectProperty') {
       const keyName = node.key?.name ?? (node.key?.type === 'StringLiteral' ? node.key.value : null);
       if (TARGET_ATTRS.has(keyName) && node.value?.type === 'StringLiteral') {
@@ -158,11 +166,9 @@ function extractSuspiciousStrings(_filePath: string, content: string): string[] 
       }
     } else if (node.type === 'JSXExpressionContainer') {
       // Direct string literal inside JSX children like <span>{'some string'}</span>
-      if (node.expression?.type === 'StringLiteral') {
-        const text = String(node.expression.value || '').trim();
-        if (text && !isAllowedText(text)) {
-          issues.push(`JSX string literal: "${text}"`);
-        }
+      const text = literalText(node.expression)?.trim();
+      if (text && !isAllowedText(text)) {
+        issues.push(`JSX string literal: "${text}"`);
       }
     }
 
@@ -215,6 +221,16 @@ describe('hard-coded-text guard', () => {
     }
 
     expect(failures).toEqual({});
+  });
+
+  it('catches template literals and fails closed on unparsable files (self-check)', () => {
+    expect(extractSuspiciousStrings('x.tsx', 'const a = <B label={`Hold to ${verb}`} />;')).toEqual([
+      'attr label: "Hold to"',
+    ]);
+    expect(extractSuspiciousStrings('x.tsx', 'const a = <div>{`Not saved`}</div>;')).toEqual([
+      'JSX string literal: "Not saved"',
+    ]);
+    expect(extractSuspiciousStrings('x.tsx', 'const = <<;')[0]).toMatch(/^parse error/);
   });
 
   it('has no files left pending translation', () => {
