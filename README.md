@@ -154,3 +154,7 @@ your institution's protocol.
 ## Arrest clock
 
 Total arrest time runs from code activation to the end of the code. Time logged as **CPR paused counts** (the patient is still in arrest); only **ROSC periods** are excluded. The 2-minute CPR cycle timer still pauses with CPR. Statistics report "time logged as paused" separately, and all statistic times are from activation, as logged.
+
+## License
+
+Released under the [MIT License](LICENSE).
