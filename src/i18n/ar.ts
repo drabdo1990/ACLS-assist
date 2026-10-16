@@ -79,6 +79,40 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'ev.pedsMag': 'Magnesium sulfate {minMg}–{maxMg} mg IV/IO', // draft — clinician review required
   'ev.pedsMag.noWeight': 'أُعطي Magnesium — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
 
+  // ---- Pediatric idle toggle + weight card ----
+  'peds.toggle': 'الفئة', // draft — clinician review required
+  'peds.toggle.adult': 'بالغ', // draft — clinician review required
+  'peds.toggle.pediatric': 'أطفال', // draft — clinician review required
+  'peds.previewNotice': 'معاينة — ليس للاستخدام السريري حتى يعتمدها طبيب مختص', // draft — clinician review required
+  'peds.weight.title': 'الوزن', // draft — clinician review required
+  'peds.weight.notSet': 'الوزن غير محدد', // draft — clinician review required
+  'peds.weight.summary.measured': '{kg} kg (مقاس)', // draft — clinician review required
+  'peds.weight.summary.estimated': '≈ {kg} kg (تقديري، {years} y)', // draft — clinician review required
+  'peds.weight.summary.estimatedMonths': '≈ {kg} kg (تقديري، {months} m)', // draft — clinician review required
+  'peds.weight.estimateFromAge': 'التقدير حسب العمر', // draft — clinician review required
+  'peds.weight.measuredChips': 'الوزن المقاس (kg)', // draft — clinician review required
+  'peds.age.newborn': 'حديث الولادة', // draft — clinician review required
+  'peds.age.months': '{months} شهر', // draft — clinician review required
+  'peds.age.years': '{years} سنة', // draft — clinician review required
+  'peds.badge.measured': 'أطفال · {kg} kg', // draft — clinician review required
+  'peds.badge.estimated': 'أطفال · ≈{kg} kg (تقديري)', // draft — clinician review required
+  'peds.badge.noWeight': 'أطفال · حدد الوزن', // draft — clinician review required
+  'peds.setWeightBanner': 'حدد الوزن — حساب الجرعات يحتاج وزنًا', // draft — clinician review required
+  'peds.setWeight': 'حدد الوزن', // draft — clinician review required
+  'peds.grid.logNoWeight': 'سجّل — الجرعة غير محسوبة', // draft — clinician review required
+  'peds.grid.epi.title': 'Epi {mg} mg = {mL} mL', // draft — clinician review required
+  'peds.grid.shock.title': 'صدمة', // draft — clinician review required
+  'peds.grid.shock.jkg': '{joules} J · {perKg} J/kg', // draft — clinician review required
+  'peds.grid.shock.chip2': '2 J/kg', // draft — clinician review required
+  'peds.grid.shock.chip4': '4 J/kg', // draft — clinician review required
+  'peds.grid.shock.escalate': 'تصعيد ≤ 10 J/kg', // draft — clinician review required
+  'peds.grid.energyNote': 'استخدم أقرب قيمة متاحة تساوي أو تقل عن المطلوب', // draft — clinician review required
+  'peds.grid.amio.title': 'Amiodarone {mg} mg · 5 mg/kg', // draft — clinician review required
+  'peds.grid.lido.title': 'Lidocaine {mg} mg · 1 mg/kg', // draft — clinician review required
+  'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg', // draft — clinician review required
+  'peds.max': '(حد أقصى)', // draft — clinician review required
+  'peds.vent.none': 'ضغطات {ratio} تنفس — توقف فقط للنفسات', // draft — clinician review required
+
   // ---- Event param values ----
   'rhythm.VF': 'VF',
   'rhythm.pVT': 'pVT',
@@ -392,6 +426,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'ui.weight.title': 'وزن تحديد الجرعة', // draft — clinician review required
   'ui.weight.dec': 'إنقاص الوزن', // draft — clinician review required
   'ui.weight.inc': 'زيادة الوزن', // draft — clinician review required
+  'ui.weight.set': 'تعيين هذا الوزن', // draft — clinician review required
 
   // ---- Causes & POCUS ----
   'causes.title': 'الأسباب القابلة للعكس — 5 H’s و 5 T’s', // draft — clinician review required

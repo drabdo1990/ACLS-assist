@@ -19,6 +19,8 @@
   --color-warn: #f59e0b;
   --color-cyber: #06b6d4;
   --color-good: #10b981;
+  /* Pediatric — reserved exclusively for the pediatric header badge and idle toggle (phase 4a). */
+  --color-peds: #8b5cf6;
 
   --font-mono:
     ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New',
