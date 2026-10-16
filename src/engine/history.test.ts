@@ -13,6 +13,7 @@ import {
   isoWithOffset,
   loadHistory,
   median,
+  pruneHistory,
   shouldRecord,
   updateRecord,
   upsertRecord,
@@ -202,5 +203,14 @@ describe('aggregates', () => {
 
   it('empty history is all zero / null, never NaN', () => {
     expect(computeAggregates([])).toMatchObject({ counted: 0, roscRate: null, showRates: false, firstEpi: { value: null, n: 0 } });
+  });
+});
+
+describe('pruneHistory', () => {
+  it('re-applies a tighter retention to what is already stored', () => {
+    const kv = memoryKV();
+    for (let i = 0; i < 5; i++) upsertRecord(kv, mkRecord(i));
+    pruneHistory(kv, { mode: 'last', keep: 3 });
+    expect(loadHistory(kv)).toHaveLength(3);
   });
 });

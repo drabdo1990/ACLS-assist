@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useCodeStore } from './engine/store';
+import { startService } from './engine/service';
 
 // Ensure PWA updates apply immediately when no code is actively running.
 // Workbox serves precached assets first and updates the Service Worker in the
@@ -22,6 +23,8 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     void reg?.update();
   });
 }
+
+startService();
 
 const root = document.getElementById('root');
 if (root) {

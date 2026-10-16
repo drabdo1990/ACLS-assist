@@ -218,3 +218,8 @@ export function computeAggregates(records: CodeRecord[]): Aggregates {
     arrest: median(counted.map((r) => r.stats.arrestMs)),
   };
 }
+
+/** Re-apply a (possibly tighter) retention to the stored history, e.g. after the setting changes. */
+export function pruneHistory(kv: KV, retention: Retention): void {
+  persist(kv, loadHistory(kv), retention);
+}
