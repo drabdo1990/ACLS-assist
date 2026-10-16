@@ -4,9 +4,9 @@ import { useCodeStore } from '../../engine/store';
 import { AGE_CHIPS, estimateWeightFromAgeMonths } from '../../content/profiles/pediatric';
 import { Chip } from '../ui/Chip';
 import { useT, type TFn } from '../../i18n/useT';
+import { stepKg, stepperValue } from './weightStepper';
 
 const KG_CHIPS = [3, 5, 10, 15, 20, 30, 40];
-const STEP = 1;
 
 /** Age chip label: Newborn (0 m), "6 m", "4 y". */
 function ageChipLabel(ageMonths: number, t: TFn): string {
@@ -27,7 +27,9 @@ export function WeightCard() {
   const weightSource = useCodeStore((s) => s.weightSource);
   const ageMonths = useCodeStore((s) => s.ageMonths);
   const setPediatricWeight = useCodeStore((s) => s.setPediatricWeight);
-  const [stepperKg, setStepperKg] = useState<number>(15);
+  // A manual stepper edit; null = follow the weight already set on the code (default 15 when none).
+  const [draftKg, setDraftKg] = useState<number | null>(null);
+  const stepperKg = stepperValue(draftKg, weightKg);
 
   const summary =
     weightKg == null
@@ -54,7 +56,7 @@ export function WeightCard() {
         <button
           type="button"
           aria-label={t('ui.weight.dec')}
-          onClick={() => setStepperKg(Math.max(0.5, stepperKg - STEP))}
+          onClick={() => setDraftKg(stepKg(stepperKg, -1))}
           className="touch-hit flex w-12 items-center justify-center rounded-xl border border-line bg-panel2 active:scale-95"
         >
           <Minus className="h-5 w-5" />
@@ -62,7 +64,11 @@ export function WeightCard() {
         <button
           type="button"
           aria-label={t('ui.weight.set')}
-          onClick={() => setPediatricWeight(stepperKg, 'measured')}          className="touch-hit flex-1 rounded-xl border border-peds bg-peds/15 text-peds active:scale-[0.98]"
+          onClick={() => {
+            setPediatricWeight(stepperKg, 'measured');
+            setDraftKg(null);
+          }}
+          className="touch-hit flex-1 rounded-xl border border-peds bg-peds/15 text-peds active:scale-[0.98]"
         >
           <span className="tnum font-mono text-xl font-bold" dir="ltr">
             {stepperKg} kg
@@ -71,7 +77,7 @@ export function WeightCard() {
         <button
           type="button"
           aria-label={t('ui.weight.inc')}
-          onClick={() => setStepperKg(Math.min(150, stepperKg + STEP))}
+          onClick={() => setDraftKg(stepKg(stepperKg, 1))}
           className="touch-hit flex w-12 items-center justify-center rounded-xl border border-line bg-panel2 active:scale-95"
         >
           <Plus className="h-5 w-5" />
@@ -83,7 +89,7 @@ export function WeightCard() {
             key={kg}
             selected={weightSource === 'measured' && weightKg === kg}
             onClick={() => {
-              setStepperKg(kg);
+              setDraftKg(null);
               setPediatricWeight(kg, 'measured');
             }}
             className="min-w-0 px-0.5"
@@ -104,7 +110,10 @@ export function WeightCard() {
             selected={weightSource === 'estimated' && ageMonths === m}
             onClick={() => {
               const kg = estimateWeightFromAgeMonths(m);
-              if (kg != null) setPediatricWeight(kg, 'estimated', m);
+              if (kg != null) {
+                setDraftKg(null);
+                setPediatricWeight(kg, 'estimated', m);
+              }
             }}
             className="min-w-0 px-0.5 text-[11px]"
           >
