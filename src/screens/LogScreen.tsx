@@ -3,6 +3,7 @@ import { useCodeStore } from '../engine/store';
 import { Timeline } from '../components/log/Timeline';
 import { SbarExport } from '../components/log/SbarExport';
 import { CodeStatsPanel } from '../components/log/CodeStatsPanel';
+import { HistoryPanel } from '../components/log/HistoryPanel';
 import { Panel } from '../components/ui/Panel';
 
 /** View 3 — timestamped code log and SBAR export. */
@@ -13,6 +14,7 @@ export function LogScreen() {
     <div className="flex flex-col gap-3">
       <CodeStatsPanel />
       <SbarExport />
+      <HistoryPanel />
       <Panel
         title={`Event log · ${eventCount} event${eventCount === 1 ? '' : 's'}`}
         icon={ListOrdered}
