@@ -13,6 +13,7 @@ import {
   waveformFor,
 } from '../../content/calc';
 import type { StepFocus } from '../../content/algorithm';
+import type { WaveformType } from '../../engine/types';
 import { profileFor } from '../../content/profiles';
 import { BigButton } from '../ui/BigButton';
 import { Chip } from '../ui/Chip';
@@ -67,6 +68,7 @@ export function InterventionGrid() {
   const [showEnergy, setShowEnergy] = useState(false);
   const [joules, setJoules] = useState<number>(defaultJoules);
   const [escalate, setEscalate] = useState(false);
+  const [waveform360, setWaveform360] = useState<WaveformType>('biphasic');
   const [showWeight, setShowWeight] = useState(false);
 
   const population = useCodeStore((s) => s.population);
@@ -287,7 +289,7 @@ export function InterventionGrid() {
               label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules: nextShock?.joules ?? 0 })}
               sub={t('peds.grid.shock.jkg', { joules: nextShock?.joules ?? 0, perKg: nextShock?.perKg ?? 0 })}
               onClick={() => {
-                if (nextShock) deliverShock(nextShock.joules);
+                if (nextShock) deliverShock(nextShock.joules, nextShock.perKg);
                 setShowEnergy(false);
               }}
             />
@@ -296,26 +298,55 @@ export function InterventionGrid() {
           <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
             <div className="grid grid-cols-4 gap-1.5">
-              {SHOCK_ENERGIES.map((e) => (
-                <Chip
-                  key={e.joules}
-                  selected={joules === e.joules}
-                  onClick={() => setJoules(e.joules)}
-                  className="min-w-0 flex-col px-1 leading-tight"
-                >
-                  <span>{e.joules}J</span>
-                  <span className="text-[10px] font-semibold opacity-70">{e.waveform === 'monophasic' ? 'Mono' : 'Bi'}</span>
-                </Chip>
-              ))}
+              {SHOCK_ENERGIES.map((e) => {
+                const is360 = e.joules === 360;
+                const wf = is360 ? waveform360 : e.waveform;
+                return (
+                  <Chip
+                    key={e.joules}
+                    selected={joules === e.joules}
+                    onClick={() => setJoules(e.joules)}
+                    className="min-w-0 flex-col px-1 leading-tight"
+                  >
+                    <span>{e.joules}J</span>
+                    <span className="text-[10px] font-semibold opacity-70">{wf === 'monophasic' ? 'Mono' : 'Bi'}</span>
+                  </Chip>
+                );
+              })}
             </div>
+            {joules === 360 ? (
+              <div className="mt-2 flex items-center justify-between rounded-lg border border-line bg-panel2/60 px-2 py-1.5 text-xs">
+                <span className="font-semibold text-mute">{t('hud.grid.shock.waveformLabel')}</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setWaveform360('biphasic')}
+                    className={`touch-hit rounded-md px-2 py-1 text-xs font-bold ${
+                      waveform360 === 'biphasic' ? 'border border-cyber bg-cyber/20 text-cyber' : 'text-mute'
+                    }`}
+                  >
+                    {t('waveform.biphasic')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWaveform360('monophasic')}
+                    className={`touch-hit rounded-md px-2 py-1 text-xs font-bold ${
+                      waveform360 === 'monophasic' ? 'border border-cyber bg-cyber/20 text-cyber' : 'text-mute'
+                    }`}
+                  >
+                    {t('waveform.monophasic')}
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <BigButton
               className="mt-2"
               variant="crit"
               icon={Zap}
               label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules })}
-              sub={t('hud.grid.shock.waveformSub', { waveform: t(`waveform.${waveformFor(joules)}` as never) })}
+              sub={t('hud.grid.shock.waveformSub', { waveform: t(`waveform.${joules === 360 ? waveform360 : waveformFor(joules)}` as never) })}
               onClick={() => {
-                deliverShock(joules);
+                deliverShock(joules, null, joules === 360 ? waveform360 : undefined);
                 setShowEnergy(false);
               }}
             />

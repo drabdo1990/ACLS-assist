@@ -15,6 +15,7 @@ import type {
   SessionStatus,
   Settings,
   ShockEvent,
+  WaveformType,
 } from './types';
 import { CYCLE_MS, masterElapsedMs } from './timing';
 import { clockNow } from './clock';
@@ -129,7 +130,7 @@ export interface CodeStore extends PersistedSession {
   setPediatricWeight: (kg: number, source: WeightSource, ageMonths?: number | null) => void;
   setRhythmBranch: (branch: RhythmBranch) => void;
   administerEpi: () => void;
-  deliverShock: (joules: number) => void;
+  deliverShock: (joules: number, perKg?: number | null, waveform?: WaveformType) => void;
   setAntiarrhythmic: (drug: Antiarrhythmic) => void;
   administerAntiarrhythmic: () => void;
   administerAmiodarone: () => void;
@@ -482,14 +483,14 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         };
       }),
 
-    deliverShock: (joules) =>
+    deliverShock: (joules, perKg, waveformOverride) =>
       apply((s) => {
         const at = clockNow();
         const t = el(s, at);
         const n = s.shocks.length + 1;
-        const waveform = waveformFor(joules);
+        const waveform = waveformOverride ?? waveformFor(joules);
         const shockable = s.rhythmBranch !== 'nonshockable';
-        const shock: ShockEvent = { at, t, joules, shockable, waveform };
+        const shock: ShockEvent = { at, t, joules, shockable, waveform, ...(perKg != null ? { perKg } : {}) };
         haptic.confirm();
         const shockEv = keyed(
           'ev.shock',

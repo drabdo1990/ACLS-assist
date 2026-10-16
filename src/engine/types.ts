@@ -62,6 +62,8 @@ export interface ShockEvent {
   /** true when the shock was delivered for a shockable rhythm (VF/pVT). */
   shockable: boolean;
   waveform?: WaveformType;
+  /** J/kg actually applied (pediatric weight-based shocks); null / absent for adult. */
+  perKg?: number | null;
 }
 
 export interface DoseEvent {

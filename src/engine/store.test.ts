@@ -167,6 +167,14 @@ describe('defibrillation', () => {
     expect(s().shocks[1].waveform).toBe('monophasic');
   });
 
+  it('supports explicit waveform override (e.g. 360J biphasic)', () => {
+    s().startCode();
+    s().deliverShock(360, null, 'biphasic');
+    expect(s().shocks[0].waveform).toBe('biphasic');
+    const label = s().events.find((e) => e.category === 'shock')?.label;
+    expect(label).toBe('Defibrillation: Shock #1 (360J Biphasic)');
+  });
+
   it('flags shocks logged on the non-shockable branch', () => {
     s().startCode();
     s().setRhythmBranch('nonshockable');

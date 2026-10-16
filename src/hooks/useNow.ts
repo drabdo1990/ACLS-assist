@@ -28,6 +28,11 @@ export function useTicker(): void {
     };
     raf = requestAnimationFrame(loop);
 
+    // Fallback ticker for when requestAnimationFrame is paused by the browser (tab backgrounded / screen sleep)
+    const bgInterval = window.setInterval(() => {
+      tick(clockNow());
+    }, 1000);
+
     const onVisible = () => {
       resyncClock();
       last = 0;
@@ -37,6 +42,7 @@ export function useTicker(): void {
 
     return () => {
       cancelAnimationFrame(raf);
+      window.clearInterval(bgInterval);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [status, metronomeOn, tick]);

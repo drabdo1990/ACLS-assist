@@ -154,7 +154,7 @@ function setupAdminSheet() {
     R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"';
   const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + real;
   const med = function (name) {
-    return '=IF($A5="","",IFERROR(MEDIAN(FILTER(' + R(name) + '/1000,' + grp + ',' + R(name) + '<>"")),"—"))';
+    return '=IF($A5="","",IFERROR(MEDIAN(FILTER(' + R(name) + ',' + grp + ',' + R(name) + '<>""))/1000,"—"))';
   };
   dash.getRange('A1').setValue('ResusCode — admin dashboard');
   dash.getRange('A2').setValue(

@@ -96,6 +96,15 @@ function sanitizeRecord(x: unknown): CodeRecord | null {
   // nested members the formatters / CSV / aggregates dereference must exist
   if (!isObj(st.shocks) || !isObj(st.epi) || !isObj(st.amiodarone) || !isObj(st.lidocaine) || !isObj(st.magnesium) || !isObj(st.airway)) return null;
   if (!Array.isArray(st.rhythms) || !Array.isArray(st.causes) || !Array.isArray(st.pocus)) return null;
+  // Phase 4a fields: records captured by older builds (statsVersion 1) read as adult.
+  if (st.population !== 'adult' && st.population !== 'pediatric') st.population = 'adult';
+  if (!isNum(st.weightKg) && st.weightKg !== null) st.weightKg = null;
+  if (st.weightSource !== 'measured' && st.weightSource !== 'estimated') st.weightSource = null;
+  if (!isNum(st.ageMonths) && st.ageMonths !== null) st.ageMonths = null;
+  if (!Array.isArray(st.shocks.perKg)) st.shocks.perKg = (Array.isArray(st.shocks.joules) ? st.shocks.joules : []).map(() => null);
+  for (const g of [st.epi, st.amiodarone, st.lidocaine, st.magnesium] as Array<Record<string, unknown>>) {
+    if (!isNum(g.notCalculated)) g.notCalculated = 0;
+  }
   return x as unknown as CodeRecord;
 }
 
@@ -199,7 +208,7 @@ export interface Aggregates {
   arrest: Median;
 }
 
-export function computeAggregates(records: CodeRecord[]): Aggregates {
+function baseAggregates(records: CodeRecord[]): Aggregates {
   const excluded = records.filter((r) => r.training || r.voided);
   const live = records.filter((r) => !r.training && !r.voided);
   const incomplete = live.filter((r) => r.stats.outcome === 'incomplete');
@@ -216,6 +225,19 @@ export function computeAggregates(records: CodeRecord[]): Aggregates {
     firstEpi: median(counted.map((r) => r.stats.firstEpiMs)),
     firstShock: median(counted.map((r) => r.stats.firstShockMs)),
     arrest: median(counted.map((r) => r.stats.arrestMs)),
+  };
+}
+
+export function computeAggregates(records: CodeRecord[]): Aggregates & {
+  /** Totals and medians per population, each with its own n (phase 4a). */
+  byPopulation: { adult: Aggregates; pediatric: Aggregates };
+} {
+  return {
+    ...baseAggregates(records),
+    byPopulation: {
+      adult: baseAggregates(records.filter((r) => (r.stats.population ?? 'adult') === 'adult')),
+      pediatric: baseAggregates(records.filter((r) => r.stats.population === 'pediatric')),
+    },
   };
 }
 

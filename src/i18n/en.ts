@@ -135,6 +135,7 @@ const UI = {
   'branch.nonshockable': 'Non-shockable (Asystole / PEA)',
   'waveform.biphasic': 'Biphasic',
   'waveform.monophasic': 'Monophasic',
+  'waveform.select': 'Waveform',
   'airway.ETT': 'ETT',
   'airway.SGA': SGA_LABEL,
 
@@ -262,6 +263,13 @@ const UI = {
 
   // ---- Statistics Panel & Formatter ----
   'stats.outcome': 'Outcome',
+  'stats.population': 'Population',
+  'stats.pop.pediatric': 'Pediatric (PALS — SHA)',
+  'stats.weight': 'Weight',
+  'stats.weight.measured': '{kg} kg (measured)',
+  'stats.weight.estimated': '≈ {kg} kg (estimated from age {years} y)',
+  'stats.weight.estimatedMonths': '≈ {kg} kg (estimated from age {months} m)',
+  'stats.notCalculated': ' ({count} not calculated)',
   'stats.episodes': ' ({count} ROSC episodes)',
   'stats.arrestTime': 'Arrest time (ROSC periods excluded)',
   'stats.firstRosc': 'First ROSC',
@@ -395,6 +403,7 @@ const UI = {
   'hud.grid.sgaSub': 'Supraglottic',
   'hud.grid.airwayActiveSub': 'Continuous compressions active · tap to unmark',
   'hud.grid.energyTitle': 'Defibrillation energy',
+  'hud.grid.shock.waveformLabel': 'Waveform',
   'hud.grid.epiInterval': 'Epi re-dose interval',
   'hud.grid.mgIndication': 'Torsades',
   'hud.grid.logNoPulse': 'Log no pulse',

@@ -59,10 +59,20 @@ export function statsRows(st: CodeStats, lang: Lang = 'en'): StatRow[] {
         }`;
 
   const shocksVal = st.shocks.count
-    ? `${st.shocks.count} (${st.shocks.joules.map((j) => `${j}J`).join(isAr ? '، ' : ', ')})`
+    ? `${st.shocks.count} (${st.shocks.joules
+        .map((j, i) => {
+          const perKg = st.shocks.perKg?.[i];
+          return perKg != null ? `${j}J · ${perKg} J/kg` : `${j}J`;
+        })
+        .join(isAr ? '، ' : ', ')})`
     : '0';
 
-  const amioVal = st.amiodarone.count ? `${st.amiodarone.count} (${st.amiodarone.totalMg} mg)` : '0';
+  const notCalculated = (n: number) =>
+    n > 0 ? translate(lang, 'stats.notCalculated', { count: n }) : '';
+
+  const amioVal = st.amiodarone.count
+    ? `${st.amiodarone.count} (${st.amiodarone.totalMg} mg)${notCalculated(st.amiodarone.notCalculated)}`
+    : '0';
 
   const airwayVal =
     st.airway.type == null
@@ -90,22 +100,38 @@ export function statsRows(st: CodeStats, lang: Lang = 'en'): StatRow[] {
     ? translate(lang, 'stats.postRosc.recorded', { done: st.postRosc.done, total: st.postRosc.total })
     : DASH;
 
-  return [
-    { label: translate(lang, 'stats.outcome'), value: outcomeText },
+  const weightVal =
+    st.weightKg == null
+      ? DASH
+      : st.weightSource === 'estimated'
+        ? st.ageMonths != null && st.ageMonths < 12
+          ? translate(lang, 'stats.weight.estimatedMonths', { kg: st.weightKg, months: st.ageMonths })
+          : translate(lang, 'stats.weight.estimated', { kg: st.weightKg, years: st.ageMonths != null ? st.ageMonths / 12 : 0 })
+        : translate(lang, 'stats.weight.measured', { kg: st.weightKg });
+
+  const rows: StatRow[] = [{ label: translate(lang, 'stats.outcome'), value: outcomeText }];
+  if (st.population === 'pediatric') {
+    rows.push({ label: translate(lang, 'stats.population'), value: translate(lang, 'stats.pop.pediatric') });
+    rows.push({ label: translate(lang, 'stats.weight'), value: weightVal });
+  }
+  rows.push(
     { label: translate(lang, 'stats.arrestTime'), value: time(st.arrestMs) },
     { label: translate(lang, 'stats.firstRosc'), value: time(st.firstRoscMs) },
     { label: translate(lang, 'stats.firstShock'), value: time(st.firstShockMs) },
     { label: translate(lang, 'stats.firstEpi'), value: firstEpiVal },
     { label: translate(lang, 'stats.shocks'), value: shocksVal },
-    { label: translate(lang, 'stats.epiDoses'), value: String(st.epi.count) },
+    {
+      label: translate(lang, 'stats.epiDoses'),
+      value: `${st.epi.count}${notCalculated(st.epi.notCalculated)}`,
+    },
     {
       label: translate(lang, 'stats.epiInterval'),
       value: st.epi.meanIntervalMs == null ? DASH : `${time(st.epi.meanIntervalMs)} / ${time(st.epi.longestIntervalMs)}`,
       flag: st.epi.longestExceedsThreshold,
     },
     { label: translate(lang, 'stats.amiodarone'), value: amioVal },
-    { label: translate(lang, 'stats.lidoDoses'), value: String(st.lidocaine.count) },
-    { label: translate(lang, 'stats.magDoses'), value: String(st.magnesium.count) },
+    { label: translate(lang, 'stats.lidoDoses'), value: `${st.lidocaine.count}${notCalculated(st.lidocaine.notCalculated)}` },
+    { label: translate(lang, 'stats.magDoses'), value: `${st.magnesium.count}${notCalculated(st.magnesium.notCalculated)}` },
     { label: translate(lang, 'stats.cycles'), value: String(st.cycles) },
     { label: translate(lang, 'stats.pausedTime'), value: time(st.pausedMs) },
     { label: translate(lang, 'stats.airway'), value: airwayVal },
@@ -113,5 +139,6 @@ export function statsRows(st: CodeStats, lang: Lang = 'en'): StatRow[] {
     { label: translate(lang, 'stats.causes'), value: causesVal },
     { label: translate(lang, 'stats.pocus'), value: pocusVal },
     { label: translate(lang, 'stats.postRosc'), value: postRoscVal },
-  ];
+  );
+  return rows;
 }

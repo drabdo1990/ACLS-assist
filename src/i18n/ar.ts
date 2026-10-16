@@ -123,6 +123,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'branch.nonshockable': 'غير قابل للصدمة (Asystole / PEA)', // draft — clinician review required
   'waveform.biphasic': 'ثنائية الطور', // draft — clinician review required
   'waveform.monophasic': 'أحادية الطور', // draft — clinician review required
+  'waveform.select': 'شكل الموجة', // draft — clinician review required
   'airway.ETT': 'ETT',
   'airway.SGA': 'مجرى هواء فوق المزمار (SGA)', // draft — clinician review required
 
@@ -252,6 +253,13 @@ export const AR: Readonly<Record<MessageKey, string>> = {
 
   // ---- Statistics Panel & Formatter ----
   'stats.outcome': 'النتيجة', // draft — clinician review required
+  'stats.population': 'الفئة', // draft — clinician review required
+  'stats.pop.pediatric': 'أطفال (PALS — SHA)', // draft — clinician review required
+  'stats.weight': 'الوزن', // draft — clinician review required
+  'stats.weight.measured': '{kg} kg (مقاس)', // draft — clinician review required
+  'stats.weight.estimated': '≈ {kg} kg (تقديري من العمر {years} y)', // draft — clinician review required
+  'stats.weight.estimatedMonths': '≈ {kg} kg (تقديري من العمر {months} m)', // draft — clinician review required
+  'stats.notCalculated': ' ({count} غير محسوبة)', // draft — clinician review required
   'stats.episodes': ' ({count} نوبة ROSC)', // draft — clinician review required
   'stats.arrestTime': 'مدة التوقف (باستثناء فترات ROSC)', // draft — clinician review required
   'stats.firstRosc': 'أول ROSC', // draft — clinician review required
@@ -387,6 +395,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'hud.grid.sgaSub': 'فوق المزمار', // draft — clinician review required
   'hud.grid.airwayActiveSub': 'ضغطات مستمرة مفعلة · اضغط للإلغاء', // draft — clinician review required
   'hud.grid.energyTitle': 'طاقة إزالة الرجفان', // draft — clinician review required
+  'hud.grid.shock.waveformLabel': 'شكل الموجة', // draft — clinician review required
   'hud.grid.epiInterval': 'فاصل تكرار جرعة Epi', // draft — clinician review required
   'hud.grid.mgIndication': 'Torsades', // draft — clinician review required
   'hud.grid.logNoPulse': 'تسجيل عدم وجود نبض', // draft — clinician review required

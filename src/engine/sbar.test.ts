@@ -165,7 +165,7 @@ describe('sbarFilename', () => {
 describe('CODE STATISTICS section', () => {
   it('is omitted without stats and matches statsRows line-for-line when present', () => {
     expect(buildSbar(base, T0 + 500_000)).not.toContain('=== CODE STATISTICS ===');
-    const stats = computeCodeStats({ ...base, pausedAt: base.endedAt, pausedAccumMs: 0 }, T0 + 500_000)!;
+    const stats = computeCodeStats({ ...base, pausedAt: base.endedAt, pausedAccumMs: 0, population: 'adult', weightSource: null, ageMonths: null }, T0 + 500_000)!;
     const text = buildSbar({ ...base, stats, training: true }, T0 + 500_000);
     expect(text).toContain('=== CODE STATISTICS ===');
     expect(text).toContain('TRAINING / SIMULATION');
@@ -233,7 +233,10 @@ describe('golden English SBAR comparison & Arabic SBAR', () => {
   const fullSession: SbarInput = {
     ...base,
     events: allEvents,
-    stats: computeCodeStats({ ...base, events: allEvents, pausedAt: base.endedAt, pausedAccumMs: 0 }, T0 + 500_000),
+    stats: computeCodeStats(
+      { ...base, events: allEvents, pausedAt: base.endedAt, pausedAccumMs: 0, population: 'adult', weightSource: null, ageMonths: null },
+      T0 + 500_000,
+    ),
     training: true,
   };
 
