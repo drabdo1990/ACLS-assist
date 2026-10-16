@@ -240,7 +240,8 @@ describe('golden English SBAR comparison & Arabic SBAR', () => {
   it('English SBAR output is byte-identical to golden copy (ignoring Generated line)', async () => {
     const fs = await import('fs');
     const path = await import('path');
-    const golden = fs.readFileSync(path.resolve('src/engine/testing/goldenSbar.txt'), 'utf8');
+    // Normalise CRLF (Windows checkouts) — the golden content itself is LF.
+    const golden = fs.readFileSync(path.resolve('src/engine/testing/goldenSbar.txt'), 'utf8').replace(/\r\n/g, '\n');
 
     const actual = buildSbar(fullSession, T0 + 500_000, { lang: 'en' });
     const actualWithoutGenerated = actual
