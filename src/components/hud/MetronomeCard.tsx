@@ -3,6 +3,7 @@ import { useCodeStore } from '../../engine/store';
 import { useMetronome } from '../../hooks/useMetronome';
 import { ensureAudio, playClick } from '../../engine/audio';
 import { hapticsSupported } from '../../engine/haptics';
+import { profileFor } from '../../content/profiles';
 import { Panel } from '../ui/Panel';
 import { useT } from '../../i18n/useT';
 
@@ -15,6 +16,8 @@ export function MetronomeCard() {
   const metronome = useCodeStore((s) => s.metronome);
   const setMetronome = useCodeStore((s) => s.setMetronome);
   const status = useCodeStore((s) => s.status);
+  const population = useCodeStore((s) => s.population);
+  const profile = profileFor(population);
   const { beat, running } = useMetronome();
 
   const canRun = status === 'active' || status === 'paused';
@@ -119,6 +122,11 @@ export function MetronomeCard() {
         <p className="mt-1 text-[11px] text-mute">{t('hud.metro.noHaptics')}</p>
       ) : null}
       <p className="mt-1 text-[11px] text-mute">{t('hud.metro.accentNote')}</p>
+      {population === 'pediatric' ? (
+        <p className="mt-1.5 rounded-lg border border-peds/30 bg-peds/5 px-2 py-1.5 text-[11px] font-semibold leading-tight text-peds">
+          {t(profile.cpr.ratioKey)} · {t(profile.cpr.depthKey)} · {t(profile.cpr.rateKey)}
+        </p>
+      ) : null}
     </Panel>
   );
 }

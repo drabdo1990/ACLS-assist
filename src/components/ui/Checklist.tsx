@@ -8,6 +8,7 @@ import {
   checklistToggle,
   isChecklistItemOn,
   POST_ROSC_CHECKLIST_I18N,
+  type ChecklistI18nConfig,
 } from '../../engine/checklist';
 import { POST_ROSC_PREFIX } from '../../engine/eventQueries';
 import { useT } from '../../i18n/useT';
@@ -23,7 +24,7 @@ export interface ChecklistItemLike {
  * Checked state derived from the persisted event log, so ticks survive tab switches
  * and refreshes. Unticking logs an explicit "unchecked" entry rather than erasing history.
  */
-export function useLoggedChecklist(category: EventCategory, prefix: string) {
+export function useLoggedChecklist(category: EventCategory, prefix: string, i18n?: ChecklistI18nConfig) {
   const events = useCodeStore((s) => s.events);
   const logEvent = useCodeStore((s) => s.logEvent);
 
@@ -32,8 +33,11 @@ export function useLoggedChecklist(category: EventCategory, prefix: string) {
   const toggle = (item: ChecklistItemLike | string) => {
     if (typeof item === 'string') {
       logEvent(category, isOn(item) ? checklistOffLabel(prefix, item) : checklistOnLabel(prefix, item));
-    } else if (prefix === POST_ROSC_PREFIX) {
-      const res = checklistToggle(events, prefix, item, POST_ROSC_CHECKLIST_I18N);
+      return;
+    }
+    const cfg = i18n ?? (prefix === POST_ROSC_PREFIX ? POST_ROSC_CHECKLIST_I18N : undefined);
+    if (cfg) {
+      const res = checklistToggle(events, prefix, item, cfg);
       logEvent(category, res.label, undefined, res.i18n);
     } else {
       logEvent(category, isOn(item.text) ? checklistOffLabel(prefix, item.text) : checklistOnLabel(prefix, item.text));
@@ -49,21 +53,27 @@ export function Checklist({
   category,
   prefix,
   icon: Icon,
+  itemKeyPrefix,
 }: {
   items: ChecklistItemLike[];
   category: EventCategory;
   prefix: string;
   icon?: LucideIcon;
+  /** Translation-key prefix for item labels (`postRosc` / `pPostRosc`); items show their own text when omitted. */
+  itemKeyPrefix?: string;
 }) {
   const { t } = useT();
-  const { isOn, toggle } = useLoggedChecklist(category, prefix);
+  const i18n: ChecklistI18nConfig | undefined = itemKeyPrefix
+    ? { onKey: 'ev.postRosc.on', offKey: 'ev.postRosc.off', itemKey: (id) => `${itemKeyPrefix}.${id}` }
+    : undefined;
+  const { isOn, toggle } = useLoggedChecklist(category, prefix, i18n);
 
   return (
     <ul className="space-y-1.5">
       {items.map((item) => {
         const on = isOn(item.text);
-        // Only the post-ROSC bundle has translated item keys; other checklists show their own text.
-        const itemLabel = prefix === POST_ROSC_PREFIX ? t(`postRosc.${item.id}` as MessageKey) : item.text;
+        // Only the post-ROSC bundles have translated item keys; other checklists show their own text.
+        const itemLabel = itemKeyPrefix ? t(`${itemKeyPrefix}.${item.id}` as MessageKey) : item.text;
         return (
           <li key={item.id}>
             <button
