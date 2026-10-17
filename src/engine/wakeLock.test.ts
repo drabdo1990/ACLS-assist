@@ -101,6 +101,7 @@ describe('wakeLock', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     const restore = (key: string, desc: PropertyDescriptor | undefined) => {
       if (desc) Object.defineProperty(globalThis, key, desc);
       else delete g[key];
@@ -182,6 +183,43 @@ describe('wakeLock', () => {
     dom.setVisibility('visible');
     await flush();
     expect(lock.request).toHaveBeenCalledTimes(1);
+  });
+
+  it('request while a stale sentinel is still being released ends up holding the lock', async () => {
+    // Controllable release(): the stale sentinel's release stays pending until we open the gate.
+    let openGate!: () => void;
+    const gate = new Promise<void>((res) => {
+      openGate = res;
+    });
+    vi.spyOn(FakeSentinel.prototype, 'release').mockImplementationOnce(async function (
+      this: FakeSentinel,
+    ) {
+      await gate;
+      this.released = true;
+    });
+
+    const first = mod.requestWakeLock();
+    await mod.releaseWakeLock(); // lock no longer wanted while the request is in flight
+    const stale = lock.pending[0].resolve();
+    await flush(); // acquire() is now awaiting the stale sentinel's release()
+
+    // The lock is wanted again while the stale release is still pending.
+    const second = mod.requestWakeLock();
+    await flush();
+
+    openGate();
+    await flush();
+    // The second request must start its own acquisition, not join the dying one.
+    while (lock.pending.length > lock.sentinels.length) {
+      lock.pending[lock.sentinels.length].resolve();
+      await flush();
+    }
+    await Promise.all([first, second]);
+
+    expect(stale.released).toBe(true);
+    expect(lock.request).toHaveBeenCalledTimes(2);
+    expect(mod.isWakeLockActive()).toBe(true);
+    expect(lock.sentinels[1].released).toBe(false);
   });
 
   it('release removes the visibility listener and releases a held sentinel', async () => {

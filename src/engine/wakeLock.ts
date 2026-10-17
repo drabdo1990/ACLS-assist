@@ -73,10 +73,15 @@ function acquire(): Promise<void> {
   if (!nav.wakeLock) return Promise.resolve();
   const wl = nav.wakeLock;
   inflight = (async () => {
+    let detached = false;
     try {
       const s = await wl.request('screen');
       if (!wantLock) {
         // Released while the request was in flight: never keep this sentinel.
+        // Detach first: a requestWakeLock() arriving during the stale release below
+        // must start its own acquisition, not join this one (which ends holding nothing).
+        inflight = null;
+        detached = true;
         try {
           await s.release();
         } catch {
@@ -94,7 +99,8 @@ function acquire(): Promise<void> {
     } catch {
       /* request refused; the visibility listener retries */
     } finally {
-      inflight = null;
+      // A detached acquisition must not clobber a newer one that took over `inflight`.
+      if (!detached) inflight = null;
       notify();
     }
   })();
