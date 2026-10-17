@@ -127,6 +127,9 @@ const UI = {
   'peds.grid.lido.title': 'Lidocaine {mg} mg · 1 mg/kg',
   'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg',
   'peds.max': '(max)',
+  'peds.grid.epi.flush': 'IV/IO + saline flush',
+  'peds.roscBanner.sub': 'SpO₂ 94–99% · avoid SBP < 5th centile for age — open checklist',
+  'app.title.pediatric': 'Pediatric PALS Command',
   'peds.vent.none': 'Compressions {ratio} ventilations — pause only for breaths',
 
   // ---- Event param values ----

@@ -6,6 +6,7 @@ import { useNow, useTicker } from './hooks/useNow';
 import { useWakeLock } from './hooks/useWakeLock';
 import { cycleRemainingMs } from './engine/timing';
 import { HudScreen } from './screens/HudScreen';
+import { appTitleKey } from './components/hud/populationText';
 import { CausesScreen } from './screens/CausesScreen';
 import { LogScreen } from './screens/LogScreen';
 import { AudioHint, SaveFailedChip } from './components/ui/StatusChips';
@@ -41,6 +42,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
   const [tab, setTab] = useState<Tab>('hud');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const status = useCodeStore((s) => s.status);
+  const population = useCodeStore((s) => s.population);
   const restored = useCodeStore((s) => s.restored);
   const dismissRestored = useCodeStore((s) => s.dismissRestored);
   const staleAgeMs = useCodeStore((s) => s.staleAgeMs);
@@ -85,7 +87,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
           <HeartPulse className="h-5 w-5 text-crit" />
           <div className="leading-tight">
             <h1 className="font-mono text-base font-bold tracking-tight text-ink">ResusCode</h1>
-            <p className="text-[10px] uppercase tracking-widest text-mute">{t('app.title')}</p>
+            <p className="text-[10px] uppercase tracking-widest text-mute">{t(appTitleKey(population))}</p>
           </div>
           <div className="ms-auto flex items-center gap-2">
             <SaveFailedChip />

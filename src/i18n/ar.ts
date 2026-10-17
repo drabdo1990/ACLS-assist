@@ -115,6 +115,9 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'peds.grid.lido.title': 'Lidocaine {mg} mg · 1 mg/kg', // draft — clinician review required
   'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg', // draft — clinician review required
   'peds.max': '(حد أقصى)', // draft — clinician review required
+  'peds.grid.epi.flush': 'IV/IO + دفع بمحلول ملحي', // draft — clinician review required
+  'peds.roscBanner.sub': 'SpO₂ 94–99% · تجنب SBP دون المئين الخامس للعمر — فتح القائمة', // draft — clinician review required
+  'app.title.pediatric': 'قيادة إنعاش الأطفال (PALS)', // draft — clinician review required
   'peds.vent.none': 'ضغطات صدرية بنسبة {ratio} — التوقف للتهوية فقط', // draft — clinician review required
 
   // ---- Event param values ----

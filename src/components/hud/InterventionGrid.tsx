@@ -20,7 +20,8 @@ import { Chip } from '../ui/Chip';
 import { Panel } from '../ui/Panel';
 import { WeightControl } from '../ui/WeightControl';
 import { WeightCard } from './WeightCard';
-import { appliedPerKg, chosenShock, defaultShockChip, pediatricShockChips } from './shockChips';
+import { epiFlushKey } from './populationText';
+import { appliedPerKg,chosenShock, defaultShockChip, pediatricShockChips } from './shockChips';
 import { keyed } from '../../i18n/enText';
 import { useT } from '../../i18n/useT';
 
@@ -217,7 +218,7 @@ export function InterventionGrid() {
               ? t('hud.grid.epi.next', { lockout })
               : epiEligible
                 ? t('hud.grid.epi.eligible')
-                : t('hud.grid.epi.flush')
+                : t(epiFlushKey(population))
           }
           className={[epiEligible ? 'animate-flash-bg' : '', ring('epi')].join(' ')}
           disabled={!canLog}

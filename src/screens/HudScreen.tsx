@@ -6,6 +6,7 @@ import { CyclePanel } from '../components/hud/CyclePanel';
 import { MetronomeCard } from '../components/hud/MetronomeCard';
 import { RhythmBranch } from '../components/hud/RhythmBranch';
 import { InterventionGrid } from '../components/hud/InterventionGrid';
+import { roscBannerSubKey } from '../components/hud/populationText';
 
 import { useT } from '../i18n/useT';
 
@@ -13,6 +14,7 @@ import { useT } from '../i18n/useT';
 export function HudScreen({ onEnd, onOpenCauses }: { onEnd: () => void; onOpenCauses: () => void }) {
   const { t } = useT();
   const status = useCodeStore((s) => s.status);
+  const population = useCodeStore((s) => s.population);
 
   return (
     <div className="flex flex-col gap-3">
@@ -32,7 +34,7 @@ export function HudScreen({ onEnd, onOpenCauses }: { onEnd: () => void; onOpenCa
           <HeartPulse className="h-7 w-7 shrink-0" />
           <span>
             <span className="block text-lg font-bold leading-tight">{t('hud.roscBanner.title')}</span>
-            <span className="block text-xs opacity-80">{t('hud.roscBanner.sub')}</span>
+            <span className="block text-xs opacity-80">{t(roscBannerSubKey(population))}</span>
           </span>
         </button>
       ) : null}
