@@ -183,7 +183,12 @@ function handleUpload(body, sheet, nowMs) {
 
   const row = sheet.findRow('record_id', p.recordId);
   if (row == null) sheet.appendRow(cells);
-  else sheet.updateCells(row, cells);
+  else {
+    // A key may only update rows its own unit wrote (record ids are guessable: start time + device id).
+    const owner = sheet.readCell(row, 'unit');
+    if (owner != null && String(owner) !== '' && String(owner) !== unit.name) return { ok: false, error: 'key' };
+    sheet.updateCells(row, cells);
+  }
   return { ok: true };
 }
 
@@ -253,6 +258,10 @@ function makeAdapter_(ss) {
       const vals = codes.getRange(2, c, n, 1).getValues();
       for (let i = 0; i < vals.length; i++) if (String(vals[i][0]) === value) return i + 2;
       return null;
+    },
+    readCell: function (row, name) {
+      const c = headers_().indexOf(name) + 1;
+      return c ? codes.getRange(row, c).getValue() : null;
     },
     appendRow: function (cells) {
       const h = headers_();

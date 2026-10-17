@@ -34,6 +34,7 @@ function memorySheet(headers: string[] = [], rows: Row[] = [], units: UnitRow[] 
       const i = rows.findIndex((r) => String(r[h]) === v);
       return i < 0 ? null : i + 2;
     },
+    readCell: (row, h) => (headers.includes(h) ? rows[row - 2][h] ?? '' : null),
     appendRow: (cells) => {
       const r: Row = {};
       for (const h of headers) r[h] = h in cells ? cells[h] : '';
@@ -72,6 +73,16 @@ describe('insert / find-or-insert', () => {
       payload_version: 1,
     });
     expect(s.headers).not.toContain('sbar'); // absent in the payload → no column, no cell
+  });
+
+  it("refuses to update a row another unit's key wrote, and leaves it untouched", () => {
+    const s = memorySheet();
+    send(s, P()); // ICU writes the row
+    const wardKey = buildPayload(mkRecord(1, { training: true }), { enrollmentKey: 'unit-ward-2026', offsetMin: 0 });
+    expect(send(s, wardKey)).toEqual({ ok: false, error: 'key' });
+    expect(s.rows).toHaveLength(1);
+    expect(s.rows[0]).toMatchObject({ unit: 'ICU', training: false });
+    expect(send(s, P({}))).toEqual({ ok: true }); // the owning unit can still update
   });
 
   it('two uploads of one record produce one row (two tabs, retries)', () => {

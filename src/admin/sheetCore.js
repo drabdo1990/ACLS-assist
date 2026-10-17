@@ -180,6 +180,11 @@ export function handleUpload(body, sheet, nowMs) {
 
   const row = sheet.findRow('record_id', p.recordId);
   if (row == null) sheet.appendRow(cells);
-  else sheet.updateCells(row, cells);
+  else {
+    // A key may only update rows its own unit wrote (record ids are guessable: start time + device id).
+    const owner = sheet.readCell(row, 'unit');
+    if (owner != null && String(owner) !== '' && String(owner) !== unit.name) return { ok: false, error: 'key' };
+    sheet.updateCells(row, cells);
+  }
   return { ok: true };
 }
