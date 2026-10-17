@@ -331,6 +331,21 @@ describe('pediatric SBAR (phase 4a)', () => {
     expect(out).toContain('(doses not calculated)');
   });
 
+  it('a dose given before the weight was set shows as "not calculated" instead of vanishing from the list', () => {
+    const out = buildSbar(
+      {
+        ...pedsBase,
+        epi: [
+          { at: T0 + 60_000, t: 60_000, label: 'Epinephrine given — dose not calculated (no weight)', mg: null },
+          { at: T0 + 180_000, t: 180_000, label: 'Epinephrine 0.16 mg IV/IO', mg: 0.16 },
+          { at: T0 + 300_000, t: 300_000, label: 'Epinephrine 0.16 mg IV/IO', mg: 0.16 },
+        ],
+      },
+      T0 + 500_000,
+    );
+    expect(out).toContain('Epinephrine: 3 × 0.01 mg/kg (not calculated, 0.16 mg, 0.16 mg)');
+  });
+
   it('Arabic pediatric SBAR translates the situation, weight and recommendations', () => {
     const out = buildSbar(pedsBase, T0 + 500_000, { lang: 'ar' });
     expect(out).toContain('توقف قلبي داخل المستشفى لدى طفل — وفق بروتوكول PALS (SHA)');

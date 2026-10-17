@@ -226,6 +226,28 @@ describe('population / weight columns (phase 4a)', () => {
     expect(s.rows[0]).toMatchObject({ population: 'pediatric', weight_kg: 18, weight_source: 'estimated' });
   });
 
+  it('writes the *_not_calculated counts so an unknown total is not read as 0 mg', () => {
+    const s = memorySheet();
+    const p = P();
+    const st = p.stats as Record<string, any>;
+    const stats = {
+      ...st,
+      epi: { ...st.epi, notCalculated: 2 },
+      amiodarone: { ...st.amiodarone, count: 3, totalMg: 0, notCalculated: 3 },
+      lidocaine: { ...st.lidocaine, notCalculated: 1 },
+      magnesium: { ...st.magnesium, notCalculated: 1 },
+    };
+    expect(send(s, { ...p, stats })).toEqual({ ok: true });
+    expect(s.rows[0]).toMatchObject({
+      epi_not_calculated: 2,
+      amiodarone_count: 3,
+      amiodarone_mg: 0,
+      amiodarone_not_calculated: 3,
+      lidocaine_not_calculated: 1,
+      magnesium_not_calculated: 1,
+    });
+  });
+
   it('a payload without the new fields (older app) reads as adult with empty weight', () => {
     const s = memorySheet();
     expect(send(s, P())).toEqual({ ok: true });

@@ -253,6 +253,9 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'sbar.peds.amio': 'Amiodarone: {count} × 5 mg/kg {details}', // draft — clinician review required
   'sbar.peds.lido': 'Lidocaine: {count} × 1 mg/kg {details}', // draft — clinician review required
   'sbar.peds.dosesNotCalculated': 'جرعات غير محسوبة', // draft — clinician review required
+  'sbar.peds.doseNotCalculated': 'غير محسوبة', // draft — clinician review required
+  'ev.rosc.detail.epiPartial':
+    'إجمالي مدة التوقف: {durationMs}. إجمالي الصدمات: {shocks}. إجمالي Epinephrine: على الأقل {epiMg} mg (بعض الجرعات غير محسوبة).', // draft — clinician review required
   'sbar.peds.rec.rosc1': '- SpO₂ 94–99% — تجنب فرط الأكسجة؛ CO₂ طبيعي.', // draft — clinician review required
   'sbar.peds.rec.rosc2': '- تجنب انخفاض الضغط (SBP دون المئين الخامس للعمر) — سوائل أو موسعات وعائية حسب البروتوكول المحلي.', // draft — clinician review required
   'sbar.peds.rec.rosc3': '- تخطيط قلب 12-lead / إيكو عند الحاجة؛ معالجة الحمى وضبط الحرارة حسب البروتوكول المحلي.', // draft — clinician review required

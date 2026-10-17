@@ -166,9 +166,11 @@ export function buildSbar(input: SbarInput, now: number = Date.now(), opts: Sbar
   if (peds) {
     // Pediatric background: doses in mg with the mg/kg rule (spec 4a §8).
     const pedsMgList = (ds: DoseEvent[]): string => {
-      const mgs = ds.filter((d) => d.mg != null).map((d) => `${d.mg} mg`);
-      if (mgs.length) return `(${mgs.join(isAr ? '، ' : ', ')})`;
-      return ds.length ? `(${translate(lang, 'sbar.peds.dosesNotCalculated')})` : '—';
+      if (!ds.length) return '—';
+      // Every dose appears, in order: one given before a weight was set shows as "not calculated", not as a gap.
+      if (ds.every((d) => d.mg == null)) return `(${translate(lang, 'sbar.peds.dosesNotCalculated')})`;
+      const notCalc = translate(lang, 'sbar.peds.doseNotCalculated');
+      return `(${ds.map((d) => (d.mg != null ? `${d.mg} mg` : notCalc)).join(isAr ? '، ' : ', ')})`;
     };
     out.push(translate(lang, 'sbar.peds.epi', { count: input.epi.length, details: pedsMgList(input.epi) }));
     out.push(translate(lang, 'sbar.peds.amio', { count: input.amio.length, details: pedsMgList(input.amio) }));

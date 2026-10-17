@@ -359,7 +359,9 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         playChime();
         haptic.rosc();
         const closesPause = s.status === 'paused' && s.pausedAt != null;
-        const roscEv = keyed('ev.rosc', undefined, 'ev.rosc.detail', {
+        // An unweighted pediatric dose has no mg, so the sum is only a lower bound.
+        const epiPartial = s.epi.some((d) => d.mg == null);
+        const roscEv = keyed('ev.rosc', undefined, epiPartial ? 'ev.rosc.detail.epiPartial' : 'ev.rosc.detail', {
           durationMs: t,
           shocks: s.shocks.length,
           epiMg: totalEpiMg(s.epi),
