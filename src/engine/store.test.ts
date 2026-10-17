@@ -12,6 +12,7 @@ vi.mock('./clock', () => ({ clockNow: () => Date.now(), resyncClock: () => {} })
 import { useCodeStore } from './store';
 import { masterElapsedMs } from './timing';
 import { computeCodeStats } from './stats';
+import { emptySession, sanitizeSession } from './persistence';
 
 const T0 = 1_700_000_000_000;
 const at = (ms: number) => vi.setSystemTime(T0 + ms);
@@ -50,6 +51,59 @@ describe('pause / resume — CPR pauses count as arrest time', () => {
     at(230_000);
     s().administerEpi();
     expect(lastEvent().t).toBe(230_000);
+  });
+});
+
+describe('backward clock step during a CPR pause', () => {
+  // Pause at +60 s, then the wall clock steps back to +10 s (before the pause instant).
+  const pauseThenStepBack = () => {
+    s().startCode();
+    at(60_000);
+    s().pauseCode();
+    at(10_000);
+  };
+  const accumsNonNegative = () => {
+    expect(s().pausedAccumMs).toBeGreaterThanOrEqual(0);
+    expect(s().cyclePausedAccumMs).toBeGreaterThanOrEqual(0);
+    expect(s().roscAccumMs).toBeGreaterThanOrEqual(0);
+  };
+  const persistedShape = () => {
+    const state = s() as unknown as Record<string, unknown>;
+    const out: Record<string, unknown> = { version: 4, savedAt: Date.now() };
+    for (const key of Object.keys(emptySession())) if (key !== 'version' && key !== 'savedAt') out[key] = state[key];
+    return JSON.parse(JSON.stringify(out));
+  };
+
+  it('resume treats a negative pause delta as zero', () => {
+    pauseThenStepBack();
+    s().resumeCode();
+    accumsNonNegative();
+    expect(s().pausedAccumMs).toBe(0);
+    expect(s().cyclePausedAccumMs).toBe(0);
+  });
+
+  it('ROSC while paused treats a negative pause delta as zero', () => {
+    pauseThenStepBack();
+    s().declareRosc();
+    accumsNonNegative();
+    expect(s().pausedAccumMs).toBe(0);
+  });
+
+  it('terminating while paused treats a negative pause delta as zero', () => {
+    pauseThenStepBack();
+    s().terminateCode();
+    accumsNonNegative();
+    expect(s().pausedAccumMs).toBe(0);
+  });
+
+  it('the resulting persisted session is still accepted by sanitizeSession', () => {
+    for (const act of ['resumeCode', 'declareRosc', 'terminateCode'] as const) {
+      s().reset();
+      at(0);
+      pauseThenStepBack();
+      s()[act]();
+      expect(sanitizeSession(persistedShape()), act).not.toBeNull();
+    }
   });
 });
 

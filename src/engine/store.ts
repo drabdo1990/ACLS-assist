@@ -210,6 +210,15 @@ export function isUndoable(e: CodeEvent): boolean {
   return true;
 }
 
+/**
+ * Length of the open CPR pause at `at`, never negative: a backward wall-clock step larger than
+ * the pause would otherwise drive the accumulators below zero, which `sanitizeSession` rejects
+ * (quarantining the live code at the next boot).
+ */
+function pauseDelta(pausedAt: number | null, at: number): number {
+  return pausedAt != null ? Math.max(0, at - pausedAt) : 0;
+}
+
 const persisted = loadPersisted();
 const bootSession: PersistedSession = persisted ?? emptySession();
 const wasRestored = persisted != null && (persisted.status !== 'idle' || persisted.events.length > 0);
@@ -278,7 +287,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       apply((s) => {
         if (s.status !== 'paused') return {};
         const at = clockNow();
-        const delta = s.pausedAt != null ? at - s.pausedAt : 0;
+        const delta = pauseDelta(s.pausedAt, at);
         const ev = keyed('ev.resume');
         return {
           status: 'active' as SessionStatus,
@@ -345,7 +354,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           status: 'rosc' as SessionStatus,
           endedAt: at,
           pausedAt: s.pausedAt ?? at, // freezes the 2-min cycle
-          pausedAccumMs: closesPause ? s.pausedAccumMs + (at - (s.pausedAt as number)) : s.pausedAccumMs,
+          pausedAccumMs: closesPause ? s.pausedAccumMs + pauseDelta(s.pausedAt, at) : s.pausedAccumMs,
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
@@ -366,7 +375,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           status: 'terminated' as SessionStatus,
           endedAt: s.status === 'rosc' ? s.endedAt : at,
           pausedAt: s.pausedAt ?? at,
-          pausedAccumMs: closesPause ? s.pausedAccumMs + (at - (s.pausedAt as number)) : s.pausedAccumMs,
+          pausedAccumMs: closesPause ? s.pausedAccumMs + pauseDelta(s.pausedAt, at) : s.pausedAccumMs,
           metronome: { ...s.metronome, on: false },
           events: [
             ...s.events,
