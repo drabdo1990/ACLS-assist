@@ -7,15 +7,21 @@ export function destinationTail(url: string): string {
   return m ? `…${m[1].slice(-8)}` : '…';
 }
 
-export function EnrollmentSummary({ enrollment, replacing }: { enrollment: Enrollment; replacing: boolean }) {
+/** The whole script id: a forged link points at someone else's script, so the user must be able to compare all of it. */
+function destinationId(url: string): string {
+  const m = /\/s\/([^/]+)\/exec$/.exec(url);
+  return m ? m[1] : '…';
+}
+
+export function EnrollmentSummary({ enrollment, replacing, verify = false }: { enrollment: Enrollment; replacing: boolean; verify?: boolean }) {
   const { t } = useT();
   return (
     <div className="text-xs leading-relaxed text-ink">
       <p>{t('enroll.notice')}</p>
       <p className="mt-1 text-mute">
         {t('enroll.destination')}{' '}
-        <span dir="ltr" className="font-mono">
-          {destinationTail(enrollment.url)}
+        <span dir="ltr" className="break-all font-mono">
+          {verify ? destinationId(enrollment.url) : destinationTail(enrollment.url)}
         </span>
         {enrollment.unit ? (
           <>
@@ -24,6 +30,7 @@ export function EnrollmentSummary({ enrollment, replacing }: { enrollment: Enrol
           </>
         ) : null}
       </p>
+      {verify ? <p className="mt-1 font-bold text-warn">{t('enroll.checkId')}</p> : null}
       {replacing ? <p className="mt-1 font-bold text-warn">{t('enroll.replacing')}</p> : null}
       <p className="mt-1 text-mute">{t('enroll.nothingSent')}</p>
     </div>

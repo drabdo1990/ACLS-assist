@@ -561,6 +561,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'enroll.notice':
     'عند التسجيل، تُرسل إحصاءات كل نداء منتهٍ (الأوقات، الصدمات، الأدوية، النتيجة) وتاريخ ووقت بدئه ووحدتك وملخصاً بأوقات نسبية — دون أي معرّفات للمرضى — إلى جدول Google الخاص بالمسؤول الذي أصدر هذا الرمز.', // draft — clinician review required (consent wording)
   'enroll.destination': 'الوجهة',
+  'enroll.checkId': 'تأكد من أن هذا المعرّف يطابق المعرّف الذي أعطاك إياه المسؤول. وإن لم يطابقه فاضغط «إلغاء».', // draft — clinician review required (consent wording)
   'enroll.unit': 'الوحدة',
   'enroll.replacing': 'سيحل هذا محل تسجيلك الحالي.',
   'enroll.nothingSent': 'لا يُرسل أي شيء حتى تضغط «تسجيل». يمكنك الإيقاف في أي وقت من الإعدادات.', // draft — clinician review required (consent wording)

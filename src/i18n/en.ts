@@ -568,6 +568,7 @@ const UI = {
   'enroll.notice':
     "If you enroll, each finished code's statistics (times, shocks, drugs, outcome), its start date and time, your unit and a summary note with relative times — never patient identifiers — are sent to the Google Sheet of the admin who issued this code.",
   'enroll.destination': 'Destination',
+  'enroll.checkId': 'Check that this ID matches the one your administrator gave you. If it does not, tap Cancel.',
   'enroll.unit': 'Unit',
   'enroll.replacing': 'This replaces your current enrollment.',
   'enroll.nothingSent': 'Nothing is sent until you tap Enroll. You can stop at any time in Settings.',

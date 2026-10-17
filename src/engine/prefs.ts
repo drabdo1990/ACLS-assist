@@ -28,7 +28,8 @@ export const DEFAULT_RETENTION: Retention = { mode: 'all', keep: 100 };
 export const KEEP_OPTIONS: readonly number[] = [50, 100, 200];
 
 const DEVICE_ID_RE = /^[0-9a-f]{12}$/;
-// Only Google Apps Script web-app endpoints: a forged enrollment link must not redirect data elsewhere.
+// Only Google Apps Script web-app endpoints. This does NOT stop a forged link to someone else's script:
+// the confirm screen shows the full script id so the user can compare it with the administrator's.
 const ENROLL_URL_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[A-Za-z0-9.-]+|macros)\/s\/[A-Za-z0-9_-]+\/exec$/;
 const ENROLL_KEY_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const MAX_UNIT_LEN = 60;
