@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { HeartPulse, ListOrdered, Lock, LockOpen, Search, Settings, Siren, WifiOff } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useCodeStore } from './engine/store';
-import { useTicker } from './hooks/useNow';
+import { useNow, useTicker } from './hooks/useNow';
 import { useWakeLock } from './hooks/useWakeLock';
+import { cycleRemainingMs } from './engine/timing';
 import { HudScreen } from './screens/HudScreen';
+import { appTitleKey } from './components/hud/populationText';
 import { CausesScreen } from './screens/CausesScreen';
 import { LogScreen } from './screens/LogScreen';
 import { AudioHint, SaveFailedChip } from './components/ui/StatusChips';
@@ -39,10 +42,24 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
   const [tab, setTab] = useState<Tab>('hud');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const status = useCodeStore((s) => s.status);
+  const population = useCodeStore((s) => s.population);
   const restored = useCodeStore((s) => s.restored);
   const dismissRestored = useCodeStore((s) => s.dismissRestored);
   const staleAgeMs = useCodeStore((s) => s.staleAgeMs);
   const reset = useCodeStore((s) => s.reset);
+
+  const now = useNow();
+  const cyclic = useCodeStore(
+    useShallow((s) => ({
+      status: s.status,
+      cycleIndex: s.cycleIndex,
+      pausedAt: s.pausedAt,
+      cycleStartedAt: s.cycleStartedAt,
+      cyclePausedAccumMs: s.cyclePausedAccumMs,
+    })),
+  );
+  const remaining = cycleRemainingMs(cyclic, now);
+  const cycleExpired = cyclic.status === 'active' && remaining <= 0;
 
   const tabs: Array<{ id: Tab; label: string; icon: typeof Siren }> = [
     { id: 'hud', label: t('tab.hud'), icon: Siren },
@@ -70,7 +87,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
           <HeartPulse className="h-5 w-5 text-crit" />
           <div className="leading-tight">
             <h1 className="font-mono text-base font-bold tracking-tight text-ink">ResusCode</h1>
-            <p className="text-[10px] uppercase tracking-widest text-mute">{t('app.title')}</p>
+            <p className="text-[10px] uppercase tracking-widest text-mute">{t(appTitleKey(population))}</p>
           </div>
           <div className="ms-auto flex items-center gap-2">
             <SaveFailedChip />
@@ -79,9 +96,9 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
               title={
                 wakeSupported
                   ? wakeActive
-                    ? 'Screen will not sleep'
-                    : 'Wake lock idle'
-                  : 'Wake Lock unsupported on this browser'
+                    ? t('app.wake.titleActive')
+                    : t('app.wake.titleIdle')
+                  : t('app.wake.titleUnsupported')
               }
               className={[
                 'flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold',
@@ -89,7 +106,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
               ].join(' ')}
             >
               {wakeActive ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
-              {wakeSupported ? (wakeActive ? 'AWAKE' : 'IDLE') : 'N/A'}
+              {wakeSupported ? (wakeActive ? t('app.wake.active') : t('app.wake.idle')) : t('app.wake.unsupported')}
             </span>
             {!online ? (
               <span className="flex items-center gap-1 rounded-full border border-warn/60 px-2 py-1 text-[10px] font-bold text-warn">
@@ -143,13 +160,32 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
           </div>
         ) : null}
 
-        {tab === 'hud' ? (
+        {cycleExpired && tab !== 'hud' ? (
+          <div className="animate-flash-bg mb-3 flex items-center justify-between gap-3 rounded-2xl border-2 border-crit bg-crit/20 p-3 text-white">
+            <div>
+              <p className="text-base font-black leading-tight sm:text-lg">{t('hud.cycle.rhythmCheck')}</p>
+              <p className="text-xs font-bold opacity-90">{t('hud.cycle.switchCompressors')}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTab('hud')}
+              className="touch-hit flex shrink-0 items-center gap-1 rounded-xl border border-white bg-white/20 px-3 py-2 text-xs font-bold active:scale-95"
+            >
+              <Siren className="h-4 w-4" />
+              {t('tab.hud')}
+            </button>
+          </div>
+        ) : null}
+
+        <div className={tab === 'hud' ? 'block' : 'hidden'}>
           <HudScreen onEnd={() => setTab('log')} onOpenCauses={() => setTab('causes')} />
-        ) : tab === 'causes' ? (
+        </div>
+        <div className={tab === 'causes' ? 'block' : 'hidden'}>
           <CausesScreen />
-        ) : (
+        </div>
+        <div className={tab === 'log' ? 'block' : 'hidden'}>
           <LogScreen />
-        )}
+        </div>
 
         <p className="mt-4 text-center text-[10px] leading-relaxed text-mute">
           {t('app.disclaimer')}

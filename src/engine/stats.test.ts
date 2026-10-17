@@ -58,7 +58,7 @@ describe('computeCodeStats', () => {
     expect(st.firstShockMs).toBe(45_000);
     expect(st.firstEpiMs).toBe(100_000);
     expect(st.branchAtFirstEpi).toBe('nonshockable');
-    expect(st.shocks).toEqual({ count: 1, joules: [200] });
+    expect(st.shocks).toEqual({ count: 1, joules: [200], perKg: [null] });
   });
 
   it('reports "no data" as null, never as 0', () => {

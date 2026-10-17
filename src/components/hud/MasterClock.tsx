@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useCodeStore } from '../../engine/store';
 import { useNow } from '../../hooks/useNow';
 import { formatClock, masterElapsedMs } from '../../engine/timing';
 import type { SessionStatus } from '../../engine/types';
 import { useT } from '../../i18n/useT';
 import type { MessageKey } from '../../i18n/en';
+import { PEDIATRIC_CLINICAL_REVIEWED } from '../../content/profiles';
+import { WeightCard } from './WeightCard';
 
 const STATUS_CLASS: Record<SessionStatus, string> = {
   idle: 'text-mute border-line',
@@ -32,10 +35,18 @@ export function MasterClock() {
   const endedAt = useCodeStore((s) => s.endedAt);
   const roscAccumMs = useCodeStore((s) => s.roscAccumMs);
   const status = useCodeStore((s) => s.status);
+  const population = useCodeStore((s) => s.population);
+  const weightKg = useCodeStore((s) => s.weightKg);
+  const weightSource = useCodeStore((s) => s.weightSource);
+  const [editingWeight, setEditingWeight] = useState(false);
 
   const elapsed = masterElapsedMs({ startedAt, endedAt, roscAccumMs }, now);
   const className = STATUS_CLASS[status];
   const label = t(STATUS_KEY[status]);
+
+  const peds = population === 'pediatric';
+  const badgeKey: MessageKey =
+    weightKg == null ? 'peds.badge.noWeight' : weightSource === 'estimated' ? 'peds.badge.estimated' : 'peds.badge.measured';
 
   return (
     <div className="flex flex-col items-center gap-1 py-2">
@@ -62,6 +73,28 @@ export function MasterClock() {
       <span className={`rounded-full border px-3 py-0.5 text-xs font-bold tracking-widest ${className}`}>
         {label}
       </span>
+      {peds && status !== 'idle' ? (
+        <>
+          <button
+            type="button"
+            aria-expanded={editingWeight}
+            onClick={() => setEditingWeight((v) => !v)}
+            className="mt-0.5 rounded-full border border-peds bg-peds/10 px-3 py-0.5 text-xs font-bold tracking-widest text-peds active:scale-[0.98]"
+          >
+            {t(badgeKey, weightKg != null ? { kg: weightKg } : undefined)}
+          </button>
+          {!PEDIATRIC_CLINICAL_REVIEWED ? (
+            <span className="text-[10px] font-bold uppercase tracking-widest text-warn">
+              {t('peds.previewNotice')}
+            </span>
+          ) : null}
+          {editingWeight ? (
+            <div className="mt-1 w-full text-start">
+              <WeightCard />
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }

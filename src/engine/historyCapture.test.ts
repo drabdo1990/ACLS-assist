@@ -5,6 +5,7 @@ import { emptySession, getSaveOk, reportSaveStatus } from './persistence';
 import { loadHistory } from './history';
 import { loadPrefs, savePrefs } from './prefs';
 import { DEBOUNCE_MS, createCapture, type CaptureState } from './historyCapture';
+import { editRecordFlagsCore } from './flagEdit';
 
 const URL_OK = 'https://script.google.com/macros/s/AKfycbxAbC/exec';
 
@@ -121,6 +122,77 @@ describe('history capture', () => {
     cap.handle(active({ rev: 8, training: true }), roscSession({ rev: 7, training: true }));
     vi.advanceTimersByTime(5_000);
     expect(loadHistory(kv)[0].training).toBe(false);
+  });
+});
+
+/** A zustand-shaped live store wired to a capture observer, like installHistoryCapture does. */
+function liveStore(cap: ReturnType<typeof createCapture>, initial: CaptureState) {
+  let state = initial;
+  const set = (patch: Partial<CaptureState>) => {
+    const prev = state;
+    state = { ...state, ...patch, rev: state.rev + 1 };
+    cap.handle(state, prev);
+  };
+  return {
+    getState: () => ({ ...state, setTraining: (on: boolean) => set({ training: on }), setVoided: (on: boolean) => set({ voided: on }) }),
+    reset: () => {
+      const prev = state;
+      state = { ...emptySession(), rev: 0 };
+      cap.handle(state, prev);
+    },
+  };
+}
+
+describe('History flag edit survives New code (reset)', () => {
+  it('Training edited in History, then reset: the stored record keeps the edit', () => {
+    const kv = memoryKV();
+    const cap = createCapture({ kv, now: () => T0 + 130_000 });
+    const store = liveStore(cap, ended());
+    cap.handle(ended(), active({ rev: 4 })); // the code ended: captured
+    const id = loadHistory(kv)[0].id;
+    editRecordFlagsCore(kv, store, id, { training: true });
+    store.reset();
+    expect(loadHistory(kv)).toHaveLength(1);
+    expect(loadHistory(kv)[0]).toMatchObject({ id, training: true, voided: false });
+  });
+
+  it('Void edited in History, then reset: the stored record keeps the edit', () => {
+    const kv = memoryKV();
+    const cap = createCapture({ kv, now: () => T0 + 130_000 });
+    const store = liveStore(cap, ended());
+    cap.handle(ended(), active({ rev: 4 }));
+    const id = loadHistory(kv)[0].id;
+    editRecordFlagsCore(kv, store, id, { voided: true });
+    store.reset();
+    expect(loadHistory(kv)[0]).toMatchObject({ id, voided: true, training: false });
+  });
+
+  it('enrolled: the edit does not flip back and the reset does not re-queue a second time', () => {
+    const kv = memoryKV();
+    enroll(kv);
+    const onRecorded = vi.fn();
+    const cap = createCapture({ kv, now: () => T0 + 130_000, onRecorded });
+    const store = liveStore(cap, ended());
+    cap.handle(ended(), active({ rev: 4 }));
+    expect(onRecorded).toHaveBeenCalledTimes(1);
+    const id = loadHistory(kv)[0].id;
+    editRecordFlagsCore(kv, store, id, { training: true });
+    store.reset();
+    vi.advanceTimersByTime(DEBOUNCE_MS);
+    expect(loadHistory(kv)[0]).toMatchObject({ training: true, uploadStatus: 'queued' });
+    // service.editRecordFlags enqueues the edit itself; capture must add no further upload
+    expect(onRecorded).toHaveBeenCalledTimes(1);
+  });
+
+  it('editing an older record leaves the live session alone', () => {
+    const kv = memoryKV();
+    const cap = createCapture({ kv, now: () => T0 + 130_000 });
+    cap.handle(ended(), active({ rev: 4 }));
+    const oldId = loadHistory(kv)[0].id;
+    const store = liveStore(cap, ended({ startedAt: T0 + 3_600_000, rev: 20 }));
+    editRecordFlagsCore(kv, store, oldId, { training: true });
+    expect(store.getState().training).toBe(false);
+    expect(loadHistory(kv)[0].training).toBe(true);
   });
 });
 

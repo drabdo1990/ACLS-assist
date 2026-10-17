@@ -20,12 +20,24 @@ const OUTCOMES = ['rosc', 'rosc_then_terminated', 'terminated', 'incomplete'];
 /** Written by the script (device-owned). */
 const DEVICE_COLUMNS = [
   'record_id', 'unit', 'device_id', 'start_iso', 'start_month', 'start_epoch_ms', 'outcome', 'training', 'void',
+  'population', 'weight_kg', 'weight_source',
   'ended_epoch_ms', 'arrest_ms', 'rosc_count', 'first_rosc_ms', 'first_shock_ms', 'first_epi_ms',
   'branch_at_first_epi', 'shock_count', 'shock_joules', 'epi_count', 'epi_mean_interval_ms',
   'epi_longest_interval_ms', 'epi_interval_flag', 'amiodarone_count', 'amiodarone_mg', 'lidocaine_count',
   'magnesium_count', 'cycles', 'paused_ms', 'airway_type', 'airway_first_ms', 'rhythms', 'causes', 'pocus',
   'post_rosc_done', 'post_rosc_total', 'sbar', 'payload_version', 'stats_version', 'last_upload_iso',
 ];
+
+/**
+ * Device columns an existing sheet's header row lacks (e.g. the phase 4a population / weight columns),
+ * in canonical order. `setupAdminSheet` appends them so Dashboard formulas can reference every column
+ * on a sheet created by an older script; existing columns and rows are never moved.
+ */
+function missingDeviceColumns(headers) {
+  return DEVICE_COLUMNS.filter(function (c) {
+    return headers.indexOf(c) < 0;
+  });
+}
 
 /** Written only by the admin; the script never touches them. */
 const ADMIN_COLUMNS = [
@@ -103,6 +115,10 @@ function flattenPayload(p, unitName, nowIso) {
     outcome: st.outcome,
     training: p.training,
     void: p.voided,
+    // Phase 4a: a payload with no population (older app) reads as adult.
+    population: st.population === 'pediatric' ? 'pediatric' : 'adult',
+    weight_kg: val(st.weightKg),
+    weight_source: val(st.weightSource),
     ended_epoch_ms: val(st.endedAt),
     arrest_ms: val(st.arrestMs),
     rosc_count: val(st.roscCount),
@@ -295,6 +311,12 @@ function setupAdminSheet() {
   // --- Codes ---
   const all = DEVICE_COLUMNS.concat(ADMIN_COLUMNS);
   if (codes.getLastColumn() === 0) codes.getRange(1, 1, 1, all.length).setValues([all]);
+  // Upgrade-safe: a sheet made by an older script lacks newer device columns (e.g. population).
+  // Append them so the Dashboard formulas below can reference every column — existing columns and
+  // rows are never moved or cleared.
+  const existingHeader = codes.getRange(1, 1, 1, codes.getLastColumn()).getValues()[0].map(String);
+  const missingCols = missingDeviceColumns(existingHeader);
+  if (missingCols.length) codes.getRange(1, existingHeader.length + 1, 1, missingCols.length).setValues([missingCols]);
   codes.setFrozenRows(1);
   if (codes.getMaxRows() < last) codes.insertRowsAfter(codes.getMaxRows(), last - codes.getMaxRows());
   const header = codes.getRange(1, 1, 1, codes.getLastColumn()).getValues()[0].map(String);
@@ -320,14 +342,20 @@ function setupAdminSheet() {
 
   // --- Dashboard (formulas; verify in Sheets after the first real upload) ---
   const R = function (name) {
+    if (!col(name)) throw new Error('Codes sheet has no "' + name + '" column — re-run setupAdminSheet');
     const c = letter_(col(name));
     return 'Codes!$' + c + '$2:$' + c + '$' + last;
   };
   const real =
     R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"';
-  const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + real;
+  // Population selector (C2/D2): all / adult / pediatric — like the month filter, it narrows every row.
+  dash.getRange('C2').setValue('Population:');
+  dash.getRange('D2').setDataValidation(list(['all', 'adult', 'pediatric']));
+  dash.getRange('D2').setValue('all');
+  const pop = 'IF($D$2="all",TRUE,IF(' + R('population') + '="",($D$2="adult"),' + R('population') + '=$D$2))';
+  const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + pop + ',' + real;
   const med = function (name) {
-    return '=IF($A5="","",IFERROR(MEDIAN(FILTER(' + R(name) + '/1000,' + grp + ',' + R(name) + '<>"")),"—"))';
+    return '=IF($A5="","",IFERROR(MEDIAN(FILTER(' + R(name) + ',' + grp + ',' + R(name) + '<>""))/1000,"—"))';
   };
   dash.getRange('A1').setValue('ResusCode — admin dashboard');
   dash.getRange('A2').setValue(
@@ -335,7 +363,7 @@ function setupAdminSheet() {
   );
   dash.getRange('A4:H4').setValues([['Unit', 'Month', 'Codes', 'Any ROSC', 'ROSC rate', 'Median first epi (s)', 'Median first shock (s)', 'Median arrest (s)']]);
   dash.getRange('A5').setFormula(
-    '=IFERROR(SORT(UNIQUE(FILTER({' + R('unit') + ',' + R('start_month') + '},' + R('unit') + '<>"",' + real + '))),"")',
+    '=IFERROR(SORT(UNIQUE(FILTER({' + R('unit') + ',' + R('start_month') + '},' + R('unit') + '<>"",' + pop + ',' + real + '))),"")',
   );
   const rows = 200;
   const f = [];

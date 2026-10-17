@@ -122,6 +122,12 @@ function setupAdminSheet() {
   // --- Codes ---
   const all = DEVICE_COLUMNS.concat(ADMIN_COLUMNS);
   if (codes.getLastColumn() === 0) codes.getRange(1, 1, 1, all.length).setValues([all]);
+  // Upgrade-safe: a sheet made by an older script lacks newer device columns (e.g. population).
+  // Append them so the Dashboard formulas below can reference every column — existing columns and
+  // rows are never moved or cleared.
+  const existingHeader = codes.getRange(1, 1, 1, codes.getLastColumn()).getValues()[0].map(String);
+  const missingCols = missingDeviceColumns(existingHeader);
+  if (missingCols.length) codes.getRange(1, existingHeader.length + 1, 1, missingCols.length).setValues([missingCols]);
   codes.setFrozenRows(1);
   if (codes.getMaxRows() < last) codes.insertRowsAfter(codes.getMaxRows(), last - codes.getMaxRows());
   const header = codes.getRange(1, 1, 1, codes.getLastColumn()).getValues()[0].map(String);
@@ -147,14 +153,20 @@ function setupAdminSheet() {
 
   // --- Dashboard (formulas; verify in Sheets after the first real upload) ---
   const R = function (name) {
+    if (!col(name)) throw new Error('Codes sheet has no "' + name + '" column — re-run setupAdminSheet');
     const c = letter_(col(name));
     return 'Codes!$' + c + '$2:$' + c + '$' + last;
   };
   const real =
     R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"';
-  const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + real;
+  // Population selector (C2/D2): all / adult / pediatric — like the month filter, it narrows every row.
+  dash.getRange('C2').setValue('Population:');
+  dash.getRange('D2').setDataValidation(list(['all', 'adult', 'pediatric']));
+  dash.getRange('D2').setValue('all');
+  const pop = 'IF($D$2="all",TRUE,IF(' + R('population') + '="",($D$2="adult"),' + R('population') + '=$D$2))';
+  const grp = R('unit') + '=$A5,' + R('start_month') + '=$B5,' + pop + ',' + real;
   const med = function (name) {
-    return '=IF($A5="","",IFERROR(MEDIAN(FILTER(' + R(name) + '/1000,' + grp + ',' + R(name) + '<>"")),"—"))';
+    return '=IF($A5="","",IFERROR(MEDIAN(FILTER(' + R(name) + ',' + grp + ',' + R(name) + '<>""))/1000,"—"))';
   };
   dash.getRange('A1').setValue('ResusCode — admin dashboard');
   dash.getRange('A2').setValue(
@@ -162,7 +174,7 @@ function setupAdminSheet() {
   );
   dash.getRange('A4:H4').setValues([['Unit', 'Month', 'Codes', 'Any ROSC', 'ROSC rate', 'Median first epi (s)', 'Median first shock (s)', 'Median arrest (s)']]);
   dash.getRange('A5').setFormula(
-    '=IFERROR(SORT(UNIQUE(FILTER({' + R('unit') + ',' + R('start_month') + '},' + R('unit') + '<>"",' + real + '))),"")',
+    '=IFERROR(SORT(UNIQUE(FILTER({' + R('unit') + ',' + R('start_month') + '},' + R('unit') + '<>"",' + pop + ',' + real + '))),"")',
   );
   const rows = 200;
   const f = [];

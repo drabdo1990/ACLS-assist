@@ -62,8 +62,19 @@ describe('aggregateRows', () => {
       computeAggregates([mkRecord(1), mkRecord(2, {}, { outcome: 'terminated', roscCount: 0 })]),
       'ar',
     );
-    expect(val(rows, 'النداءات المحصاة')).toBe('2');
+    expect(val(rows, 'النداءات المحتسبة')).toBe('2');
     expect(val(rows, 'أي ROSC')).toBe('1 من 2');
     expect(val(rows, 'وسيط أول إبينفرين')).toBe('\u206602:00\u2069 (n=2)');
+  });
+});
+
+describe('recordFlags (phase 4a)', () => {
+  it('tags pediatric records and keeps training/void flags', () => {
+    expect(recordFlags(mkRecord(1), 'en')).toEqual([]);
+    expect(recordFlags(mkRecord(2, {}, { population: 'pediatric' }), 'en')).toEqual(['Pediatric']);
+    expect(recordFlags(mkRecord(3, { training: true }, { population: 'pediatric' }), 'ar')).toEqual([
+      'أطفال',
+      'تدريب',
+    ]);
   });
 });

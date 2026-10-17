@@ -57,18 +57,117 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'ev.postRosc.on': 'رعاية ما بعد ROSC: {item}', // draft — clinician review required
   'ev.postRosc.off': 'رعاية ما بعد ROSC (أُلغي التحديد): {item}', // draft — clinician review required
 
+  // ---- Pediatric events ----
+  'ev.pedsStart.measured': 'نداء إنعاش أطفال — {kg} kg (مقاس)', // draft — clinician review required
+  'ev.pedsStart.estimated': 'نداء إنعاش أطفال — {kg} kg (تقديري، العمر {years} y)', // draft — clinician review required
+  'ev.pedsStart.estimatedMonths': 'نداء إنعاش أطفال — {kg} kg (تقديري، العمر {months} m)', // draft — clinician review required
+  'ev.pedsStart.noWeight': 'نداء إنعاش أطفال — الوزن غير محدد', // draft — clinician review required
+  'ev.weight.set.measured': 'تم تحديد الوزن — {kg} kg (مقاس)', // draft — clinician review required
+  'ev.weight.set.estimated': 'تم تحديد الوزن — {kg} kg (تقديري، العمر {years} y)', // draft — clinician review required
+  'ev.weight.set.estimatedMonths': 'تم تحديد الوزن — {kg} kg (تقديري، العمر {months} m)', // draft — clinician review required
+  'ev.weight.corrected.measured': 'تم تصحيح الوزن — {kg} kg (مقاس)', // draft — clinician review required
+  'ev.weight.corrected.estimated': 'تم تصحيح الوزن — {kg} kg (تقديري، العمر {years} y)', // draft — clinician review required
+  'ev.weight.corrected.estimatedMonths': 'تم تصحيح الوزن — {kg} kg (تقديري، العمر {months} m)', // draft — clinician review required
+  'ev.pedsEpi': 'Epinephrine {mg} mg IV/IO', // draft — clinician review required
+  'ev.pedsEpi.detail': 'الجرعة رقم {n} · 0.01 mg/kg ({kg} kg)', // draft — clinician review required
+  'ev.pedsEpi.noWeight': 'أُعطي Epinephrine — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
+  'ev.pedsEpi.noWeight.detail': 'الجرعة رقم {n} · حدد الوزن لحساب الجرعات', // draft — clinician review required
+  'ev.pedsAmio.noWeight': 'أُعطي Amiodarone — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
+  'ev.pedsLido': 'Lidocaine {mg} mg IV/IO', // draft — clinician review required
+  'ev.pedsLido.detail': 'الجرعة رقم {n} · 1 mg/kg ({kg} kg)', // draft — clinician review required
+  'ev.pedsLido.noWeight': 'أُعطي Lidocaine — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
+  'ev.pedsMag': 'Magnesium sulfate {minMg}–{maxMg} mg IV/IO', // draft — clinician review required
+  'ev.pedsMag.noWeight': 'أُعطي Magnesium — الجرعة غير محسوبة (لا يوجد وزن)', // draft — clinician review required
+
+  // ---- Pediatric idle toggle + weight card ----
+  'peds.toggle': 'الفئة', // draft — clinician review required
+  'peds.toggle.adult': 'بالغ', // draft — clinician review required
+  'peds.toggle.pediatric': 'أطفال', // draft — clinician review required
+  'peds.previewNotice': 'معاينة — ليس للاستخدام السريري حتى يعتمدها طبيب مختص', // draft — clinician review required
+  'peds.weight.title': 'الوزن', // draft — clinician review required
+  'peds.weight.notSet': 'الوزن غير محدد', // draft — clinician review required
+  'peds.weight.summary.measured': '{kg} kg (مقاس)', // draft — clinician review required
+  'peds.weight.summary.estimated': '≈ {kg} kg (تقديري، {years} y)', // draft — clinician review required
+  'peds.weight.summary.estimatedMonths': '≈ {kg} kg (تقديري، {months} m)', // draft — clinician review required
+  'peds.weight.estimateFromAge': 'التقدير حسب العمر', // draft — clinician review required
+  'peds.weight.measuredChips': 'الوزن المقاس (kg)', // draft — clinician review required
+  'peds.age.newborn': 'حديث الولادة', // draft — clinician review required
+  'peds.age.months': '{months} شهر', // draft — clinician review required
+  'peds.age.years': '{years} سنة', // draft — clinician review required
+  'peds.badge.measured': 'أطفال · {kg} kg', // draft — clinician review required
+  'peds.badge.estimated': 'أطفال · ≈{kg} kg (تقديري)', // draft — clinician review required
+  'peds.badge.noWeight': 'أطفال · حدد الوزن', // draft — clinician review required
+  'peds.setWeightBanner': 'حدد الوزن — حساب الجرعات يحتاج وزنًا', // draft — clinician review required
+  'peds.setWeight': 'حدد الوزن', // draft — clinician review required
+  'peds.grid.logNoWeight': 'سجّل — الجرعة غير محسوبة', // draft — clinician review required
+  'peds.grid.epi.logNoWeight': 'سجّل Epinephrine — الجرعة غير محسوبة', // draft — clinician review required
+  'peds.grid.shock.logNoWeight': 'سجّل الصدمة — أدخل الطاقة', // draft — clinician review required
+  'peds.grid.shock.manualNote': 'الوزن غير محدد — اختر الطاقة المضبوطة على جهاز الصدمات. لم تُحسب J/kg.', // draft — clinician review required
+  'peds.grid.mag.logNoWeight': 'سجّل Magnesium — الجرعة غير محسوبة', // draft — clinician review required
+  'peds.grid.epi.title': 'Epi {mg} mg = {mL} mL', // draft — clinician review required
+  'peds.grid.shock.title': 'صدمة', // draft — clinician review required
+  'peds.grid.shock.jkg': '{joules} J · {perKg} J/kg', // draft — clinician review required
+  'peds.grid.shock.chip2': '2 J/kg', // draft — clinician review required
+  'peds.grid.shock.chip4': '4 J/kg', // draft — clinician review required
+  'peds.grid.shock.escalate': 'تصعيد ≤ 10 J/kg', // draft — clinician review required
+  'peds.grid.energyNote': 'استخدم أقرب قيمة متاحة تساوي أو تقل عن المطلوب', // draft — clinician review required
+  'peds.grid.amio.title': 'Amiodarone {mg} mg · 5 mg/kg', // draft — clinician review required
+  'peds.grid.lido.title': 'Lidocaine {mg} mg · 1 mg/kg', // draft — clinician review required
+  'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg', // draft — clinician review required
+  'peds.max': '(حد أقصى)', // draft — clinician review required
+  'peds.grid.epi.flush': 'IV/IO + دفع بمحلول ملحي', // draft — clinician review required
+  'peds.roscBanner.sub': 'SpO₂ 94–99% · تجنب SBP دون المئين الخامس للعمر — فتح القائمة', // draft — clinician review required
+  'app.title.pediatric': 'قيادة إنعاش الأطفال (PALS)', // draft — clinician review required
+  'peds.vent.none': 'ضغطات صدرية بنسبة {ratio} — التوقف للتهوية فقط', // draft — clinician review required
+
   // ---- Event param values ----
-  'rhythm.VF': 'VF',
-  'rhythm.pVT': 'pVT',
-  'rhythm.PEA': 'PEA',
+  'rhythm.VF': 'رجفان بطيني (VF)', // draft — clinician review required
+  'rhythm.pVT': 'تسرع بطيني عديم النبض (pVT)', // draft — clinician review required
+  'rhythm.PEA': 'نشاط كهربائي عديم النبض (PEA)', // draft — clinician review required
   'rhythm.Asystole': 'توقف الانقباض (Asystole)', // draft — clinician review required
   'rhythm.Pulse': 'يوجد نبض', // draft — clinician review required
   'branch.shockable': 'قابل للصدمة (VF / pVT)', // draft — clinician review required
   'branch.nonshockable': 'غير قابل للصدمة (Asystole / PEA)', // draft — clinician review required
   'waveform.biphasic': 'ثنائية الطور', // draft — clinician review required
   'waveform.monophasic': 'أحادية الطور', // draft — clinician review required
+  'waveform.select': 'شكل الموجة', // draft — clinician review required
   'airway.ETT': 'ETT',
   'airway.SGA': 'مجرى هواء فوق المزمار (SGA)', // draft — clinician review required
+
+  // ---- CPR guidance cards (adult values; pediatric profile has its own keys) ----
+  'cpr.adult.ratio': '30:2',
+  'cpr.adult.depth': 'العمق 5–6 cm، ارتداد كامل للصدر', // draft — clinician review required
+  'cpr.adult.rate': 'المعدل 100–120/min', // draft — clinician review required
+  'cpr.adult.airway': 'ضغطات متواصلة + نَفَس واحد كل 6 s (10/min)', // draft — clinician review required
+
+  // ---- Pediatric CPR / ventilation (values from content/profiles/pediatric.ts — clinician review required) ----
+  'p.cpr.ratio': '15:2 (منقذان) / 30:2 (منقذ واحد)', // draft — clinician review required
+  'p.cpr.depth': 'حوالي ثلث عمق الصدر (≈4 cm للرضيع، ≈5 cm للطفل)', // draft — clinician review required
+  'p.cpr.rate': 'المعدل 100–120/min', // draft — clinician review required
+  'p.cpr.airway': 'ضغطات متواصلة + نفسة كل 2–3 s (20–30/min)', // draft — clinician review required
+
+  // ---- Pediatric algorithm ----
+  'p.algo.title.shockable': 'رجفان بطيني / تسرع بطيني عديم النبض عند الأطفال (VF / pVT)', // draft — clinician review required
+  'p.algo.title.nonshockable': 'توقف قلبي عند الأطفال — Asystole / PEA', // draft — clinician review required
+  'p.algo.ongoing.shockable': 'الصدمة عند كل فحص نظم كل دقيقتين طالما استمر VF/pVT · Epinephrine كل 3–5 min.', // draft — clinician review required
+  'p.algo.ongoing.nonshockable': 'CPR لمدة دقيقتين ← إعادة فحص النظم · Epinephrine كل 3–5 min.', // draft — clinician review required
+  'p.algo.step.shock1': 'صدمة — 2 J/kg', // draft — clinician review required
+  'p.algo.step.shock2': 'صدمة — 4 J/kg', // draft — clinician review required
+  'p.algo.step.shock3': 'صدمة — ≥ 4 J/kg', // draft — clinician review required
+  'p.algo.step.epi': 'CPR لمدة دقيقتين + Epinephrine 0.01 mg/kg · النظر في مجرى هواء متقدم', // draft — clinician review required
+  'p.algo.step.aa': 'CPR لمدة دقيقتين + Amiodarone 5 mg/kg أو Lidocaine 1 mg/kg · معالجة H’s و T’s', // draft — clinician review required
+  'p.algo.step.nonshockableEpi': 'CPR لمدة دقيقتين + Epinephrine 0.01 mg/kg بأسرع وقت', // draft — clinician review required
+  'p.algo.step.access': 'IV/IO + مجرى هواء متقدم + قياس ثاني أكسيد الكربون (capnography)', // draft — clinician review required
+
+  // ---- Pediatric post-ROSC bundle ----
+  'pPostRosc.spo2': 'SpO₂ 94–99% — تجنب فرط الأكسجة', // draft — clinician review required
+  'pPostRosc.co2': 'CO₂ طبيعي — تحقق بواسطة قياس CO₂ الزفيري (capnography) أو غازات الدم', // draft — clinician review required
+  'pPostRosc.bp': 'تجنب انخفاض ضغط الدم (SBP دون المئين الخامس للعمر) — سوائل أو موسعات وعائية حسب البروتوكول المحلي', // draft — clinician review required
+  'pPostRosc.temp': 'معالجة الحمى؛ التحكم بالحرارة حسب البروتوكول المحلي', // draft — clinician review required
+  'pPostRosc.glucose': 'فحص السكر وتصحيحه', // draft — clinician review required
+  'pPostRosc.ecg': 'تخطيط قلب 12-lead / إيكو حسب الحاجة', // draft — clinician review required
+  'pPostRosc.seizure': 'مراقبة التشنجات ومعالجتها', // draft — clinician review required
+  'pPostRosc.picu': 'النقل إلى العناية المركزة للأطفال (PICU)؛ إكمال السجل؛ مناقشة الفريق (debrief)', // draft — clinician review required
 
   // ---- Algorithm (prompts and steps) ----
   'algo.title.none': 'اختيار مسار النظم', // draft — clinician review required
@@ -82,12 +181,12 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'algo.ongoing.nonshockable':
     'إنعاش قلبي رئوي (CPR) لمدة دقيقتين ← إعادة فحص النظم · Epinephrine كل 3–5 min · إذا أصبح قابلاً للصدمة، بدّل المسار واصدم.', // draft — clinician review required
   'algo.step.shock1': 'صدمة رقم 1', // draft — clinician review required
-  'algo.step.cpr1': 'CPR دقيقتان · مدخل وريدي / عظمي IV/IO', // draft — clinician review required
+  'algo.step.cpr1': 'CPR لمدة دقيقتين · وصول وريدي/عظمي (IV/IO)', // draft — clinician review required
   'algo.step.shock2': 'صدمة رقم 2', // draft — clinician review required
-  'algo.step.shockableEpi': 'CPR دقيقتان + Epinephrine 1 mg · النظر في مجرى هواء متقدم', // draft — clinician review required
+  'algo.step.shockableEpi': 'CPR لمدة دقيقتين + Epinephrine 1 mg · النظر في مجرى هواء متقدم', // draft — clinician review required
   'algo.step.shock3': 'صدمة رقم 3', // draft — clinician review required
-  'algo.step.aa': 'CPR دقيقتان + Amiodarone 300 mg / Lidocaine · معالجة H’s و T’s', // draft — clinician review required
-  'algo.step.nonshockableEpi': 'CPR دقيقتان + Epinephrine 1 mg بأسرع ما يمكن', // draft — clinician review required
+  'algo.step.aa': 'CPR لمدة دقيقتين + Amiodarone 300 mg / Lidocaine · معالجة H’s و T’s', // draft — clinician review required
+  'algo.step.nonshockableEpi': 'CPR لمدة دقيقتين + Epinephrine 1 mg بأسرع ما يمكن', // draft — clinician review required
   'algo.step.access': 'مدخل IV/IO · النظر في مجرى هواء متقدم + قياس CO₂ الزفيري (capnography)', // draft — clinician review required
   'algo.step.causes': 'تحديد الأسباب القابلة للعكس (H’s و T’s)', // draft — clinician review required
 
@@ -105,7 +204,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'sbar.section.postRosc': '=== رعاية ما بعد ROSC ===', // draft — clinician review required
   'sbar.section.recommendations': '=== التوصيات ===', // draft — clinician review required
   'sbar.section.timeline': '=== التسلسل الزمني ===', // draft — clinician review required
-  'sbar.situation.adultArrest': 'توقف قلبي داخل المستشفى لشخص بالغ — إنعاش نداء الإنعاش (Code Blue) وفقاً لـ SHA ACLS 2024 (المتوافق مع AHA/ERC).', // draft — clinician review required
+  'sbar.situation.adultArrest': 'توقف قلبي داخل المستشفى لدى مريض بالغ — وفق بروتوكول ACLS (SHA 2024، المتوافق مع AHA/ERC).', // draft — clinician review required
   'sbar.situation.activated': 'تم تفعيل النداء في {time}. مدة التوقف: {duration}.', // draft — clinician review required
   'sbar.situation.durationRel': 'مدة التوقف: {duration}.', // draft — clinician review required
   'sbar.situation.roscAt': 'تحققت ROSC في [{clock}] ({time}).', // draft — clinician review required
@@ -116,17 +215,17 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'sbar.branch.shockable': 'قابل للصدمة (VF / pVT)', // draft — clinician review required
   'sbar.branch.nonshockable': 'غير قابل للصدمة (Asystole / PEA)', // draft — clinician review required
   'sbar.cycles': 'دورات الإنعاش (CPR) المكتملة: {n}', // draft — clinician review required
-  'sbar.airway.placed': 'مجرى هواء متقدم: تم وضع {type} (ضغطات مستمرة + نَفَس واحد/6 s)', // draft — clinician review required
+  'sbar.airway.placed': 'مجرى هواء متقدم: تم وضع {type} (ضغطات مستمرة + نَفَس واحد كل 6 s)', // draft — clinician review required
   'sbar.airway.ett': 'ETT', // draft — clinician review required
   'sbar.airway.sga': 'مجرى هواء فوق المزمار (SGA)', // draft — clinician review required
-  'sbar.airway.none': 'مجرى هواء متقدم: لم يوضع (30:2)', // draft — clinician review required
+  'sbar.airway.none': 'مجرى هواء متقدم: لم يُوضع (30:2)', // draft — clinician review required
   'sbar.shocks': 'الصدمات المقدمة: {n}', // draft — clinician review required
   'sbar.epi': 'Epinephrine: {count} {doses} (إجمالي {mg} mg)', // draft — clinician review required
   'sbar.epi.dose': 'جرعة', // draft — clinician review required
   'sbar.epi.doses': 'جرعات', // draft — clinician review required
   'sbar.amio': 'جرعات Amiodarone: {count}{details}', // draft — clinician review required
   'sbar.lido': 'جرعات Lidocaine: {count}{details}', // draft — clinician review required
-  'sbar.lido.weight': ' (وزن الجرعة {kg} kg)', // draft — clinician review required
+  'sbar.lido.weight': ' (الجرعة حسب الوزن {kg} kg)', // draft — clinician review required
   'sbar.mag': 'جرعات Magnesium sulfate: {count}', // draft — clinician review required
   'sbar.rhythms': 'النظم الموثقة: {rhythms}', // draft — clinician review required
   'sbar.noneRecorded': 'لم يُسجَّل شيء', // draft — clinician review required
@@ -135,16 +234,29 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'sbar.pocus': 'نتائج POCUS: {findings}', // draft — clinician review required
   'sbar.stats.training': 'تدريب / محاكاة — ليس مريضاً حقيقياً', // draft — clinician review required
   'sbar.stats.voided': 'ملغى — مُستبعَد من الإحصاءات', // draft — clinician review required
-  'sbar.stats.over5': ' ⚠ يتجاوز 05:00', // draft — clinician review required
+  'sbar.stats.over5': ' ⚠ يتجاوز 5 دقائق', // draft — clinician review required
   'sbar.postRosc.completed': 'المكتمل ({done}/{total}):', // draft — clinician review required
-  'sbar.postRosc.pending': 'لم يُسجَّل بعد:', // draft — clinician review required
+  'sbar.postRosc.pending': 'لم تُسجَّل بعد:', // draft — clinician review required
   'sbar.postRosc.noneRecorded': '  (لم يُسجَّل شيء)', // draft — clinician review required
   'sbar.postRosc.none': '  (لا يوجد)', // draft — clinician review required
   'sbar.rec.rosc1': '- حزمة ما بعد ROSC: تأمين مجرى الهواء (ETT)، SpO₂ 92–98%، تجنب فرط التهوية.', // draft — clinician review required
   'sbar.rec.rosc2': '- انخفاض الضغط: سوائل IV حتى 2 L، ثم dopamine 5–10 mcg/kg/min (أو norepinephrine/epinephrine)؛ الهدف MAP ≥ 65 mmHg.', // draft — clinician review required
-  'sbar.rec.rosc3': '- تخطيط قلب 12 اتجاهاً — مختبر القسطرة لـ STEMI؛ في حال عدم الاستجابة، ضبط الحرارة 32–37.5 °C لمدة 12–24 h.', // draft — clinician review required
+  'sbar.rec.rosc3': '- تخطيط قلب 12-lead — مختبر القسطرة عند STEMI؛ في حال عدم الاستجابة، ضبط الحرارة 32–37.5 °C لمدة 12–24 h.', // draft — clinician review required
   'sbar.rec.rosc4': '- تصحيح الغلوكوز > 10 mmol/L، الشوارد والحماض؛ النقل إلى ICU/CCU؛ جلسة استخلاص الفريق (debrief).', // draft — clinician review required
   'sbar.rec.terminated': '- توثيق وقت إنهاء الإنعاش / التسليم؛ التواصل مع العائلة؛ جلسة استخلاص الفريق (debrief).', // draft — clinician review required
+  'sbar.peds.situation': 'توقف قلبي داخل المستشفى لدى طفل — وفق بروتوكول PALS (SHA).', // draft — clinician review required
+  'sbar.peds.weight.measured': 'الوزن {kg} kg (مقاس).', // draft — clinician review required
+  'sbar.peds.weight.estimated': 'الوزن ≈{kg} kg (تقديري من العمر {years} y).', // draft — clinician review required
+  'sbar.peds.weight.estimatedMonths': 'الوزن ≈{kg} kg (تقديري من العمر {months} m).', // draft — clinician review required
+  'sbar.peds.weight.none': 'الوزن غير محدد — الجرعات غير محسوبة.', // draft — clinician review required
+  'sbar.peds.epi': 'Epinephrine: {count} × 0.01 mg/kg {details}', // draft — clinician review required
+  'sbar.peds.amio': 'Amiodarone: {count} × 5 mg/kg {details}', // draft — clinician review required
+  'sbar.peds.lido': 'Lidocaine: {count} × 1 mg/kg {details}', // draft — clinician review required
+  'sbar.peds.dosesNotCalculated': 'جرعات غير محسوبة', // draft — clinician review required
+  'sbar.peds.rec.rosc1': '- SpO₂ 94–99% — تجنب فرط الأكسجة؛ CO₂ طبيعي.', // draft — clinician review required
+  'sbar.peds.rec.rosc2': '- تجنب انخفاض الضغط (SBP دون المئين الخامس للعمر) — سوائل أو موسعات وعائية حسب البروتوكول المحلي.', // draft — clinician review required
+  'sbar.peds.rec.rosc3': '- تخطيط قلب 12-lead / إيكو عند الحاجة؛ معالجة الحمى وضبط الحرارة حسب البروتوكول المحلي.', // draft — clinician review required
+  'sbar.peds.rec.rosc4': '- فحص السكر وتصحيحه؛ مراقبة التشنجات؛ النقل إلى PICU؛ مناقشة الفريق (debrief).', // draft — clinician review required
   'sbar.rec.none': '- لم يتم تسجيل إنعاش.', // draft — clinician review required
   'sbar.timeline.empty': '(لا توجد أحداث)', // draft — clinician review required
 
@@ -161,6 +273,13 @@ export const AR: Readonly<Record<MessageKey, string>> = {
 
   // ---- Statistics Panel & Formatter ----
   'stats.outcome': 'النتيجة', // draft — clinician review required
+  'stats.population': 'الفئة', // draft — clinician review required
+  'stats.pop.pediatric': 'أطفال (PALS — SHA)', // draft — clinician review required
+  'stats.weight': 'الوزن', // draft — clinician review required
+  'stats.weight.measured': '{kg} kg (مقاس)', // draft — clinician review required
+  'stats.weight.estimated': '≈ {kg} kg (تقديري من العمر {years} y)', // draft — clinician review required
+  'stats.weight.estimatedMonths': '≈ {kg} kg (تقديري من العمر {months} m)', // draft — clinician review required
+  'stats.notCalculated': ' ({count} غير محسوبة)', // draft — clinician review required
   'stats.episodes': ' ({count} نوبة ROSC)', // draft — clinician review required
   'stats.arrestTime': 'مدة التوقف (باستثناء فترات ROSC)', // draft — clinician review required
   'stats.firstRosc': 'أول ROSC', // draft — clinician review required
@@ -196,7 +315,10 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'history.status.rejected': 'مرفوض من الجدول', // draft — clinician review required
   'history.flag.training': 'تدريب', // draft — clinician review required
   'history.flag.void': 'ملغى', // draft — clinician review required
-  'history.agg.codesCounted': 'النداءات المحصاة', // draft — clinician review required
+  'history.flag.pediatric': 'أطفال', // draft — clinician review required
+  'history.agg.adult': 'نداءات البالغين ({n})', // draft — clinician review required
+  'history.agg.pediatric': 'نداءات الأطفال ({n})', // draft — clinician review required
+  'history.agg.codesCounted': 'النداءات المحتسبة', // draft — clinician review required
   'history.agg.incomplete': '{count} غير مكتمل', // draft — clinician review required
   'history.agg.excluded': '{count} تدريب/ملغى', // draft — clinician review required
   'history.agg.anyRosc': 'أي ROSC', // draft — clinician review required
@@ -220,6 +342,12 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'app.title': 'قيادة إنعاش البالغين (ACLS)', // draft — clinician review required
   'app.offline': 'دون اتصال', // draft — clinician review required
   'app.settings': 'الإعدادات', // draft — clinician review required
+  'app.wake.titleActive': 'الشاشة لن تنطفئ', // draft — clinician review required
+  'app.wake.titleIdle': 'منع انطفاء الشاشة غير مفعّل', // draft — clinician review required
+  'app.wake.titleUnsupported': 'منع انطفاء الشاشة غير مدعوم في هذا المتصفح', // draft — clinician review required
+  'app.wake.active': 'مستيقظة', // draft — clinician review required
+  'app.wake.idle': 'خامل', // draft — clinician review required
+  'app.wake.unsupported': 'غير متاح', // draft — clinician review required
   'app.restored.title': 'تمت استعادة الجلسة من الزيارة السابقة', // draft — clinician review required
   'app.restored.fresh': 'بدء من جديد', // draft — clinician review required
   'app.restored.dismiss': 'إغلاق', // draft — clinician review required
@@ -274,20 +402,20 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   // ---- Intervention Grid ----
   'hud.grid.title': 'تدخلات ACLS', // draft — clinician review required
   'hud.grid.vent.ett': 'ضغطات صدرية مستمرة + نَفَس واحد كل 6 ثوانٍ (10 أنفاس/دقيقة)', // draft — clinician review required
-  'hud.grid.vent.none': 'ضغطات 30 : 2 تهوية — إيقاف مؤقت للأنفاس فقط', // draft — clinician review required
-  'hud.grid.epi.next': 'Epi مؤهل بعد {lockout}', // draft — clinician review required
-  'hud.grid.epi.eligible': 'مؤهل الآن — اضغط للتسجيل', // draft — clinician review required
+  'hud.grid.vent.none': 'ضغطات : تهوية بنسبة 30:2 — التوقف للتهوية فقط', // draft — clinician review required
+  'hud.grid.epi.next': 'الجرعة التالية من Epi بعد {lockout}', // draft — clinician review required
+  'hud.grid.epi.eligible': 'حان موعد الجرعة — اضغط للتسجيل', // draft — clinician review required
   'hud.grid.epi.flush': 'IV/IO + دفع 20 mL NS', // draft — clinician review required
   'hud.grid.shock.title': 'صدمة', // draft — clinician review required
   'hud.grid.shock.titleCount': 'صدمة · ×{n}', // draft — clinician review required
   'hud.grid.shock.last': 'آخر صدمة: #{n} {joules}J', // draft — clinician review required
   'hud.grid.shock.select': 'اختيار الطاقة', // draft — clinician review required
-  'hud.grid.shock.deliver': 'توجيه الصدمة رقم {n} · {joules}J', // draft — clinician review required
+  'hud.grid.shock.deliver': 'إعطاء الصدمة رقم {n} · {joules}J', // draft — clinician review required
   'hud.grid.shock.waveformSub': '{waveform} — تسجيل وطابع زمني', // draft — clinician review required
-  'hud.grid.amio.sub1': 'جرعة 1 ← التالية 150 mg', // draft — clinician review required
-  'hud.grid.amio.sub2': 'جرعة 2 (الجرعة السريعة الأخيرة)', // draft — clinician review required
-  'hud.grid.amio.subMax': 'أُعطيت جرعتان كحد أقصى', // draft — clinician review required
-  'hud.grid.lido.exceeds': '⚠ يتجاوز الحد الأقصى 3 mg/kg (أُعطي {given}/{max} mg)', // draft — clinician review required
+  'hud.grid.amio.sub1': 'الجرعة الأولى ← التالية 150 mg', // draft — clinician review required
+  'hud.grid.amio.sub2': 'الجرعة الثانية (بولوس أخير)', // draft — clinician review required
+  'hud.grid.amio.subMax': 'أُعطي بولوسان كحد أقصى', // draft — clinician review required
+  'hud.grid.lido.exceeds': '⚠ يتجاوز الحد الأقصى 3 mg/kg (المُعطى {given} من {max} mg)', // draft — clinician review required
   'hud.grid.lido.sub': 'جرعة {n} · {perKg}{interval} لوزن {kg} kg', // draft — clinician review required
   'hud.grid.airwayPlaced': 'تم وضع مجرى هواء {type}', // draft — clinician review required
   'hud.grid.ett': 'تم وضع ETT', // draft — clinician review required
@@ -296,9 +424,10 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'hud.grid.sgaSub': 'فوق المزمار', // draft — clinician review required
   'hud.grid.airwayActiveSub': 'ضغطات مستمرة مفعلة · اضغط للإلغاء', // draft — clinician review required
   'hud.grid.energyTitle': 'طاقة إزالة الرجفان', // draft — clinician review required
+  'hud.grid.shock.waveformLabel': 'شكل الموجة', // draft — clinician review required
   'hud.grid.epiInterval': 'فاصل تكرار جرعة Epi', // draft — clinician review required
   'hud.grid.mgIndication': 'Torsades', // draft — clinician review required
-  'hud.grid.logNoPulse': 'تسجيل عدم وجود نبض', // draft — clinician review required
+  'hud.grid.logNoPulse': 'تسجيل غياب النبض', // draft — clinician review required
   'hud.grid.undo': 'تراجع عن آخر إدخال', // draft — clinician review required
 
   // ---- Metronome ----
@@ -335,13 +464,14 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'ui.weight.title': 'وزن تحديد الجرعة', // draft — clinician review required
   'ui.weight.dec': 'إنقاص الوزن', // draft — clinician review required
   'ui.weight.inc': 'زيادة الوزن', // draft — clinician review required
+  'ui.weight.set': 'تعيين هذا الوزن', // draft — clinician review required
 
   // ---- Causes & POCUS ----
-  'causes.title': 'الأسباب القابلة للعكس — 5 H’s و 5 T’s', // draft — clinician review required
-  'causes.group.H': '5 H’s — أسباب قابلة للعكس', // draft — clinician review required
+  'causes.title': 'الأسباب القابلة للعكس — 6 H’s و 5 T’s', // draft — clinician review required
+  'causes.group.H': '6 H’s — أسباب قابلة للعكس', // draft — clinician review required
   'causes.group.T': '5 T’s — أسباب قابلة للعكس', // draft — clinician review required
   'pocus.title': 'الموجات فوق الصوتية في نقطة الرعاية (POCUS)', // draft — clinician review required
-  'pocus.warning': 'الفحص أثناء فحص النظم فقط — لا تمدد التوقف أكثر من 10 ثوانٍ أبداً.', // draft — clinician review required
+  'pocus.warning': 'الفحص أثناء فحص النظم فقط — لا تُطِل التوقف أكثر من 10 ثوانٍ أبداً.', // draft — clinician review required
   'postRosc.title': 'حزمة رعاية ما بعد ROSC', // draft — clinician review required
 
   // ---- Code Stats Panel & Flags ----
@@ -476,19 +606,19 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'cause.thrombosis_coronary.label': 'الخثار (تاجي)', // draft — clinician review required
   'cause.thrombosis_coronary.clue': 'مرض شرياني تاجي / احتشاء سابق، PCI أو CABG، ألم صدري قبل التوقف، VF معنّد.', // draft — clinician review required
   'cause.thrombosis_coronary.action':
-    'تخطيط 12 اتجاهاً بعد ROSC؛ PCI إسعافي / مختبر القسطرة (أو حلّ الخثرة)؛ النظر في eCPR.', // draft — clinician review required
+    'تخطيط قلب 12-lead بعد ROSC؛ PCI إسعافي / مختبر القسطرة (أو حلّ الخثرة)؛ النظر في eCPR.', // draft — clinician review required
 
   // ---- POCUS ----
-  'pocus.effusion.view': 'تحت الرهابة / جانب القص', // draft — clinician review required
+  'pocus.effusion.view': 'المسار تحت الخنجري / أسفل الضلوع', // draft — clinician review required
   'pocus.effusion.label': 'انصباب تاموري', // draft — clinician review required
   'pocus.effusion.meaning': 'مع انخماص البطين الأيمن ← دكاك: بزل التامور.', // draft — clinician review required
-  'pocus.rv_strain.view': 'تحت الرهابة / جانب القص', // draft — clinician review required
+  'pocus.rv_strain.view': 'المسار تحت الخنجري / أسفل الضلوع', // draft — clinician review required
   'pocus.rv_strain.label': 'توسع / إجهاد البطين الأيمن', // draft — clinician review required
   'pocus.rv_strain.meaning': 'RV ≥ LV ← النظر في انصمام رئوي كبير: حلّ الخثرة.', // draft — clinician review required
-  'pocus.contractility.view': 'تحت الرهابة / جانب القص', // draft — clinician review required
+  'pocus.contractility.view': 'المسار تحت الخنجري / أسفل الضلوع', // draft — clinician review required
   'pocus.contractility.label': 'انقباض منسق (PEA كاذب)', // draft — clinician review required
   'pocus.contractility.meaning': 'نشاط منظم دون نبض ← تعزيز رافعات الضغط، والبحث عن السبب.', // draft — clinician review required
-  'pocus.standstill.view': 'تحت الرهابة / جانب القص', // draft — clinician review required
+  'pocus.standstill.view': 'المسار تحت الخنجري / أسفل الضلوع', // draft — clinician review required
   'pocus.standstill.label': 'توقف قلبي حقيقي (سكون)', // draft — clinician review required
   'pocus.standstill.meaning': 'لا حركة ← إنذار سيئ؛ يُستأنس به ولا يقرر وحده إنهاء الإنعاش.', // draft — clinician review required
   'pocus.lung_sliding.view': 'الصدر الأمامي (الجهتان)', // draft — clinician review required
@@ -500,7 +630,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
     'تحسين التهوية والأكسجة — ETT إن لم يوضع بعد؛ SpO₂ 92–98%؛ تجنب فرط التهوية', // draft — clinician review required
   'postRosc.bp':
     'انخفاض الضغط (SBP < 90): سوائل IV حتى 2 L، ثم Dopamine 5–10 mcg/kg/min (أو تسريب norepinephrine / epinephrine)؛ الهدف MAP ≥ 65', // draft — clinician review required
-  'postRosc.ecg': 'تخطيط قلب 12 اتجاهاً — STEMI ← مختبر القسطرة؛ يحدد ICU أو CCU', // draft — clinician review required
+  'postRosc.ecg': 'تخطيط قلب 12-lead — STEMI ← مختبر القسطرة؛ يحدد ICU أو CCU', // draft — clinician review required
   'postRosc.neuro':
     'عدم الاستجابة: ضبط الحرارة 32–37.5 °C لمدة 12–24 h؛ السيطرة على الاختلاج؛ المحافظة على تروية الدماغ', // draft — clinician review required
   'postRosc.glucose': 'تصحيح الغلوكوز > 10 mmol/L ومنع نقص السكر', // draft — clinician review required

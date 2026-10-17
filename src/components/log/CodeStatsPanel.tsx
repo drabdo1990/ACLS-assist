@@ -15,6 +15,10 @@ export function CodeStatsPanel() {
   const now = useNow();
   const session = useCodeStore(
     useShallow((s) => ({
+      population: s.population,
+      weightKg: s.weightKg,
+      weightSource: s.weightSource,
+      ageMonths: s.ageMonths,
       status: s.status,
       startedAt: s.startedAt,
       endedAt: s.endedAt,

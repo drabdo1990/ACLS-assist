@@ -28,6 +28,7 @@ export const ADMIN_COLUMNS: string[];
 export const ISSUE_CATEGORIES: string[];
 export const ACTION_STATUSES: string[];
 
+export function missingDeviceColumns(headers: string[]): string[];
 export function neutralise<T>(v: T): T | string;
 export function validatePayload(p: unknown): 'version' | 'schema' | null;
 export function findActiveUnit(units: UnitRow[], key: string): { name: string } | null;

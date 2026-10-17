@@ -6,6 +6,7 @@ import {
   DEVICE_COLUMNS,
   MAX_CELL_CHARS,
   handleUpload,
+  missingDeviceColumns,
   neutralise,
   type SheetAdapter,
   type UnitRow,
@@ -183,5 +184,53 @@ describe('safety', () => {
     const s = memorySheet();
     expect(send(s, buildTestPayload(DEVICE, KEY, T0, 0))).toEqual({ ok: true });
     expect(s.rows[0]).toMatchObject({ record_id: `TEST-${DEVICE}`, training: true, unit: 'ICU' });
+  });
+});
+
+describe('missingDeviceColumns — setup on an existing (pre-4a) sheet', () => {
+  it('lists the device columns an older sheet lacks, in canonical order', () => {
+    const old = DEVICE_COLUMNS.filter((c) => !['population', 'weight_kg', 'weight_source'].includes(c));
+    expect(missingDeviceColumns([...old, ...ADMIN_COLUMNS])).toEqual(['population', 'weight_kg', 'weight_source']);
+  });
+
+  it('is empty for a current sheet and for a fresh header row', () => {
+    expect(missingDeviceColumns([...DEVICE_COLUMNS, ...ADMIN_COLUMNS])).toEqual([]);
+    expect(missingDeviceColumns([...DEVICE_COLUMNS])).toEqual([]);
+  });
+
+  it('wants every device column when the sheet has no header yet', () => {
+    expect(missingDeviceColumns([])).toEqual(DEVICE_COLUMNS);
+  });
+
+  it('never proposes an admin column (the script must not write those)', () => {
+    expect(missingDeviceColumns(['record_id'])).not.toContain('reviewed');
+  });
+});
+
+describe('population / weight columns (phase 4a)', () => {
+  it('a payload with population and weight fields writes them', () => {
+    const s = memorySheet();
+    const rec = mkRecord(1, {}, { population: 'pediatric', weightKg: 18, weightSource: 'estimated' });
+    expect(send(s, buildPayload(rec, { enrollmentKey: KEY, offsetMin: 0 }))).toEqual({ ok: true });
+    expect(s.rows[0]).toMatchObject({ population: 'pediatric', weight_kg: 18, weight_source: 'estimated' });
+  });
+
+  it('a payload without the new fields (older app) reads as adult with empty weight', () => {
+    const s = memorySheet();
+    expect(send(s, P())).toEqual({ ok: true });
+    expect(s.rows[0]).toMatchObject({ population: 'adult', weight_kg: null, weight_source: null });
+  });
+
+  it('the new columns are appended to an old sheet by header name; admin columns untouched', () => {
+    const oldHeaders = DEVICE_COLUMNS.filter((c) => !['population', 'weight_kg', 'weight_source'].includes(c));
+    const s = memorySheet([...oldHeaders, 'debrief_note'], [{ record_id: `${T0}-${DEVICE}`, debrief_note: 'keep me' }]);
+    expect(send(s, P())).toEqual({ ok: true });
+    expect(s.headers).toContain('population');
+    expect(s.headers).toContain('weight_kg');
+    expect(s.headers).toContain('weight_source');
+    // the pre-existing row is untouched (it reads as adult at filter time); the new row lands below it
+    expect(s.rows[0].population).toBeUndefined();
+    expect(s.rows[0].debrief_note).toBe('keep me');
+    expect(s.rows[1].population).toBe('adult');
   });
 });

@@ -20,6 +20,8 @@ import { CAUSES } from '../content/causes';
 import { POCUS_ITEMS } from '../content/pocus';
 import { waveformFor } from '../content/calc';
 import { POST_ROSC_BUNDLE } from '../content/protocols';
+import { PEDIATRIC_POST_ROSC_BUNDLE } from '../content/profiles/pediatric';
+import type { Population, WeightSource } from '../content/profiles';
 import { isChecklistItemOn } from './checklist';
 import { MAGNESIUM_PREFIX, POST_ROSC_PREFIX, RHYTHM_CHECK_PREFIX } from './eventQueries';
 import type { CodeStats } from './stats';
@@ -45,7 +47,11 @@ export interface SbarInput {
   airwayType: AirwayType | null;
   causes: Partial<Record<CauseId, boolean>>;
   pocus: Partial<Record<PocusId, boolean>>;
-  weightKg: number;
+  weightKg: number | null;
+  /** Phase 4a: pediatric codes get the PALS situation line, mg/kg dose list and pediatric post-ROSC bundle. */
+  population?: Population;
+  weightSource?: WeightSource;
+  ageMonths?: number | null;
   /** Per-code statistics; the section is omitted when absent. */
   stats?: CodeStats | null;
   training?: boolean;
@@ -89,6 +95,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now(), opts: Sbar
     .map((e) => e.label.replace(RHYTHM_CHECK_PREFIX, ''));
 
   const out: string[] = [];
+  const peds = input.population === 'pediatric';
 
   out.push(translate(lang, 'sbar.title'));
   if (!rel) out.push(translate(lang, 'sbar.generated', { date: formatDateTime(now, lang) }));
@@ -105,7 +112,22 @@ export function buildSbar(input: SbarInput, now: number = Date.now(), opts: Sbar
 
   out.push(translate(lang, 'sbar.section.situation'));
   if (arrest) {
-    out.push(translate(lang, 'sbar.situation.adultArrest'));
+    out.push(translate(lang, peds ? 'sbar.peds.situation' : 'sbar.situation.adultArrest'));
+    if (peds) {
+      // The weight line is part of the pediatric Situation (spec 4a §8).
+      out.push(
+        input.weightKg == null
+          ? translate(lang, 'sbar.peds.weight.none')
+          : input.weightSource === 'estimated'
+            ? input.ageMonths != null && input.ageMonths < 12
+              ? translate(lang, 'sbar.peds.weight.estimatedMonths', { kg: input.weightKg, months: input.ageMonths })
+              : translate(lang, 'sbar.peds.weight.estimated', {
+                  kg: input.weightKg,
+                  years: input.ageMonths != null ? input.ageMonths / 12 : 0,
+                })
+            : translate(lang, 'sbar.peds.weight.measured', { kg: input.weightKg }),
+      );
+    }
     const dur = isAr ? ltr(formatClock(total)) : formatDuration(total);
     if (rel) {
       out.push(translate(lang, 'sbar.situation.durationRel', { duration: dur }));
@@ -141,20 +163,32 @@ export function buildSbar(input: SbarInput, now: number = Date.now(), opts: Sbar
     out.push(translate(lang, 'sbar.airway.none'));
   }
   out.push(translate(lang, 'sbar.shocks', { n: input.shocks.length }));
-  const dosesWord = isAr
-    ? translate(lang, 'sbar.epi.dose')
-    : input.epi.length === 1
+  if (peds) {
+    // Pediatric background: doses in mg with the mg/kg rule (spec 4a §8).
+    const pedsMgList = (ds: DoseEvent[]): string => {
+      const mgs = ds.filter((d) => d.mg != null).map((d) => `${d.mg} mg`);
+      if (mgs.length) return `(${mgs.join(isAr ? '، ' : ', ')})`;
+      return ds.length ? `(${translate(lang, 'sbar.peds.dosesNotCalculated')})` : '—';
+    };
+    out.push(translate(lang, 'sbar.peds.epi', { count: input.epi.length, details: pedsMgList(input.epi) }));
+    out.push(translate(lang, 'sbar.peds.amio', { count: input.amio.length, details: pedsMgList(input.amio) }));
+    out.push(translate(lang, 'sbar.peds.lido', { count: input.lido.length, details: pedsMgList(input.lido) }));
+  } else {
+    const dosesWord = isAr
       ? translate(lang, 'sbar.epi.dose')
-      : translate(lang, 'sbar.epi.doses');
-  out.push(translate(lang, 'sbar.epi', { count: input.epi.length, doses: dosesWord, mg: epiMg }));
-  const amioDetails = input.amio.length
-    ? ` (${input.amio.map((d) => `${d.mg} mg`).join(isAr ? '، ' : ', ')})`
-    : '';
-  out.push(translate(lang, 'sbar.amio', { count: input.amio.length, details: amioDetails }));
-  const lidoDetails = input.lido.length
-    ? translate(lang, 'sbar.lido.weight', { kg: input.weightKg })
-    : '';
-  out.push(translate(lang, 'sbar.lido', { count: input.lido.length, details: lidoDetails }));
+      : input.epi.length === 1
+        ? translate(lang, 'sbar.epi.dose')
+        : translate(lang, 'sbar.epi.doses');
+    out.push(translate(lang, 'sbar.epi', { count: input.epi.length, doses: dosesWord, mg: epiMg }));
+    const amioDetails = input.amio.length
+      ? ` (${input.amio.map((d) => `${d.mg} mg`).join(isAr ? '، ' : ', ')})`
+      : '';
+    out.push(translate(lang, 'sbar.amio', { count: input.amio.length, details: amioDetails }));
+    const lidoDetails = input.lido.length
+      ? translate(lang, 'sbar.lido.weight', { kg: input.weightKg ?? 70 })
+      : '';
+    out.push(translate(lang, 'sbar.lido', { count: input.lido.length, details: lidoDetails }));
+  }
   const mg = input.events.filter((e) => e.category === 'drug' && e.label.startsWith(MAGNESIUM_PREFIX)).length;
   if (mg) out.push(translate(lang, 'sbar.mag', { count: mg }));
   out.push('');
@@ -202,24 +236,33 @@ export function buildSbar(input: SbarInput, now: number = Date.now(), opts: Sbar
 
   // Only meaningful once ROSC has occurred; otherwise every item would read as "pending".
   if (rosc) {
-    const done = POST_ROSC_BUNDLE.filter((i) => isChecklistItemOn(input.events, POST_ROSC_PREFIX, i.text));
-    const pending = POST_ROSC_BUNDLE.filter((i) => !done.includes(i));
+    const bundle = peds ? PEDIATRIC_POST_ROSC_BUNDLE : POST_ROSC_BUNDLE;
+    const itemKey = (id: string): MessageKey => (peds ? `pPostRosc.${id}` : `postRosc.${id}`) as MessageKey;
+    const done = bundle.filter((i) => isChecklistItemOn(input.events, POST_ROSC_PREFIX, i.text));
+    const pending = bundle.filter((i) => !done.includes(i));
     out.push(translate(lang, 'sbar.section.postRosc'));
-    out.push(translate(lang, 'sbar.postRosc.completed', { done: done.length, total: POST_ROSC_BUNDLE.length }));
-    for (const i of done) out.push(`  [x] ${translate(lang, `postRosc.${i.id}` as MessageKey)}`);
+    out.push(translate(lang, 'sbar.postRosc.completed', { done: done.length, total: bundle.length }));
+    for (const i of done) out.push(`  [x] ${translate(lang, itemKey(i.id))}`);
     if (!done.length) out.push(translate(lang, 'sbar.postRosc.noneRecorded'));
     out.push(translate(lang, 'sbar.postRosc.pending'));
-    for (const i of pending) out.push(`  [ ] ${translate(lang, `postRosc.${i.id}` as MessageKey)}`);
+    for (const i of pending) out.push(`  [ ] ${translate(lang, itemKey(i.id))}`);
     if (!pending.length) out.push(translate(lang, 'sbar.postRosc.none'));
     out.push('');
   }
 
   out.push(translate(lang, 'sbar.section.recommendations'));
   if (input.status === 'rosc') {
-    out.push(translate(lang, 'sbar.rec.rosc1'));
-    out.push(translate(lang, 'sbar.rec.rosc2'));
-    out.push(translate(lang, 'sbar.rec.rosc3'));
-    out.push(translate(lang, 'sbar.rec.rosc4'));
+    if (peds) {
+      out.push(translate(lang, 'sbar.peds.rec.rosc1'));
+      out.push(translate(lang, 'sbar.peds.rec.rosc2'));
+      out.push(translate(lang, 'sbar.peds.rec.rosc3'));
+      out.push(translate(lang, 'sbar.peds.rec.rosc4'));
+    } else {
+      out.push(translate(lang, 'sbar.rec.rosc1'));
+      out.push(translate(lang, 'sbar.rec.rosc2'));
+      out.push(translate(lang, 'sbar.rec.rosc3'));
+      out.push(translate(lang, 'sbar.rec.rosc4'));
+    }
   } else if (arrest) {
     out.push(translate(lang, 'sbar.rec.terminated'));
   } else {

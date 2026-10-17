@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+﻿import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   CORRUPT_STORAGE_KEY,
   deriveClockFromEvents,
@@ -46,7 +46,7 @@ describe('migrateV1', () => {
   const m = migrateV1(v1)!;
 
   it('produces a v2 session that preserves the running code', () => {
-    expect(m.version).toBe(3);
+    expect(m.version).toBe(4); // v1 chains through v2/v3 to v4
     expect(m.status).toBe('active');
     expect(m.startedAt).toBe(T0);
     expect(m.cycleIndex).toBe(3);
@@ -83,7 +83,7 @@ describe('migrateV1', () => {
 describe('emptySession', () => {
   it('starts idle with ACLS defaults', () => {
     const e = emptySession();
-    expect(e.version).toBe(3);
+    expect(e.version).toBe(4);
     expect(e.status).toBe('idle');
     expect(e.metronome.bpm).toBe(110);
     expect(e.settings.epiLockoutMs).toBe(180_000);
@@ -110,7 +110,7 @@ describe('sanitizeSession', () => {
   it('rejects wrong version, non-objects and bad status', () => {
     expect(sanitizeSession(null)).toBeNull();
     expect(sanitizeSession([])).toBeNull();
-    expect(sanitizeSession({ ...good(), version: 4 })).toBeNull();
+    expect(sanitizeSession({ ...good(), version: 5 })).toBeNull();
     expect(sanitizeSession({ ...good(), status: 'exploding' })).toBeNull();
   });
 
@@ -219,7 +219,7 @@ describe('isStaleSession', () => {
   });
 });
 
-describe('v2 → v3 migration', () => {
+describe('v2 â†’ v3 migration', () => {
   const ev = (at: number, category: string, label: string) => ({ id: `${at}`, at: T0 + at, t: at, category, label });
 
   it('derives ROSC intervals and endedAt from the log', () => {
@@ -255,7 +255,7 @@ describe('v2 → v3 migration', () => {
     delete v2.endedAt;
     delete v2.roscAccumMs;
     const s = sanitizeSession(v2)!;
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(4);
     expect(s.roscAccumMs).toBe(60_000);
     expect(s.pausedAccumMs).toBe(20_000);
     expect(s.endedAt).toBeNull();
@@ -276,7 +276,7 @@ describe('v2 → v3 migration', () => {
   });
 });
 
-describe('migration — code terminated straight from ROSC (review fix)', () => {
+describe('migration â€” code terminated straight from ROSC (review fix)', () => {
   const ev = (at: number, category: string, label: string) => ({ id: `${at}`, at: T0 + at, t: at, category, label });
 
   it('freezes at the open ROSC, not at Code ended', () => {
@@ -284,7 +284,7 @@ describe('migration — code terminated straight from ROSC (review fix)', () => 
     expect(deriveClockFromEvents(events as never, 'terminated', T0 + 100_000)).toEqual({ roscAccumMs: 0, endedAt: T0 + 100_000 });
   });
 
-  it('handles ROSC → Re-arrest → ROSC → Code ended', () => {
+  it('handles ROSC â†’ Re-arrest â†’ ROSC â†’ Code ended', () => {
     const events = [
       ev(0, 'system', 'Code Blue activated'),
       ev(100_000, 'rosc', 'ROSC declared'),
@@ -310,7 +310,7 @@ describe('migration — code terminated straight from ROSC (review fix)', () => 
   });
 });
 
-describe('training / voided persistence round-trip (spec §4.3)', () => {
+describe('training / voided persistence round-trip (spec Â§4.3)', () => {
   it('keeps true flags through sanitizeSession', () => {
     const s = sanitizeSession(JSON.parse(JSON.stringify({ ...good(), training: true, voided: true })))!;
     expect(s.training).toBe(true);

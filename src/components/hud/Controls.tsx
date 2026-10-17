@@ -2,6 +2,8 @@ import { ClipboardList, Pause, Play, Radio, RotateCcw, ShieldAlert, Siren } from
 import { useCodeStore } from '../../engine/store';
 import { BigButton } from '../ui/BigButton';
 import { HoldButton } from '../ui/HoldButton';
+import { PopulationToggle } from './PopulationToggle';
+import { WeightCard } from './WeightCard';
 import { useT } from '../../i18n/useT';
 
 /**
@@ -12,6 +14,7 @@ import { useT } from '../../i18n/useT';
 export function Controls({ onEnd }: { onEnd: () => void }) {
   const { t } = useT();
   const status = useCodeStore((s) => s.status);
+  const population = useCodeStore((s) => s.population);
   const startCode = useCodeStore((s) => s.startCode);
   const pauseCode = useCodeStore((s) => s.pauseCode);
   const resumeCode = useCodeStore((s) => s.resumeCode);
@@ -22,15 +25,19 @@ export function Controls({ onEnd }: { onEnd: () => void }) {
 
   if (status === 'idle') {
     return (
-      <BigButton
-        variant="crit"
-        size="xl"
-        icon={Siren}
-        label={t('hud.ctrl.startCode')}
-        sub={t('hud.ctrl.startCodeSub')}
-        onClick={startCode}
-        className="animate-ping-crit"
-      />
+      <div className="flex flex-col gap-2">
+        <PopulationToggle />
+        {population === 'pediatric' ? <WeightCard /> : null}
+        <BigButton
+          variant="crit"
+          size="xl"
+          icon={Siren}
+          label={t('hud.ctrl.startCode')}
+          sub={t('hud.ctrl.startCodeSub')}
+          onClick={startCode}
+          className="animate-ping-crit"
+        />
+      </div>
     );
   }
 

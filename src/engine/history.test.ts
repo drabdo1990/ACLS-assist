@@ -25,11 +25,11 @@ const quiet = () =>
   mkStats({
     arrestMs: 10_000,
     roscCount: 0,
-    shocks: { count: 0, joules: [] },
+    shocks: { count: 0, joules: [], perKg: [] },
     epi: { ...mkStats().epi, count: 0 },
-    amiodarone: { count: 0, totalMg: 0 },
-    lidocaine: { count: 0 },
-    magnesium: { count: 0 },
+    amiodarone: { count: 0, totalMg: 0, notCalculated: 0 },
+    lidocaine: { count: 0, notCalculated: 0 },
+    magnesium: { count: 0, notCalculated: 0 },
     airway: { type: null, firstPlacedMs: null },
     rhythms: [],
   });
@@ -50,10 +50,10 @@ describe('shouldRecord / buildRecord', () => {
   });
   it('records a short code that has any clinical event', () => {
     expect(shouldRecord(quiet())).toBe(false);
-    expect(shouldRecord({ ...quiet(), shocks: { count: 1, joules: [200] } })).toBe(true);
+    expect(shouldRecord({ ...quiet(), shocks: { count: 1, joules: [200], perKg: [null] } })).toBe(true);
     expect(shouldRecord({ ...quiet(), roscCount: 1 })).toBe(true);
     expect(shouldRecord({ ...quiet(), rhythms: ['VF'] })).toBe(true);
-    expect(shouldRecord({ ...quiet(), magnesium: { count: 1 } })).toBe(true);
+    expect(shouldRecord({ ...quiet(), magnesium: { count: 1, notCalculated: 0 } })).toBe(true);
     expect(shouldRecord({ ...quiet(), airway: { type: 'ETT', firstPlacedMs: 5000 } })).toBe(true);
   });
   it('"End code" alone (10 s, no events) is not recorded', () => {
@@ -107,7 +107,7 @@ describe('storage', () => {
     const big = (n: number) =>
       mkRecord(n, {}, {
         rhythms: Array.from({ length: 40 }, () => 'Asystole'),
-        shocks: { count: 20, joules: Array.from({ length: 20 }, () => 360) },
+        shocks: { count: 20, joules: Array.from({ length: 20 }, () => 360), perKg: Array.from({ length: 20 }, () => null) },
         causes: ['hypovolemia', 'hypoxia', 'hydrogen_ion', 'hypo_hyperkalemia', 'hypothermia', 'hypoglycemia', 'tension_ptx', 'tamponade', 'toxins', 'thrombosis_pulmonary', 'thrombosis_coronary'],
         pocus: ['effusion', 'rv_strain', 'contractility', 'standstill', 'lung_sliding'],
       });

@@ -13,6 +13,8 @@ export const POST_ROSC_PREFIX = 'Post-ROSC';
 export const ROSC_LABEL = 'ROSC declared';
 export const REARREST_LABEL = 'Re-arrest';
 export const CODE_ENDED_LABEL = 'Code ended';
+/** Pediatric dose logged with no calculable weight (mg is null) — stats mark it "not calculated". */
+export const MAGNESIUM_NOT_CALCULATED_LABEL = 'Magnesium given — dose not calculated (no weight)';
 
 /** Branch implied by the most recent branch event. */
 export function branchFromEvents(events: CodeEvent[]): RhythmBranch | null {

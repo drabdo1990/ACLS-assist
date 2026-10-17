@@ -165,7 +165,7 @@ describe('sbarFilename', () => {
 describe('CODE STATISTICS section', () => {
   it('is omitted without stats and matches statsRows line-for-line when present', () => {
     expect(buildSbar(base, T0 + 500_000)).not.toContain('=== CODE STATISTICS ===');
-    const stats = computeCodeStats({ ...base, pausedAt: base.endedAt, pausedAccumMs: 0 }, T0 + 500_000)!;
+    const stats = computeCodeStats({ ...base, pausedAt: base.endedAt, pausedAccumMs: 0, population: 'adult', weightSource: null, ageMonths: null }, T0 + 500_000)!;
     const text = buildSbar({ ...base, stats, training: true }, T0 + 500_000);
     expect(text).toContain('=== CODE STATISTICS ===');
     expect(text).toContain('TRAINING / SIMULATION');
@@ -233,14 +233,18 @@ describe('golden English SBAR comparison & Arabic SBAR', () => {
   const fullSession: SbarInput = {
     ...base,
     events: allEvents,
-    stats: computeCodeStats({ ...base, events: allEvents, pausedAt: base.endedAt, pausedAccumMs: 0 }, T0 + 500_000),
+    stats: computeCodeStats(
+      { ...base, events: allEvents, pausedAt: base.endedAt, pausedAccumMs: 0, population: 'adult', weightSource: null, ageMonths: null },
+      T0 + 500_000,
+    ),
     training: true,
   };
 
   it('English SBAR output is byte-identical to golden copy (ignoring Generated line)', async () => {
     const fs = await import('fs');
     const path = await import('path');
-    const golden = fs.readFileSync(path.resolve('src/engine/testing/goldenSbar.txt'), 'utf8');
+    // Normalise CRLF (Windows checkouts) — the golden content itself is LF.
+    const golden = fs.readFileSync(path.resolve('src/engine/testing/goldenSbar.txt'), 'utf8').replace(/\r\n/g, '\n');
 
     const actual = buildSbar(fullSession, T0 + 500_000, { lang: 'en' });
     const actualWithoutGenerated = actual
@@ -277,5 +281,60 @@ describe('golden English SBAR comparison & Arabic SBAR', () => {
     expect(arText).toContain('تفعيل نداء الإنعاش (Code Blue)');
     expect(arText).toContain('إزالة الرجفان: الصدمة رقم 1 (200J ثنائية الطور)');
     expect(arText).toContain('إعلان عودة الدورة الدموية التلقائية (ROSC)');
+  });
+});
+
+describe('pediatric SBAR (phase 4a)', () => {
+  const pedsBase: SbarInput = {
+    ...base,
+    population: 'pediatric',
+    weightKg: 16,
+    weightSource: 'estimated',
+    ageMonths: 48,
+    epi: [{ at: T0 + 60_000, t: 60_000, label: 'Epinephrine 0.16 mg IV/IO', mg: 0.16 }],
+    amio: [{ at: T0 + 90_000, t: 90_000, label: 'Amiodarone 80 mg IV/IO', mg: 80 }],
+  };
+
+  it('pediatric situation line plus weight line; adult line absent', () => {
+    const out = buildSbar(pedsBase, T0 + 500_000);
+    expect(out).toContain('Pediatric in-hospital cardiac arrest — PALS (SHA).');
+    expect(out).toContain('Weight ≈16 kg (estimated from age 4 y).');
+    expect(out).not.toContain('Adult in-hospital cardiac arrest');
+  });
+
+  it('background lists doses in mg with the mg/kg rule', () => {
+    const out = buildSbar(pedsBase, T0 + 500_000);
+    expect(out).toContain('Epinephrine: 1 × 0.01 mg/kg (0.16 mg)');
+    expect(out).toContain('Amiodarone: 1 × 5 mg/kg (80 mg)');
+  });
+
+  it('pediatric recommendations replace the adult post-ROSC lines', () => {
+    const out = buildSbar(pedsBase, T0 + 500_000);
+    expect(out).toContain('- SpO₂ 94–99% — avoid hyperoxia; normal CO₂.');
+    expect(out).toContain('- Avoid hypotension (SBP < 5th centile for age)');
+    expect(out).not.toContain('- Post-ROSC bundle: secure airway (ETT)');
+  });
+
+  it('unweighted pediatric code marks doses not calculated', () => {
+    const out = buildSbar(
+      {
+        ...pedsBase,
+        weightKg: null,
+        weightSource: null,
+        ageMonths: null,
+        epi: [{ at: T0 + 60_000, t: 60_000, label: 'Epinephrine given — dose not calculated (no weight)', mg: null }],
+        amio: [],
+      },
+      T0 + 500_000,
+    );
+    expect(out).toContain('Weight not set — doses not calculated.');
+    expect(out).toContain('(doses not calculated)');
+  });
+
+  it('Arabic pediatric SBAR translates the situation, weight and recommendations', () => {
+    const out = buildSbar(pedsBase, T0 + 500_000, { lang: 'ar' });
+    expect(out).toContain('توقف قلبي داخل المستشفى لدى طفل — وفق بروتوكول PALS (SHA)');
+    expect(out).toContain('الوزن ≈16 kg (تقديري من العمر 4 y)');
+    expect(out).toContain('Epinephrine: 1 × 0.01 mg/kg (0.16 mg)');
   });
 });

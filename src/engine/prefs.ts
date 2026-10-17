@@ -120,3 +120,25 @@ export function loadPrefs(kv: KV | null): Prefs {
   }
   return prefs;
 }
+
+// --- Population device preference (phase 4a) --------------------------------
+// Remembers the last Adult / Pediatric choice for the idle toggle. Lives outside the
+// session (and outside the prefs blob) under its own key, per spec 4a §4.
+export const POPULATION_KEY = 'resuscode.population';
+export type StoredPopulation = 'adult' | 'pediatric';
+
+export function readStoredPopulation(kv: KV | null): StoredPopulation {
+  try {
+    return kv?.get(POPULATION_KEY) === 'pediatric' ? 'pediatric' : 'adult';
+  } catch {
+    return 'adult';
+  }
+}
+
+export function savePopulation(kv: KV | null, population: StoredPopulation): boolean {
+  try {
+    return kv?.set(POPULATION_KEY, population) === true;
+  } catch {
+    return false;
+  }
+}

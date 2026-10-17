@@ -4,6 +4,8 @@
  * Weight is a dosing input only (lidocaine mg/kg) and is not linked to any identifier.
  */
 
+import type { Population, WeightSource } from '../content/profiles';
+
 export type SessionStatus = 'idle' | 'active' | 'paused' | 'rosc' | 'terminated';
 
 export type EventCategory =
@@ -60,13 +62,16 @@ export interface ShockEvent {
   /** true when the shock was delivered for a shockable rhythm (VF/pVT). */
   shockable: boolean;
   waveform?: WaveformType;
+  /** J/kg actually applied (pediatric weight-based shocks); null / absent for adult. */
+  perKg?: number | null;
 }
 
 export interface DoseEvent {
   at: number;
   t: number;
   label: string;
-  mg?: number;
+  /** Logged mg, or null when the dose was logged without a calculable weight (pediatric). */
+  mg?: number | null;
 }
 
 export type CauseId =
@@ -100,7 +105,9 @@ export interface Settings {
 
 /** The serializable slice persisted to localStorage. */
 export interface PersistedSession {
-  version: 3;
+  version: 4;
+  /** Locked at startCode — a mis-pick is fixed by ending the code and starting a new one. */
+  population: Population;
   status: SessionStatus;
   startedAt: number | null;
   pausedAt: number | null;
@@ -129,7 +136,15 @@ export interface PersistedSession {
   causes: Partial<Record<CauseId, boolean>>;
   pocus: Partial<Record<PocusId, boolean>>;
   metronome: MetronomeState;
-  weightKg: number;
+  /**
+   * Dosing weight in kg. Adult: 70 default (lidocaine range), slider 30–250.
+   * Pediatric: null until set (doses read "Set weight"); valid range 0.5–150.
+   */
+  weightKg: number | null;
+  /** How the pediatric weight was obtained (null for adult / not yet set). */
+  weightSource: WeightSource;
+  /** Set when the weight was estimated from age (APLS), in months. */
+  ageMonths: number | null;
   settings: Settings;
   /** epoch ms of the most recent write, for stale-session detection. */
   savedAt: number;

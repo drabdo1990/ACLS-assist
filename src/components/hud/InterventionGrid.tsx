@@ -12,20 +12,32 @@ import {
   lidocaineDose,
   waveformFor,
 } from '../../content/calc';
-import { nextAclsStep, type StepFocus } from '../../content/algorithm';
+import type { StepFocus } from '../../content/algorithm';
+import type { WaveformType } from '../../engine/types';
+import { profileFor } from '../../content/profiles';
 import { BigButton } from '../ui/BigButton';
 import { Chip } from '../ui/Chip';
 import { Panel } from '../ui/Panel';
 import { WeightControl } from '../ui/WeightControl';
+import { WeightCard } from './WeightCard';
+import { epiFlushKey } from './populationText';
+import { appliedPerKg, chosenShock, defaultShockChip, pediatricShockChips } from './shockChips';
 import { keyed } from '../../i18n/enText';
 import { useT } from '../../i18n/useT';
 
 /** Ring that marks the button the algorithm expects next. */
 const FOCUS_RING = 'ring-4 ring-warn/70 ring-offset-2 ring-offset-bg';
 
+/** Energies offered when logging a pediatric shock with no weight (the value set on the defibrillator). */
+const MANUAL_PEDS_JOULES = [5, 10, 20, 30, 50, 70, 100, 150, 200] as const;
+
 /**
  * One-tap ACLS intervention grid. Every press is auto-timestamped by the store.
  * Nothing here blocks the clinician: dose timers and algorithm hints are advisory.
+ *
+ * Phase 4a: the grid reads the session's ProtocolProfile. Adult labels are unchanged;
+ * pediatric labels are weight-based and read "Set weight" until a weight exists —
+ * logging without a calculated dose stays available (the store records no mg).
  */
 export function InterventionGrid() {
   const { t } = useT();
@@ -60,6 +72,16 @@ export function InterventionGrid() {
 
   const [showEnergy, setShowEnergy] = useState(false);
   const [joules, setJoules] = useState<number>(defaultJoules);
+  // Index of the pediatric energy chip the clinician tapped (null = follow the algorithm default).
+  const [tappedChip, setTappedChip] = useState<number | null>(null);
+  const [manualJoules, setManualJoules] = useState<number | null>(null);
+  const [waveform360, setWaveform360] = useState<WaveformType>('biphasic');
+  const [showWeight, setShowWeight] = useState(false);
+
+  const population = useCodeStore((s) => s.population);
+  const profile = profileFor(population);
+  const peds = population === 'pediatric';
+  const noWeight = peds && weightKg == null;
 
   const canLog = status === 'active' || status === 'paused';
   const lastEpi = epi[epi.length - 1];
@@ -77,7 +99,7 @@ export function InterventionGrid() {
   }, [epiEligible, lastEpi]);
 
   const focus: StepFocus | null = canLog
-    ? nextAclsStep({
+    ? profile.algorithm({
         branch,
         shocks: shocks.length,
         epi: epi.length,
@@ -87,33 +109,81 @@ export function InterventionGrid() {
     : null;
   const ring = (f: StepFocus) => (focus === f ? FOCUS_RING : '');
 
+  // ---- Pediatric dose labels (null weight → "Set weight", logging stays available) ----
+  const pedsEpi = peds && weightKg != null ? profile.epinephrine(weightKg, epi.length) : null;
+  const pedsMag = peds && weightKg != null ? profile.magnesium(weightKg) : null;
+  const shockChips = peds && weightKg != null ? pediatricShockChips(profile, weightKg) : [];
+  const chosenChip = tappedChip ?? defaultShockChip(shocks.length);
+  // One value drives the highlighted chip, the Deliver label and the energy that is logged.
+  const nextShock = chosenShock(shockChips, tappedChip, shocks.length)?.energy ?? null;
+
+  // A new shock, a new code or a population switch starts from the algorithm default again.
+  useEffect(() => {
+    setTappedChip(null);
+    setManualJoules(null);
+  }, [shocks.length, status, population]);
+
   const isLido = antiarrhythmic === 'lidocaine';
-  const lidoNext = lidocaineDose(weightKg, lido.length);
+  // Adult HUD: null weight falls back to the 70 kg default (pediatric uses its own card).
+  const lidoKg = weightKg ?? 70;
+  const lidoNext = lidocaineDose(lidoKg, lido.length);
   const lidoBudget = lidocaineBudget(
-    weightKg,
+    lidoKg,
     lido.map((d) => d.mg ?? 0),
   );
-  const aaLabel = isLido
-    ? `Lidocaine ${lidoNext.minMg}–${lidoNext.maxMg} mg`
-    : `Amiodarone ${amiodaroneDoseMg(amio.length)} mg`;
+  const pedsAa = peds && weightKg != null ? (isLido ? profile.lidocaine(weightKg, lido.length) : profile.amiodarone(weightKg, amio.length)) : null;
+  const aaLabel = peds
+    ? noWeight
+      ? t('peds.setWeight')
+      : isLido
+        ? `${t('peds.grid.lido.title', { mg: pedsAa?.mg ?? 0 })}${pedsAa?.capped ? ` ${t('peds.max')}` : ''}`
+        : `${t('peds.grid.amio.title', { mg: pedsAa?.mg ?? 0 })}${pedsAa?.capped ? ` ${t('peds.max')}` : ''}`
+    : isLido
+      ? `Lidocaine ${lidoNext.minMg}–${lidoNext.maxMg} mg`
+      : `Amiodarone ${amiodaroneDoseMg(amio.length)} mg`;
   const aaCount = isLido ? lido.length : amio.length;
-  const aaSub = isLido
-    ? lidoBudget.nextExceeds
-      ? t('hud.grid.lido.exceeds', { given: lidoBudget.givenMg, max: lidoBudget.maxMg })
-      : t('hud.grid.lido.sub', {
-          n: lido.length + 1,
-          perKg: lidoNext.perKgLabel,
-          interval: lido.length ? ' q5–10 min' : '',
-          kg: weightKg,
-        })
-    : amio.length === 0
-      ? t('hud.grid.amio.sub1')
-      : amio.length === 1
-        ? t('hud.grid.amio.sub2')
-        : t('hud.grid.amio.subMax');
+  const aaSub = peds
+    ? noWeight
+      ? t('peds.setWeightBanner')
+      : amioSubPeds(aaCount, t)
+    : isLido
+      ? lidoBudget.nextExceeds
+        ? t('hud.grid.lido.exceeds', { given: lidoBudget.givenMg, max: lidoBudget.maxMg })
+        : t('hud.grid.lido.sub', {
+            n: lido.length + 1,
+            perKg: lidoNext.perKgLabel,
+            interval: lido.length ? ' q5–10 min' : '',
+            kg: lidoKg,
+          })
+      : amio.length === 0
+        ? t('hud.grid.amio.sub1')
+        : amio.length === 1
+          ? t('hud.grid.amio.sub2')
+          : t('hud.grid.amio.subMax');
+
+  const openWeight = () => setShowWeight(true);
+  const logAnyway = 'peds.grid.logNoWeight';
 
   return (
     <Panel title={t('hud.grid.title')} icon={Syringe} accent="none">
+      {/* Pediatric "Set weight" banner + inline weight card */}
+      {noWeight && canLog ? (
+        <>
+          <button
+            type="button"
+            onClick={openWeight}
+            className="mb-3 flex min-h-[56px] w-full items-center justify-center rounded-xl border border-crit bg-crit/10 px-3 text-sm font-bold text-crit active:scale-[0.98]"
+          >
+            {t('peds.setWeightBanner')}
+          </button>
+          {showWeight ? (
+            <div className="mb-3">
+              <WeightCard />
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
       {/* Ventilation guidance banner */}
       <div
         className={[
@@ -124,8 +194,10 @@ export function InterventionGrid() {
         <Wind className="h-5 w-5 shrink-0" />
         <p className="text-sm font-bold leading-tight">
           {airwayPlaced
-            ? t('hud.grid.vent.ett')
-            : t('hud.grid.vent.none')}
+            ? t(peds ? profile.ventilationWithAirwayKey : 'hud.grid.vent.ett')
+            : peds
+              ? t('peds.vent.none', { ratio: t(profile.cpr.ratioKey) })
+              : t('hud.grid.vent.none')}
         </p>
       </div>
 
@@ -134,63 +206,198 @@ export function InterventionGrid() {
         <BigButton
           variant="crit"
           icon={Syringe}
-          label={`Epi 1 mg${epi.length ? ` · ×${epi.length}` : ''}`}
+          label={
+            noWeight
+              ? t('peds.setWeight')
+              : peds && pedsEpi
+                ? `${t('peds.grid.epi.title', { mg: pedsEpi.mg, mL: pedsEpi.mL })}${pedsEpi.capped ? ` ${t('peds.max')}` : ''}${epi.length ? ` · ×${epi.length}` : ''}`
+                : `Epi 1 mg${epi.length ? ` · ×${epi.length}` : ''}`
+          }
           sub={
             lockout
               ? t('hud.grid.epi.next', { lockout })
               : epiEligible
                 ? t('hud.grid.epi.eligible')
-                : t('hud.grid.epi.flush')
+                : t(epiFlushKey(population))
           }
           className={[epiEligible ? 'animate-flash-bg' : '', ring('epi')].join(' ')}
           disabled={!canLog}
-          onClick={administerEpi}
+          onClick={noWeight ? openWeight : administerEpi}
         />
 
         {/* Defibrillation */}
         <BigButton
           variant="cyber"
           icon={Zap}
-          label={shocks.length ? t('hud.grid.shock.titleCount', { n: shocks.length }) : t('hud.grid.shock.title')}
+          label={
+            noWeight
+              ? t('peds.setWeight')
+              : peds && nextShock
+                ? `${t('peds.grid.shock.jkg', { joules: nextShock.joules, perKg: appliedPerKg(nextShock, weightKg as number) })}${nextShock.capped ? ` ${t('peds.max')}` : ''}`
+                : shocks.length
+                  ? t('hud.grid.shock.titleCount', { n: shocks.length })
+                  : t('hud.grid.shock.title')
+          }
           sub={
-            shocks.length
-              ? t('hud.grid.shock.last', { n: shocks.length, joules: shocks[shocks.length - 1].joules })
-              : t('hud.grid.shock.select')
+            noWeight
+              ? t('peds.setWeightBanner')
+              : peds && nextShock
+                ? shocks.length
+                  ? t('hud.grid.shock.last', { n: shocks.length, joules: shocks[shocks.length - 1].joules })
+                  : t('peds.grid.energyNote')
+                : shocks.length
+                  ? t('hud.grid.shock.last', { n: shocks.length, joules: shocks[shocks.length - 1].joules })
+                  : t('hud.grid.shock.select')
           }
           className={ring('shock')}
           disabled={!canLog}
-          onClick={() => setShowEnergy((v) => !v)}
+          onClick={noWeight ? openWeight : () => setShowEnergy((v) => !v)}
         />
       </div>
 
-      {showEnergy ? (
-        <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
-          <div className="grid grid-cols-4 gap-1.5">
-            {SHOCK_ENERGIES.map((e) => (
-              <Chip
-                key={e.joules}
-                selected={joules === e.joules}
-                onClick={() => setJoules(e.joules)}
-                className="min-w-0 flex-col px-1 leading-tight"
-              >
-                <span>{e.joules}J</span>
-                <span className="text-[10px] font-semibold opacity-70">{e.waveform === 'monophasic' ? 'Mono' : 'Bi'}</span>
-              </Chip>
-            ))}
-          </div>
-          <BigButton
-            className="mt-2"
-            variant="crit"
-            icon={Zap}
-            label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules })}
-            sub={t('hud.grid.shock.waveformSub', { waveform: t(`waveform.${waveformFor(joules)}`) })}
-            onClick={() => {
-              deliverShock(joules);
-              setShowEnergy(false);
-            }}
-          />
+      {/* Pediatric "log anyway" — dose/energy not calculated: epi is recorded with no mg, a shock with the
+          energy the clinician set on the defibrillator and no J/kg. Logging is never blocked by a missing weight. */}
+      {noWeight && canLog ? (
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={administerEpi}
+            disabled={!canLog}
+            className="min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-mute active:scale-[0.98] disabled:opacity-40"
+          >
+            {t('peds.grid.epi.logNoWeight')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowEnergy((v) => !v)}
+            disabled={!canLog}
+            className="min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-mute active:scale-[0.98] disabled:opacity-40"
+          >
+            {t('peds.grid.shock.logNoWeight')}
+          </button>
         </div>
+      ) : null}
+
+      {showEnergy ? (
+        peds && weightKg != null ? (
+          <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {shockChips.map((c, i) => (
+                <Chip
+                  key={c.key}
+                  selected={i === chosenChip}
+                  onClick={() => setTappedChip(i)}
+                  className="min-w-0 flex-col px-1 leading-tight"
+                >
+                  <span className="text-[11px]">{t(c.key)}</span>
+                  <span className="tnum text-[10px] font-semibold opacity-70" dir="ltr">
+                    {c.energy.joules}J{c.energy.capped ? ` ${t('peds.max')}` : ''}
+                  </span>
+                </Chip>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-mute">{t('peds.grid.energyNote')}</p>
+            <BigButton
+              className="mt-2"
+              variant="crit"
+              icon={Zap}
+              label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules: nextShock?.joules ?? 0 })}
+              sub={t('peds.grid.shock.jkg', {
+                joules: nextShock?.joules ?? 0,
+                perKg: nextShock ? appliedPerKg(nextShock, weightKg) : 0,
+              })}
+              onClick={() => {
+                // Log the J/kg actually applied (the 200 J ceiling can make it lower than the nominal rate).
+                if (nextShock) deliverShock(nextShock.joules, appliedPerKg(nextShock, weightKg));
+                setShowEnergy(false);
+              }}
+            />
+          </div>
+        ) : peds ? (
+          <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {MANUAL_PEDS_JOULES.map((j) => (
+                <Chip key={j} selected={manualJoules === j} onClick={() => setManualJoules(j)} className="min-w-0 px-0.5">
+                  <span className="tnum" dir="ltr">
+                    {j}J
+                  </span>
+                </Chip>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-mute">{t('peds.grid.shock.manualNote')}</p>
+            <BigButton
+              className="mt-2"
+              variant="crit"
+              icon={Zap}
+              disabled={manualJoules == null}
+              label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules: manualJoules ?? 0 })}
+              onClick={() => {
+                if (manualJoules != null) deliverShock(manualJoules, null);
+                setShowEnergy(false);
+                setManualJoules(null);
+              }}
+            />
+          </div>
+        ) : (
+          <div className="mt-2 rounded-xl border border-cyber/50 bg-cyber/5 p-2">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-cyber">{t('hud.grid.energyTitle')}</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {SHOCK_ENERGIES.map((e) => {
+                const is360 = e.joules === 360;
+                const wf = is360 ? waveform360 : e.waveform;
+                return (
+                  <Chip
+                    key={e.joules}
+                    selected={joules === e.joules}
+                    onClick={() => setJoules(e.joules)}
+                    className="min-w-0 flex-col px-1 leading-tight"
+                  >
+                    <span>{e.joules}J</span>
+                    <span className="text-[10px] font-semibold opacity-70">{wf === 'monophasic' ? 'Mono' : 'Bi'}</span>
+                  </Chip>
+                );
+              })}
+            </div>
+            {joules === 360 ? (
+              <div className="mt-2 flex items-center justify-between rounded-lg border border-line bg-panel2/60 px-2 py-1.5 text-xs">
+                <span className="font-semibold text-mute">{t('hud.grid.shock.waveformLabel')}</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setWaveform360('biphasic')}
+                    className={`touch-hit rounded-md px-2 py-1 text-xs font-bold ${
+                      waveform360 === 'biphasic' ? 'border border-cyber bg-cyber/20 text-cyber' : 'text-mute'
+                    }`}
+                  >
+                    {t('waveform.biphasic')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWaveform360('monophasic')}
+                    className={`touch-hit rounded-md px-2 py-1 text-xs font-bold ${
+                      waveform360 === 'monophasic' ? 'border border-cyber bg-cyber/20 text-cyber' : 'text-mute'
+                    }`}
+                  >
+                    {t('waveform.monophasic')}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <BigButton
+              className="mt-2"
+              variant="crit"
+              icon={Zap}
+              label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules })}
+              sub={t('hud.grid.shock.waveformSub', { waveform: t(`waveform.${joules === 360 ? waveform360 : waveformFor(joules)}` as never) })}
+              onClick={() => {
+                deliverShock(joules, null, joules === 360 ? waveform360 : undefined);
+                setShowEnergy(false);
+              }}
+            />
+          </div>
+        )
       ) : null}
 
       {/* Antiarrhythmic */}
@@ -206,13 +413,23 @@ export function InterventionGrid() {
         <BigButton
           variant="warn"
           icon={Pill}
-          label={`${aaLabel}${aaCount ? ` · ×${aaCount}` : ''}`}
+          label={`${aaLabel}${aaCount && !(peds && noWeight) ? ` · ×${aaCount}` : ''}`}
           sub={aaSub}
-          className={isLido && lidoBudget.nextExceeds ? 'border-crit text-crit' : ''}
+          className={!peds && isLido && lidoBudget.nextExceeds ? 'border-crit text-crit' : ''}
           disabled={!canLog}
-          onClick={administerAntiarrhythmic}
+          onClick={peds && noWeight ? openWeight : administerAntiarrhythmic}
         />
-        {isLido ? (
+        {peds && noWeight ? (
+          <button
+            type="button"
+            onClick={administerAntiarrhythmic}
+            disabled={!canLog}
+            className="mt-2 min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-mute active:scale-[0.98] disabled:opacity-40"
+          >
+            {t(logAnyway)}
+          </button>
+        ) : null}
+        {isLido && !peds ? (
           <div className="mt-2">
             <WeightControl />
           </div>
@@ -267,11 +484,15 @@ export function InterventionGrid() {
         <div className="mt-2 grid grid-cols-3 gap-2">
           <button
             type="button"
-            onClick={administerMagnesium}
+            onClick={peds && noWeight ? openWeight : administerMagnesium}
             disabled={!canLog}
             className="touch-hit min-h-[64px] w-full rounded-xl border border-warn/50 bg-warn/10 px-1 text-xs font-bold leading-tight text-warn active:scale-[0.98] disabled:opacity-40"
           >
-            Mg 1–2 g
+            {noWeight
+              ? t('peds.setWeight')
+              : peds && pedsMag
+                ? `${t('peds.grid.mag.title', { minMg: pedsMag.minMg, maxMg: pedsMag.maxMg })}${pedsMag.capped ? ` ${t('peds.max')}` : ''}`
+                : 'Mg 1–2 g'}
             <span className="block text-[10px] font-semibold opacity-80">{t('hud.grid.mgIndication')}</span>
           </button>
           <button
@@ -294,7 +515,21 @@ export function InterventionGrid() {
             <Undo2 className="h-4 w-4 rtl:-scale-x-100" /> {t('hud.grid.undo')}
           </button>
         </div>
+        {peds && noWeight && canLog ? (
+          <button
+            type="button"
+            onClick={administerMagnesium}
+            className="mt-2 min-h-[56px] w-full rounded-xl border border-line bg-panel2 px-2 text-xs font-bold text-mute active:scale-[0.98]"
+          >
+            {t('peds.grid.mag.logNoWeight')}
+          </button>
+        ) : null}
       </div>
     </Panel>
   );
+}
+
+/** Pediatric amiodarone sub-line: dose ordinal. */
+function amioSubPeds(count: number, t: ReturnType<typeof useT>['t']): string {
+  return count === 0 ? t('ev.dose.first') : count === 1 ? t('ev.dose.second') : t('ev.dose.additional');
 }
