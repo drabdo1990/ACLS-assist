@@ -154,7 +154,7 @@ export function CyclePanel() {
                 onClick={() => resetCycle(r)}
                 className="touch-hit min-h-[64px] rounded-xl border border-crit/60 bg-crit/10 text-sm font-bold text-ink active:scale-[0.96]"
               >
-                {r}
+                {t(`rhythm.${r}`)}
               </button>
             ))}
           </div>

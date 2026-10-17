@@ -96,9 +96,9 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
               title={
                 wakeSupported
                   ? wakeActive
-                    ? 'Screen will not sleep'
-                    : 'Wake lock idle'
-                  : 'Wake Lock unsupported on this browser'
+                    ? t('app.wake.titleActive')
+                    : t('app.wake.titleIdle')
+                  : t('app.wake.titleUnsupported')
               }
               className={[
                 'flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold',
@@ -106,7 +106,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
               ].join(' ')}
             >
               {wakeActive ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
-              {wakeSupported ? (wakeActive ? 'AWAKE' : 'IDLE') : 'N/A'}
+              {wakeSupported ? (wakeActive ? t('app.wake.active') : t('app.wake.idle')) : t('app.wake.unsupported')}
             </span>
             {!online ? (
               <span className="flex items-center gap-1 rounded-full border border-warn/60 px-2 py-1 text-[10px] font-bold text-warn">

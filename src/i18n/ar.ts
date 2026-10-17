@@ -342,6 +342,12 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'app.title': 'قيادة إنعاش البالغين (ACLS)', // draft — clinician review required
   'app.offline': 'دون اتصال', // draft — clinician review required
   'app.settings': 'الإعدادات', // draft — clinician review required
+  'app.wake.titleActive': 'الشاشة لن تنطفئ', // draft — clinician review required
+  'app.wake.titleIdle': 'منع انطفاء الشاشة غير مفعّل', // draft — clinician review required
+  'app.wake.titleUnsupported': 'منع انطفاء الشاشة غير مدعوم في هذا المتصفح', // draft — clinician review required
+  'app.wake.active': 'مستيقظة', // draft — clinician review required
+  'app.wake.idle': 'خامل', // draft — clinician review required
+  'app.wake.unsupported': 'غير متاح', // draft — clinician review required
   'app.restored.title': 'تمت استعادة الجلسة من الزيارة السابقة', // draft — clinician review required
   'app.restored.fresh': 'بدء من جديد', // draft — clinician review required
   'app.restored.dismiss': 'إغلاق', // draft — clinician review required
