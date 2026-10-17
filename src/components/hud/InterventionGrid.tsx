@@ -21,7 +21,7 @@ import { Panel } from '../ui/Panel';
 import { WeightControl } from '../ui/WeightControl';
 import { WeightCard } from './WeightCard';
 import { epiFlushKey } from './populationText';
-import { appliedPerKg,chosenShock, defaultShockChip, pediatricShockChips } from './shockChips';
+import { appliedPerKg, chosenShock, defaultShockChip, pediatricShockChips } from './shockChips';
 import { keyed } from '../../i18n/enText';
 import { useT } from '../../i18n/useT';
 
