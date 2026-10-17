@@ -10,3 +10,5 @@ dev-dist
 # local tooling, not part of the app
 .agents/
 .archon/
+.claude/
+.omc/

@@ -179,10 +179,18 @@ tabs cannot drift.
 
 ## Clinical sources encoded
 
-**Primary benchmark: Saudi Heart Association (SHA) ACLS Provider Manual 2024** — CPR
-(Ch. 2), H's & T's (Table 3.4), airway & ventilation (Ch. 4), electrical therapy (Ch. 5),
-resuscitation drugs (Table 7.1), cardiac arrest rhythms (Ch. 10) and care following
-resuscitation (Ch. 11). Aligned with AHA 2020/2023 and ERC 2021 adult ALS guidance.
+- **Adult ACLS benchmark: Saudi Heart Association (SHA) ACLS Provider Manual 2024** — CPR
+  (Ch. 2), H's & T's (Table 3.4), airway & ventilation (Ch. 4), electrical therapy (Ch. 5),
+  resuscitation drugs (Table 7.1), cardiac arrest rhythms (Ch. 10) and care following
+  resuscitation (Ch. 11). Aligned with AHA 2020/2023 and ERC 2021 adult ALS guidance.
+- **Pediatric PALS benchmark: SHA Pediatric Advanced Life Support Provider Course (“SHA PALS provider course”)** —
+  systematic assessment & age-based vital signs/hypotension/hypoglycaemia thresholds (Module 1, Table 1.1),
+  airway, ventilation & DOPE troubleshooting (Module 2, Table 2.4), shock classification & fluid/vasoactive
+  management (Module 3), pediatric cardiac arrest CPR parameters (Module 4, Ch. 4, Table 4.4.3),
+  weight-based defibrillation (2 → 4 → 4–10 J/kg) and resuscitation drugs (Module 4, Table 4.2.2, Ch. 4–5),
+  reversible H's & T's (Table 4.4.1 & Table 4.4.5), and post–cardiac arrest care (Module 4, Ch. 6, Tables 4.6.1 & 4.6.3).
+  Full reference text: [docs/sha-pals-provider-course.md](docs/sha-pals-provider-course.md).
+
 See [docs/clinical-benchmark.md](docs/clinical-benchmark.md) for the value-by-value mapping.
 
 All figures live in `src/content/` and are unit-tested — review and adjust them to match

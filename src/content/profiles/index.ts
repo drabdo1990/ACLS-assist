@@ -84,13 +84,14 @@ import { adultProfile } from './adult';
 import { pediatricProfile } from './pediatric';
 
 /**
- * Clinical sign-off gate (spec §10): every pediatric value in `pediatric.ts` needs review
- * against the hospital's SHA reference before this is true. While false, the UI shows the
- * persistent preview notice on the idle screen and the header badge.
+ * Clinical sign-off gate (spec §10): every pediatric value in `pediatric.ts` is benchmarked
+ * against the SHA PALS Provider Course (`docs/sha-pals-provider-course.md`, mapped in
+ * `docs/clinical-benchmark.md`). While false, the UI shows the persistent preview notice on
+ * the idle screen and the header badge.
  *
- * Set to true on 2026-10-17 on the owner's instruction: the hospital board approved all
- * clinical data, with the SHA ACLS manual as the reference source. The Arabic pediatric
- * wording is a separate gate and stays marked "draft — clinician review required".
+ * Set to true on 2026-10-17 on the owner's instruction: benchmarked to the SHA PALS Provider
+ * Course & SHA ACLS Provider Manual 2024. The Arabic pediatric wording is a separate gate and
+ * stays marked "draft — clinician review required".
  */
 export const PEDIATRIC_CLINICAL_REVIEWED = true;
 
