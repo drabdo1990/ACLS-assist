@@ -13,6 +13,8 @@ export interface SheetAdapter {
   addHeaders(names: string[]): void;
   /** 1-based sheet row number of the first data row whose `header` cell equals `value`, or null */
   findRow(header: string, value: string): number | null;
+  /** value of the `header` column on 1-based sheet row `row`, or null when there is no such column */
+  readCell(row: number, header: string): unknown;
   appendRow(cells: Record<string, unknown>): void;
   updateCells(row: number, cells: Record<string, unknown>): void;
   readUnits(): UnitRow[];

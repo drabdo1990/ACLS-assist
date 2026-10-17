@@ -26,7 +26,7 @@ export function EnrollConfirm({ fragment, onEnrolled }: { fragment: EnrollFragme
   return (
     <div className="mb-3 rounded-xl border border-cyber/60 bg-cyber/10 p-3">
       <p className="mb-1 text-sm font-bold text-cyber">{t('enroll.confirmTitle')}</p>
-      <EnrollmentSummary enrollment={e} replacing={getPrefs().enrollment != null} />
+      <EnrollmentSummary enrollment={e} replacing={getPrefs().enrollment != null} verify />
       <div className="mt-2 grid grid-cols-2 gap-2">
         <BigButton
           variant="cyber"

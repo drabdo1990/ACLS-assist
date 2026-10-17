@@ -303,3 +303,63 @@ describe('adult behaviour is untouched by v4', () => {
     expect(s().weightKg).toBe(70); // default restored on switching back
   });
 });
+
+describe('boot population', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // The store is a module singleton, so each case imports a fresh copy under a stubbed browser.
+  async function bootWith(saved: Record<string, string>) {
+    const mem = new Map(Object.entries(saved));
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k: string) => mem.get(k) ?? null,
+        setItem: (k: string, v: string) => void mem.set(k, v),
+        removeItem: (k: string) => void mem.delete(k),
+      },
+      addEventListener: () => {},
+    });
+    vi.stubGlobal('document', { addEventListener: () => {}, visibilityState: 'visible' });
+    vi.resetModules();
+    return (await import('./store')).useCodeStore.getState();
+  }
+
+  it('starts pediatric, without a weight, when pediatric was the last idle choice and no session is saved', async () => {
+    const st = await bootWith({ 'resuscode.population': 'pediatric' });
+    expect(st.population).toBe('pediatric');
+    expect(st.weightKg).toBeNull();
+  });
+
+  it('starts adult with no saved choice', async () => {
+    const st = await bootWith({});
+    expect(st.population).toBe('adult');
+    expect(st.weightKg).toBe(70);
+  });
+});
+
+describe('ROSC summary with unweighted doses', () => {
+  it('says the epinephrine total is not calculated when no dose had a weight (not "0 mg")', () => {
+    s().setPopulation('pediatric');
+    s().startCode();
+    s().administerEpi(); // no weight → mg null
+    at(300_000);
+    s().declareRosc();
+    expect(lastEvent().detail).toBe(
+      'Total arrest duration: 5m 00s. Total shocks: 0. Total epi: not calculated (no weight).',
+    );
+  });
+
+  it('calls the total a lower bound when only some doses were calculated', () => {
+    s().setPopulation('pediatric');
+    s().startCode();
+    s().administerEpi(); // unweighted
+    at(10_000);
+    s().setPediatricWeight(10, 'measured');
+    at(20_000);
+    s().administerEpi(); // 0.1 mg
+    at(300_000);
+    s().declareRosc();
+    expect(lastEvent().detail).toBe(
+      'Total arrest duration: 5m 00s. Total shocks: 0. Total epi: at least 0.1 mg (some doses not calculated).',
+    );
+  });
+});

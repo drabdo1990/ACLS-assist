@@ -82,8 +82,8 @@ event log, no patient identifiers) with aggregates and a CSV export.
 A unit can additionally enrol a device to upload each finished code to **its own Google Sheet**
 through an Apps Script web app that the unit's admin owns. This is **off by default**: nothing is
 queued or sent until an admin issues an enrollment link/code and the user confirms it in
-Settings. What is sent: the code's statistics, its start date/time, the unit label, and an SBAR
-summary with relative times only. What is never sent: patient identifiers. Uploads never block or
+Settings. What is sent: the code's statistics (including the patient's weight, and age for
+pediatric codes), its start date/time, the unit label, and an SBAR summary with relative times only. What is never sent: patient identifiers. Uploads never block or
 slow a running code, and a device can stop uploading at any time. Setup for admins:
 [admin/SETUP.md](admin/SETUP.md).
 

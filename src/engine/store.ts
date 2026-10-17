@@ -17,8 +17,10 @@ import type {
   ShockEvent,
   WaveformType,
 } from './types';
-import { CYCLE_MS, masterElapsedMs } from './timing';
+import { masterElapsedMs } from './timing';
 import { clockNow } from './clock';
+import { browserKV } from './kv';
+import { readStoredPopulation } from './prefs';
 import {
   clearPersisted,
   createDebouncedWriter,
@@ -219,8 +221,20 @@ function pauseDelta(pausedAt: number | null, at: number): number {
   return pausedAt != null ? Math.max(0, at - pausedAt) : 0;
 }
 
+/** A repeat of the same dose/shock this soon is a gloved double-tap, not a second administration. */
+const REPEAT_TAP_MS = 1500;
+function isRepeatTap(lastAt: number | undefined, at: number): boolean {
+  // A negative gap (clock stepped back) is not a repeat.
+  return lastAt != null && at - lastAt >= 0 && at - lastAt < REPEAT_TAP_MS;
+}
+
 const persisted = loadPersisted();
-const bootSession: PersistedSession = persisted ?? emptySession();
+// No saved session: start in the device's last Adult/Pediatric choice (pediatric has no default weight).
+const bootSession: PersistedSession =
+  persisted ??
+  (readStoredPopulation(browserKV()) === 'pediatric'
+    ? { ...emptySession(), population: 'pediatric', weightKg: null }
+    : emptySession());
 const wasRestored = persisted != null && (persisted.status !== 'idle' || persisted.events.length > 0);
 const bootStaleAgeMs =
   persisted != null && wasRestored && isStaleSession(persisted, Date.now()) ? Date.now() - persisted.savedAt : null;
@@ -345,7 +359,13 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         playChime();
         haptic.rosc();
         const closesPause = s.status === 'paused' && s.pausedAt != null;
-        const roscEv = keyed('ev.rosc', undefined, 'ev.rosc.detail', {
+        // An unweighted pediatric dose has no mg: with some known the sum is a lower bound, with none it is unknown.
+        const epiDetailKey: MessageKey = s.epi.some((d) => d.mg == null)
+          ? s.epi.every((d) => d.mg == null)
+            ? 'ev.rosc.detail.epiUnknown'
+            : 'ev.rosc.detail.epiPartial'
+          : 'ev.rosc.detail';
+        const roscEv = keyed('ev.rosc', undefined, epiDetailKey, {
           durationMs: t,
           shocks: s.shocks.length,
           epiMg: totalEpiMg(s.epi),
@@ -461,7 +481,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         };
       }),
 
-    administerEpi: () =>
+    administerEpi: () => {
+      if (isRepeatTap(get().epi.at(-1)?.at, clockNow())) return;
       apply((s) => {
         const at = clockNow();
         const t = el(s, at);
@@ -490,9 +511,11 @@ export const useCodeStore = create<CodeStore>((set, get) => {
             mkEvent('drug', epiEv.label, epiEv.detail, at, t, epiEv.i18n),
           ],
         };
-      }),
+      });
+    },
 
-    deliverShock: (joules, perKg, waveformOverride) =>
+    deliverShock: (joules, perKg, waveformOverride) => {
+      if (isRepeatTap(get().shocks.at(-1)?.at, clockNow())) return;
       apply((s) => {
         const at = clockNow();
         const t = el(s, at);
@@ -513,7 +536,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
             mkEvent('shock', shockEv.label, shockEv.detail, at, t, shockEv.i18n),
           ],
         };
-      }),
+      });
+    },
 
     setAntiarrhythmic: (drug) => apply(() => ({ antiarrhythmic: drug })),
 
@@ -522,7 +546,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       else get().administerAmiodarone();
     },
 
-    administerAmiodarone: () =>
+    administerAmiodarone: () => {
+      if (isRepeatTap(get().amio.at(-1)?.at, clockNow())) return;
       apply((s) => {
         const at = clockNow();
         const t = el(s, at);
@@ -559,9 +584,11 @@ export const useCodeStore = create<CodeStore>((set, get) => {
             mkEvent('drug', amioEv.label, amioEv.detail, at, t, amioEv.i18n),
           ],
         };
-      }),
+      });
+    },
 
-    administerLidocaine: () =>
+    administerLidocaine: () => {
+      if (isRepeatTap(get().lido.at(-1)?.at, clockNow())) return;
       apply((s) => {
         const at = clockNow();
         const t = el(s, at);
@@ -612,9 +639,13 @@ export const useCodeStore = create<CodeStore>((set, get) => {
             mkEvent('drug', lidoEv.label, lidoEv.detail, at, t, lidoEv.i18n),
           ],
         };
-      }),
+      });
+    },
 
-    administerMagnesium: () =>
+    administerMagnesium: () => {
+      // Magnesium keeps no dose list, so compare with the last logged event.
+      const last = get().events.at(-1);
+      if (last?.category === 'drug' && last.label.startsWith('Magnesium') && isRepeatTap(last.at, clockNow())) return;
       apply((s) => {
         const at = clockNow();
         playConfirm();
@@ -632,7 +663,8 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         return {
           events: [...s.events, mkEvent('drug', magEv.label, magEv.detail, at, el(s, at), magEv.i18n)],
         };
-      }),
+      });
+    },
 
     markAirwayPlaced: (type = 'ETT') =>
       apply((s) => {
@@ -792,6 +824,3 @@ if (typeof window !== 'undefined') {
     if (document.visibilityState === 'hidden') writer.flush();
   });
 }
-
-/** Cycle length re-exported for UI convenience. */
-export const CYCLE_LENGTH_MS = CYCLE_MS;

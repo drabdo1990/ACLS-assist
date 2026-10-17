@@ -3,12 +3,14 @@
  * enrolled: nothing is queued, stored or sent before enrollment. Spec §5.2.
  */
 import type { KV } from './kv';
-import { loadPrefs, savePrefs, type Enrollment } from './prefs';
+import { loadPrefs, savePrefs, type Enrollment, type Retention } from './prefs';
 import { loadHistory, pruneHistory, updateRecord, type CodeRecord, type UploadStatus } from './history';
 import { buildPayload, isRejectError, sendPayload, type RejectError, type SendDeps, type UploadPayload } from './upload';
 
 export const OUTBOX_KEY = 'resuscode.outbox.v1';
 const MAX_BACKOFF_MS = 300_000;
+// ~20 server errors at the 5-minute backoff cap is nearly two hours; offline/network failures never count.
+const MAX_SERVER_ERRORS = 20;
 
 export interface OutboxEntry {
   payload: UploadPayload;
@@ -16,6 +18,8 @@ export interface OutboxEntry {
   nextAttemptAt: number;
   /** delivered via a no-cors request: the reply could not be read, so resend once on next start */
   unconfirmed: boolean;
+  /** replies of `{ok:false,error:'server'}` for this record; at MAX_SERVER_ERRORS it is dropped as unsendable */
+  serverErrors?: number;
 }
 export interface OutboxState {
   entries: Record<string, OutboxEntry>;
@@ -34,7 +38,13 @@ export function loadOutbox(kv: KV): OutboxState {
     for (const [id, e] of Object.entries(p.entries)) {
       const payload = e?.payload as UploadPayload | undefined;
       if (payload && payload.recordId === id && typeof e.attempts === 'number' && typeof e.nextAttemptAt === 'number') {
-        entries[id] = { payload, attempts: e.attempts, nextAttemptAt: e.nextAttemptAt, unconfirmed: !!e.unconfirmed };
+        entries[id] = {
+          payload,
+          attempts: e.attempts,
+          nextAttemptAt: e.nextAttemptAt,
+          unconfirmed: !!e.unconfirmed,
+          ...(typeof e.serverErrors === 'number' ? { serverErrors: e.serverErrors } : {}),
+        };
       }
     }
     const lr = p.lastRejection;
@@ -66,6 +76,16 @@ export function enqueue(kv: KV, payload: UploadPayload, now: number): boolean {
     payload.sbar === undefined && old?.payload.sbar !== undefined ? { ...payload, sbar: old.payload.sbar } : payload;
   state.entries[payload.recordId] = { payload: merged, attempts: 0, nextAttemptAt: now, unconfirmed: false };
   return saveOutbox(kv, state);
+}
+
+/**
+ * Enqueue a just-recorded code. If the outbox cannot be saved (storage full), put the record back to
+ * 'local' so Backfill can retry it: a 'queued' record with no outbox entry is never sent.
+ */
+export function enqueueOrRevert(kv: KV, rec: CodeRecord, payload: UploadPayload, now: number, retention: Retention): boolean {
+  const ok = enqueue(kv, payload, now);
+  if (!ok) updateRecord(kv, rec.id, { uploadStatus: 'local' }, retention);
+  return ok;
 }
 
 /** Earliest time a retry is due (unconfirmed entries wait for the next app start), or null. */
@@ -117,6 +137,7 @@ export async function flushOutbox(deps: FlushDeps, opts: FlushOptions = {}): Pro
       .sort((a, b) => a.payload.startEpochMs - b.payload.startEpochMs);
 
     for (const entry of due) {
+      let stop = false;
       const id = entry.payload.recordId;
       const res = await sendPayload({ ...entry.payload, enrollmentKey: prefs.enrollment.key }, prefs.enrollment.url, deps);
 
@@ -141,14 +162,25 @@ export async function flushOutbox(deps: FlushDeps, opts: FlushOptions = {}): Pro
         setStatus(id, 'sent_unconfirmed');
         summary.unconfirmed += 1;
       } else {
-        current.attempts += 1;
-        current.unconfirmed = false;
-        current.nextAttemptAt = deps.now() + backoffMs(current.attempts);
-        setStatus(id, 'failed');
-        summary.failed += 1;
+        // The script answered 'server' for THIS record (bad value it cannot store); anything else is connectivity.
+        const recordFault = res.reason === 'server_server';
+        if (recordFault) current.serverErrors = (current.serverErrors ?? 0) + 1;
+        if ((current.serverErrors ?? 0) >= MAX_SERVER_ERRORS) {
+          delete state.entries[id];
+          setStatus(id, 'rejected');
+          summary.rejected += 1;
+        } else {
+          current.attempts += 1;
+          current.unconfirmed = false;
+          current.nextAttemptAt = deps.now() + backoffMs(current.attempts);
+          setStatus(id, 'failed');
+          summary.failed += 1;
+        }
+        stop = !recordFault; // offline / busy / timeout: the next record would fail the same way, 30 s each
       }
       saveOutbox(kv, state);
       deps.onChange?.();
+      if (stop) break;
     }
     return summary;
   };

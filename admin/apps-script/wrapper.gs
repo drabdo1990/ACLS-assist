@@ -65,6 +65,10 @@ function makeAdapter_(ss) {
       for (let i = 0; i < vals.length; i++) if (String(vals[i][0]) === value) return i + 2;
       return null;
     },
+    readCell: function (row, name) {
+      const c = headers_().indexOf(name) + 1;
+      return c ? codes.getRange(row, c).getValue() : null;
+    },
     appendRow: function (cells) {
       const h = headers_();
       const row = nextFreeRow_(h);

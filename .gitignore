@@ -6,3 +6,7 @@ dev-dist
 .DS_Store
 .vite
 .playwright-cli
+
+# local tooling, not part of the app
+.agents/
+.archon/

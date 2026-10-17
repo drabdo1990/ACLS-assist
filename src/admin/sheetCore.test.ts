@@ -34,6 +34,7 @@ function memorySheet(headers: string[] = [], rows: Row[] = [], units: UnitRow[] 
       const i = rows.findIndex((r) => String(r[h]) === v);
       return i < 0 ? null : i + 2;
     },
+    readCell: (row, h) => (headers.includes(h) ? rows[row - 2][h] ?? '' : null),
     appendRow: (cells) => {
       const r: Row = {};
       for (const h of headers) r[h] = h in cells ? cells[h] : '';
@@ -72,6 +73,24 @@ describe('insert / find-or-insert', () => {
       payload_version: 1,
     });
     expect(s.headers).not.toContain('sbar'); // absent in the payload → no column, no cell
+  });
+
+  it("refuses to update a row another unit's key wrote, and leaves it untouched", () => {
+    const s = memorySheet();
+    send(s, P()); // ICU writes the row
+    const wardKey = buildPayload(mkRecord(1, { training: true }), { enrollmentKey: 'unit-ward-2026', offsetMin: 0 });
+    expect(send(s, wardKey)).toEqual({ ok: false, error: 'key' });
+    expect(s.rows).toHaveLength(1);
+    expect(s.rows[0]).toMatchObject({ unit: 'ICU', training: false });
+    expect(send(s, P({}))).toEqual({ ok: true }); // the owning unit can still update
+  });
+
+  it('lets a device that moved to another unit re-send its test record', () => {
+    const s = memorySheet();
+    expect(send(s, buildTestPayload(DEVICE, KEY, T0))).toEqual({ ok: true });
+    expect(send(s, buildTestPayload(DEVICE, 'unit-ward-2026', T0))).toEqual({ ok: true });
+    expect(s.rows).toHaveLength(1);
+    expect(s.rows[0].unit).toBe('Ward 7');
   });
 
   it('two uploads of one record produce one row (two tabs, retries)', () => {
@@ -213,6 +232,28 @@ describe('population / weight columns (phase 4a)', () => {
     const rec = mkRecord(1, {}, { population: 'pediatric', weightKg: 18, weightSource: 'estimated' });
     expect(send(s, buildPayload(rec, { enrollmentKey: KEY, offsetMin: 0 }))).toEqual({ ok: true });
     expect(s.rows[0]).toMatchObject({ population: 'pediatric', weight_kg: 18, weight_source: 'estimated' });
+  });
+
+  it('writes the *_not_calculated counts so an unknown total is not read as 0 mg', () => {
+    const s = memorySheet();
+    const p = P();
+    const st = p.stats as Record<string, any>;
+    const stats = {
+      ...st,
+      epi: { ...st.epi, notCalculated: 2 },
+      amiodarone: { ...st.amiodarone, count: 3, totalMg: 0, notCalculated: 3 },
+      lidocaine: { ...st.lidocaine, notCalculated: 1 },
+      magnesium: { ...st.magnesium, notCalculated: 1 },
+    };
+    expect(send(s, { ...p, stats })).toEqual({ ok: true });
+    expect(s.rows[0]).toMatchObject({
+      epi_not_calculated: 2,
+      amiodarone_count: 3,
+      amiodarone_mg: 0,
+      amiodarone_not_calculated: 3,
+      lidocaine_not_calculated: 1,
+      magnesium_not_calculated: 1,
+    });
   });
 
   it('a payload without the new fields (older app) reads as adult with empty weight', () => {

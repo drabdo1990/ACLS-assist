@@ -311,7 +311,7 @@ describe('pediatric SBAR (phase 4a)', () => {
   it('pediatric recommendations replace the adult post-ROSC lines', () => {
     const out = buildSbar(pedsBase, T0 + 500_000);
     expect(out).toContain('- SpO₂ 94–99% — avoid hyperoxia; normal CO₂.');
-    expect(out).toContain('- Avoid hypotension (SBP < 5th centile for age)');
+    expect(out).toContain('- Avoid hypotension (SBP < 60 neonate, < 70 infant, < 70 + 2 × age (yr) child, < 90 adolescent)');
     expect(out).not.toContain('- Post-ROSC bundle: secure airway (ETT)');
   });
 
@@ -329,6 +329,21 @@ describe('pediatric SBAR (phase 4a)', () => {
     );
     expect(out).toContain('Weight not set — doses not calculated.');
     expect(out).toContain('(doses not calculated)');
+  });
+
+  it('a dose given before the weight was set shows as "not calculated" instead of vanishing from the list', () => {
+    const out = buildSbar(
+      {
+        ...pedsBase,
+        epi: [
+          { at: T0 + 60_000, t: 60_000, label: 'Epinephrine given — dose not calculated (no weight)', mg: null },
+          { at: T0 + 180_000, t: 180_000, label: 'Epinephrine 0.16 mg IV/IO', mg: 0.16 },
+          { at: T0 + 300_000, t: 300_000, label: 'Epinephrine 0.16 mg IV/IO', mg: 0.16 },
+        ],
+      },
+      T0 + 500_000,
+    );
+    expect(out).toContain('Epinephrine: 3 × 0.01 mg/kg (not calculated, 0.16 mg, 0.16 mg)');
   });
 
   it('Arabic pediatric SBAR translates the situation, weight and recommendations', () => {

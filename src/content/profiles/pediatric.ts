@@ -1,13 +1,16 @@
 /**
- * Pediatric clinical profile — SHA PALS (AHA PALS 2020/2023 figures, the basis of SHA PALS).
- *
- * ⚠ CLINICAL SIGN-OFF REQUIRED (spec §10): every value in this file is a sign-off row of
- * spec §6 until a clinician verifies it against the hospital's SHA PALS edition. While
- * `PEDIATRIC_CLINICAL_REVIEWED = false` the UI shows the preview notice.
+ * Pediatric clinical profile — benchmarked to the SHA Pediatric Advanced Life Support
+ * Provider Course (“SHA PALS provider course”, Saudi Heart Association / King Saud University
+ * Medical City; see `docs/sha-pals-provider-course.md` and `docs/clinical-benchmark.md`):
+ * - CPR & ventilation: Module 4, Ch. 4, Table 4.4.3 (pp. 94–95) & Module 2 (p. 45)
+ * - Defibrillation (2 → 4 → 4–10 J/kg, max adult dose): Module 4, Ch. 4 (p. 96)
+ * - Epinephrine (0.01 mg/kg = 0.1 mL/kg of 1:10,000 q3–5 min, max 1 mg): Module 4, Table 4.2.2 (p. 75)
+ * - Amiodarone (5 mg/kg), Lidocaine (1 mg/kg), Magnesium (25–50 mg/kg): Module 4, Ch. 4–5 (pp. 96, 99)
+ * - Post–cardiac arrest care (SpO₂ 94–99%, normocarbia, age-based SBP, TTM, glucose, EEG): Module 4, Ch. 6 (pp. 102–105)
  *
  * Contract: every calculator takes `weightKg: number | null` and returns `null` when the
  * weight is missing or invalid (null, NaN, ≤ 0, > 150) — the UI then shows "Set weight".
- * Functions never return NaN. Rounding: mg → 2 decimals, mL → 1 decimal, joules → whole.
+ * Functions never return NaN. Rounding: mg → 2–3 decimals, mL → 1–2 decimals, joules → whole.
  * `capped` is true when a ceiling applies at this weight (the value shows "(max)").
  */
 import type { AlgorithmInput, AlgorithmStep, AlgorithmView, StepFocus } from '../algorithm';
@@ -42,7 +45,7 @@ export const PEDIATRIC_POST_ROSC_BUNDLE: ChecklistItem<PediatricPostRoscId>[] = 
   { id: 'co2', text: 'Normal CO₂ — check capnography / blood gas', critical: true },
   {
     id: 'bp',
-    text: 'Avoid hypotension (SBP < 5th centile for age) — fluids or vasoactives per local protocol',
+    text: 'Avoid hypotension — SBP < 60 neonate, < 70 infant, < 70 + 2 × age (yr) child, < 90 adolescent — fluids or vasoactives per local protocol',
     critical: true,
   },
   { id: 'temp', text: 'Treat fever; temperature control per local protocol' },

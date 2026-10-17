@@ -12,6 +12,7 @@ import { LogScreen } from './screens/LogScreen';
 import { AudioHint, SaveFailedChip } from './components/ui/StatusChips';
 import { ClockChangeNotice } from './components/ui/ClockChangeNotice';
 import { EnrollConfirm } from './components/EnrollConfirm';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsSheet } from './components/SettingsSheet';
 import type { EnrollFragment } from './engine/enrollLink';
 import { useT } from './i18n/useT';
@@ -34,6 +35,38 @@ function useOnline(): boolean {
   return online;
 }
 
+/** Owns the 5 Hz `useNow()` subscription, so each tick redraws only this banner, not the whole app. */
+function RhythmCheckBanner({ onOpenHud }: { onOpenHud: () => void }) {
+  const { t } = useT();
+  const now = useNow();
+  const cyclic = useCodeStore(
+    useShallow((s) => ({
+      status: s.status,
+      cycleIndex: s.cycleIndex,
+      pausedAt: s.pausedAt,
+      cycleStartedAt: s.cycleStartedAt,
+      cyclePausedAccumMs: s.cyclePausedAccumMs,
+    })),
+  );
+  if (!(cyclic.status === 'active' && cycleRemainingMs(cyclic, now) <= 0)) return null;
+  return (
+    <div className="animate-flash-bg mb-3 flex items-center justify-between gap-3 rounded-2xl border-2 border-crit bg-crit/20 p-3 text-white">
+      <div>
+        <p className="text-base font-black leading-tight sm:text-lg">{t('hud.cycle.rhythmCheck')}</p>
+        <p className="text-xs font-bold opacity-90">{t('hud.cycle.switchCompressors')}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenHud}
+        className="touch-hit flex shrink-0 items-center gap-1 rounded-xl border border-white bg-white/20 px-3 py-2 text-xs font-bold active:scale-95"
+      >
+        <Siren className="h-4 w-4" />
+        {t('tab.hud')}
+      </button>
+    </div>
+  );
+}
+
 export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }) {
   const { t, lang } = useT();
   useTicker();
@@ -47,19 +80,6 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
   const dismissRestored = useCodeStore((s) => s.dismissRestored);
   const staleAgeMs = useCodeStore((s) => s.staleAgeMs);
   const reset = useCodeStore((s) => s.reset);
-
-  const now = useNow();
-  const cyclic = useCodeStore(
-    useShallow((s) => ({
-      status: s.status,
-      cycleIndex: s.cycleIndex,
-      pausedAt: s.pausedAt,
-      cycleStartedAt: s.cycleStartedAt,
-      cyclePausedAccumMs: s.cyclePausedAccumMs,
-    })),
-  );
-  const remaining = cycleRemainingMs(cyclic, now);
-  const cycleExpired = cyclic.status === 'active' && remaining <= 0;
 
   const tabs: Array<{ id: Tab; label: string; icon: typeof Siren }> = [
     { id: 'hud', label: t('tab.hud'), icon: Siren },
@@ -160,31 +180,21 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
           </div>
         ) : null}
 
-        {cycleExpired && tab !== 'hud' ? (
-          <div className="animate-flash-bg mb-3 flex items-center justify-between gap-3 rounded-2xl border-2 border-crit bg-crit/20 p-3 text-white">
-            <div>
-              <p className="text-base font-black leading-tight sm:text-lg">{t('hud.cycle.rhythmCheck')}</p>
-              <p className="text-xs font-bold opacity-90">{t('hud.cycle.switchCompressors')}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setTab('hud')}
-              className="touch-hit flex shrink-0 items-center gap-1 rounded-xl border border-white bg-white/20 px-3 py-2 text-xs font-bold active:scale-95"
-            >
-              <Siren className="h-4 w-4" />
-              {t('tab.hud')}
-            </button>
-          </div>
-        ) : null}
+        {tab !== 'hud' ? <RhythmCheckBanner onOpenHud={() => setTab('hud')} /> : null}
 
         <div className={tab === 'hud' ? 'block' : 'hidden'}>
           <HudScreen onEnd={() => setTab('log')} onOpenCauses={() => setTab('causes')} />
         </div>
+        {/* Own boundaries: a bad record in Log/Causes must not blank the HUD mid-code. */}
         <div className={tab === 'causes' ? 'block' : 'hidden'}>
-          <CausesScreen />
+          <ErrorBoundary>
+            <CausesScreen />
+          </ErrorBoundary>
         </div>
         <div className={tab === 'log' ? 'block' : 'hidden'}>
-          <LogScreen />
+          <ErrorBoundary>
+            <LogScreen />
+          </ErrorBoundary>
         </div>
 
         <p className="mt-4 text-center text-[10px] leading-relaxed text-mute">

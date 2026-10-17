@@ -97,8 +97,3 @@ export const CAUSES: Cause[] = [
     action: '12-lead after ROSC; emergent PCI / Cath Lab (or thrombolysis); consider eCPR.',
   },
 ];
-
-export const CAUSE_GROUP_LABEL: Record<'H' | 'T', string> = {
-  H: `${CAUSES.filter((c) => c.group === 'H').length} H's`,
-  T: `${CAUSES.filter((c) => c.group === 'T').length} T's`,
-};

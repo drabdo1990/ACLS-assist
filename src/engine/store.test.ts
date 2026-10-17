@@ -211,6 +211,7 @@ describe('defibrillation', () => {
   it('tallies shocks with energy and waveform', () => {
     s().startCode();
     s().deliverShock(200);
+    at(5_000);
     s().deliverShock(360);
     expect(s().shocks).toHaveLength(2);
     const labels = s().events.filter((e) => e.category === 'shock').map((e) => e.label);
@@ -249,6 +250,36 @@ describe('epinephrine', () => {
   });
 });
 
+describe('double-tap guard', () => {
+  const actions = [
+    ['epinephrine', () => s().administerEpi(), () => s().epi.length],
+    ['shock', () => s().deliverShock(200), () => s().shocks.length],
+    ['amiodarone', () => s().administerAmiodarone(), () => s().amio.length],
+    ['lidocaine', () => s().administerLidocaine(), () => s().lido.length],
+    ['magnesium', () => s().administerMagnesium(), () => s().events.filter((e) => e.label.startsWith('Magnesium')).length],
+  ] as const;
+
+  it.each(actions)('logs %s once for a double tap, again after 2 s', (_name, act, count) => {
+    s().startCode();
+    act();
+    at(200);
+    act();
+    expect(count()).toBe(1);
+    at(2_000);
+    act();
+    expect(count()).toBe(2);
+  });
+
+  it('does not treat a backward clock step as a repeat', () => {
+    s().startCode();
+    at(10_000);
+    s().administerEpi();
+    at(5_000);
+    s().administerEpi();
+    expect(s().epi).toHaveLength(2);
+  });
+});
+
 describe('magnesium', () => {
   it('logs magnesium for Torsades and can be undone', () => {
     s().startCode();
@@ -264,7 +295,9 @@ describe('antiarrhythmics', () => {
   it('auto-sequences amiodarone 300 → 150 mg', () => {
     s().startCode();
     s().administerAntiarrhythmic();
+    at(5_000);
     s().administerAntiarrhythmic();
+    at(10_000);
     s().administerAntiarrhythmic();
     const details = s()
       .events.filter((e) => e.label.startsWith('Amiodarone'))
@@ -281,6 +314,7 @@ describe('antiarrhythmics', () => {
     s().setWeight(80);
     s().setAntiarrhythmic('lidocaine');
     s().administerAntiarrhythmic();
+    at(5_000);
     s().administerAntiarrhythmic();
     expect(s().lido).toHaveLength(2);
     expect(s().amio).toHaveLength(0);
@@ -293,8 +327,12 @@ describe('antiarrhythmics', () => {
     s().startCode();
     s().setWeight(40); // max 120 mg; doses 40, 20, 20, 20, 20 → 120, the 6th exceeds
     s().setAntiarrhythmic('lidocaine');
-    for (let i = 0; i < 5; i++) s().administerAntiarrhythmic();
+    for (let i = 0; i < 5; i++) {
+      at(i * 5_000);
+      s().administerAntiarrhythmic();
+    }
     expect(lastEvent().detail).not.toContain('EXCEEDS');
+    at(25_000);
     s().administerAntiarrhythmic();
     expect(lastEvent().detail).toContain('EXCEEDS 3 mg/kg');
   });

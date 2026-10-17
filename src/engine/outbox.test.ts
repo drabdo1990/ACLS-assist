@@ -11,6 +11,7 @@ import {
   backoffMs,
   enqueue,
   enqueueBackfill,
+  enqueueOrRevert,
   enroll,
   flushOutbox,
   loadOutbox,
@@ -60,6 +61,25 @@ describe('enqueue', () => {
   });
 });
 
+describe('enqueueOrRevert', () => {
+  it('puts the record back to local when the outbox cannot be saved, so Backfill can retry it', () => {
+    const kv = enrolledKV();
+    const rec = queued(kv, 1).record;
+    const realSet = kv.set;
+    kv.set = (k, v) => (k === OUTBOX_KEY ? false : realSet(k, v)); // storage refuses the outbox only
+    expect(enqueueOrRevert(kv, rec, pl(1), T0, loadPrefs(kv).retention)).toBe(false);
+    expect(statusOf(kv, 1)).toBe('local');
+    expect(backfillCandidates(kv).map((r) => r.id)).toContain(rec.id);
+  });
+
+  it('leaves the record queued when the outbox saves', () => {
+    const kv = enrolledKV();
+    const rec = queued(kv, 1).record;
+    expect(enqueueOrRevert(kv, rec, pl(1), T0, loadPrefs(kv).retention)).toBe(true);
+    expect(statusOf(kv, 1)).toBe('queued');
+  });
+});
+
 describe('flushOutbox', () => {
   it('delivers, removes the entry, marks the record sent, uses the current enrollment key and URL', async () => {
     const kv = enrolledKV();
@@ -102,6 +122,42 @@ describe('flushOutbox', () => {
     await flushOutbox(mk(kv, f, () => T0 + 1000));
     expect(f.calls).toHaveLength(2);
     expect(nextDueAt(kv)).toBe(T0 + 1000 + 2000);
+  });
+
+  it('stops the flush after a connectivity failure instead of trying every other record', async () => {
+    const kv = enrolledKV();
+    for (const n of [1, 2, 3]) {
+      queued(kv, n);
+      enqueue(kv, pl(n), T0);
+    }
+    const f = fakeFetch(html());
+    const s = await flushOutbox(mk(kv, f));
+    expect(f.calls).toHaveLength(1);
+    expect(s.failed).toBe(1);
+  });
+
+  it("a record the script cannot store ('server' reply) does not block the others, and is dropped after 20 tries", async () => {
+    const kv = enrolledKV();
+    queued(kv, 1);
+    enqueue(kv, pl(1), T0);
+    queued(kv, 2);
+    enqueue(kv, pl(2), T0);
+    const f = fakeFetch(json({ ok: false, error: 'server' }), json({ ok: true }));
+    const s = await flushOutbox(mk(kv, f));
+    expect(s).toMatchObject({ failed: 1, sent: 1 });
+    expect(statusOf(kv, 2)).toBe('sent');
+    for (let i = 1; i < 20; i++) await flushOutbox(mk(kv, fakeFetch(json({ ok: false, error: 'server' })), () => T0 + i * 600_000));
+    expect(statusOf(kv, 1)).toBe('rejected');
+    expect(loadOutbox(kv).entries[mkRecord(1).id]).toBeUndefined();
+  });
+
+  it('offline failures never reach the retry cap', async () => {
+    const kv = enrolledKV();
+    queued(kv, 1);
+    enqueue(kv, pl(1), T0);
+    for (let i = 0; i < 30; i++) await flushOutbox(mk(kv, fakeFetch(html()), () => T0 + i * 600_000));
+    expect(statusOf(kv, 1)).toBe('failed');
+    expect(loadOutbox(kv).entries[mkRecord(1).id]).toBeDefined();
   });
 
   it('no-cors delivery is sent_unconfirmed, not re-sent this session, re-sent once at next start', async () => {

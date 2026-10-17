@@ -23,8 +23,9 @@ const DEVICE_COLUMNS = [
   'population', 'weight_kg', 'weight_source',
   'ended_epoch_ms', 'arrest_ms', 'rosc_count', 'first_rosc_ms', 'first_shock_ms', 'first_epi_ms',
   'branch_at_first_epi', 'shock_count', 'shock_joules', 'epi_count', 'epi_mean_interval_ms',
-  'epi_longest_interval_ms', 'epi_interval_flag', 'amiodarone_count', 'amiodarone_mg', 'lidocaine_count',
-  'magnesium_count', 'cycles', 'paused_ms', 'airway_type', 'airway_first_ms', 'rhythms', 'causes', 'pocus',
+  'epi_longest_interval_ms', 'epi_interval_flag', 'epi_not_calculated', 'amiodarone_count', 'amiodarone_mg',
+  'amiodarone_not_calculated', 'lidocaine_count', 'lidocaine_not_calculated', 'magnesium_count',
+  'magnesium_not_calculated', 'cycles', 'paused_ms', 'airway_type', 'airway_first_ms', 'rhythms', 'causes', 'pocus',
   'post_rosc_done', 'post_rosc_total', 'sbar', 'payload_version', 'stats_version', 'last_upload_iso',
 ];
 
@@ -132,10 +133,15 @@ function flattenPayload(p, unitName, nowIso) {
     epi_mean_interval_ms: val(st.epi && st.epi.meanIntervalMs),
     epi_longest_interval_ms: val(st.epi && st.epi.longestIntervalMs),
     epi_interval_flag: val(st.epi && st.epi.longestExceedsThreshold),
+    // "not calculated" = given with no weight, so no mg: tells a real 0 mg total from an unknown one
+    epi_not_calculated: val(st.epi && st.epi.notCalculated),
     amiodarone_count: val(st.amiodarone && st.amiodarone.count),
     amiodarone_mg: val(st.amiodarone && st.amiodarone.totalMg),
+    amiodarone_not_calculated: val(st.amiodarone && st.amiodarone.notCalculated),
     lidocaine_count: val(st.lidocaine && st.lidocaine.count),
+    lidocaine_not_calculated: val(st.lidocaine && st.lidocaine.notCalculated),
     magnesium_count: val(st.magnesium && st.magnesium.count),
+    magnesium_not_calculated: val(st.magnesium && st.magnesium.notCalculated),
     cycles: val(st.cycles),
     paused_ms: val(st.pausedMs),
     airway_type: val(st.airway && st.airway.type),
@@ -183,7 +189,14 @@ function handleUpload(body, sheet, nowMs) {
 
   const row = sheet.findRow('record_id', p.recordId);
   if (row == null) sheet.appendRow(cells);
-  else sheet.updateCells(row, cells);
+  else {
+    // A key may only update rows its own unit wrote (record ids are guessable: start time + device id).
+    // Not "Send test record" rows (TEST-<deviceId>): a device moved to another unit must still be able to test.
+    const owner = sheet.readCell(row, 'unit');
+    const isTest = String(p.recordId).indexOf('TEST-') === 0;
+    if (!isTest && owner != null && String(owner) !== '' && String(owner) !== unit.name) return { ok: false, error: 'key' };
+    sheet.updateCells(row, cells);
+  }
   return { ok: true };
 }
 
@@ -253,6 +266,10 @@ function makeAdapter_(ss) {
       const vals = codes.getRange(2, c, n, 1).getValues();
       for (let i = 0; i < vals.length; i++) if (String(vals[i][0]) === value) return i + 2;
       return null;
+    },
+    readCell: function (row, name) {
+      const c = headers_().indexOf(name) + 1;
+      return c ? codes.getRange(row, c).getValue() : null;
     },
     appendRow: function (cells) {
       const h = headers_();

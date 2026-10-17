@@ -145,7 +145,9 @@ export function InterventionGrid() {
   const aaSub = peds
     ? noWeight
       ? t('peds.setWeightBanner')
-      : amioSubPeds(aaCount, t)
+      : !isLido && pedsAa?.exceedsTotal
+        ? t('peds.grid.amio.exceeds')
+        : amioSubPeds(aaCount, t)
     : isLido
       ? lidoBudget.nextExceeds
         ? t('hud.grid.lido.exceeds', { given: lidoBudget.givenMg, max: lidoBudget.maxMg })
