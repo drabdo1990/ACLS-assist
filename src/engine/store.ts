@@ -17,8 +17,10 @@ import type {
   ShockEvent,
   WaveformType,
 } from './types';
-import { CYCLE_MS, masterElapsedMs } from './timing';
+import { masterElapsedMs } from './timing';
 import { clockNow } from './clock';
+import { browserKV } from './kv';
+import { readStoredPopulation } from './prefs';
 import {
   clearPersisted,
   createDebouncedWriter,
@@ -227,7 +229,12 @@ function isRepeatTap(lastAt: number | undefined, at: number): boolean {
 }
 
 const persisted = loadPersisted();
-const bootSession: PersistedSession = persisted ?? emptySession();
+// No saved session: start in the device's last Adult/Pediatric choice (pediatric has no default weight).
+const bootSession: PersistedSession =
+  persisted ??
+  (readStoredPopulation(browserKV()) === 'pediatric'
+    ? { ...emptySession(), population: 'pediatric', weightKg: null }
+    : emptySession());
 const wasRestored = persisted != null && (persisted.status !== 'idle' || persisted.events.length > 0);
 const bootStaleAgeMs =
   persisted != null && wasRestored && isStaleSession(persisted, Date.now()) ? Date.now() - persisted.savedAt : null;
@@ -811,6 +818,3 @@ if (typeof window !== 'undefined') {
     if (document.visibilityState === 'hidden') writer.flush();
   });
 }
-
-/** Cycle length re-exported for UI convenience. */
-export const CYCLE_LENGTH_MS = CYCLE_MS;

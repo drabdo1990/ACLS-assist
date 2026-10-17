@@ -3,12 +3,14 @@
  *
  * Absolute epoch timestamps remain the persisted source of truth (they survive a
  * refresh, which `performance.now()` does not). Live time, however, advances on the
- * monotonic `performance.now()` delta from an epoch anchor, so a wall-clock change
- * (NTP sync, manual time change) cannot make the running timers jump.
+ * monotonic `performance.now()` delta from an epoch anchor, so a small wall-clock change
+ * (NTP sync) does not make the running timers jump.
  *
  * Some platforms pause `performance.now()` while the device sleeps. We re-anchor when
  * the page becomes visible again, and whenever the monotonic estimate drifts from
- * `Date.now()` by more than RESYNC_MS (which only happens after a suspend).
+ * `Date.now()` by more than RESYNC_MS. A wall-clock step larger than RESYNC_MS is therefore
+ * trusted and DOES move the clock (and the 2-minute cycle): that is deliberate, because a
+ * paused monotonic clock after sleep looks the same as a real time change.
  */
 
 export const RESYNC_MS = 1_000;

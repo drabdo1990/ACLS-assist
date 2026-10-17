@@ -16,7 +16,7 @@ import { POST_ROSC_BUNDLE, type ChecklistItem } from '../protocols';
 import type { Population, ProtocolProfile } from './index';
 
 /** Adult default weight: what the store used before phase 4a made weightKg nullable. */
-export const ADULT_DEFAULT_KG = 70;
+const ADULT_DEFAULT_KG = 70;
 
 export const adultProfile: ProtocolProfile = {
   population: 'adult' as Population,
