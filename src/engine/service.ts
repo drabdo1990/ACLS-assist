@@ -5,7 +5,8 @@
  */
 import { useCodeStore } from './store';
 import { browserKV, type KV } from './kv';
-import { clearHistory, pruneHistory, updateRecord } from './history';
+import { clearHistory, pruneHistory } from './history';
+import { editRecordFlagsCore } from './flagEdit';
 import { installHistoryCapture } from './historyCapture';
 import { loadPrefs, savePrefs, type Enrollment, type Prefs, type Retention } from './prefs';
 import {
@@ -105,7 +106,7 @@ export function setRetention(retention: Retention): void {
 export function editRecordFlags(id: string, patch: { training?: boolean; voided?: boolean }): void {
   if (!kv) return;
   const prefs = loadPrefs(kv);
-  const rec = updateRecord(kv, id, { ...patch, uploadStatus: prefs.enrollment ? 'queued' : 'local' }, prefs.retention);
+  const rec = editRecordFlagsCore(kv, useCodeStore, id, patch);
   if (rec && prefs.enrollment) {
     enqueue(kv, buildPayload(rec, { enrollmentKey: prefs.enrollment.key }), Date.now());
     void flushNow();
