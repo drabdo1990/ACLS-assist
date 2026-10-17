@@ -54,8 +54,14 @@ describe('header wake-lock chip is translated', () => {
 describe('cycle-panel rhythm buttons are translated', () => {
   const panel = read('components/hud/CyclePanel.tsx');
 
-  it('the rhythm button label goes through t(), not the raw rhythm id', () => {
-    expect(panel).toMatch(/t\(`rhythm\.\$\{r\}`\)/);
+  // Only the two English-only buttons are translated. VF / pVT / PEA stay as the short universal
+  // abbreviations: their long Arabic strings wrap badly in the grid-cols-5 row on a time-critical control.
+  it('only Asystole and Pulse go through t(`rhythm.${r}`); VF/pVT/PEA render the raw id', () => {
+    expect(panel).toMatch(
+      /\{\s*r === 'Asystole' \|\| r === 'Pulse'\s*\?\s*t\(`rhythm\.\$\{r\}`\)\s*:\s*r\s*\}/,
+    );
+    // No unconditional translated label, and no unconditional raw label either.
+    expect(panel).not.toMatch(/>\s*\{\s*t\(`rhythm\.\$\{r\}`\)\s*\}\s*</);
     expect(panel).not.toMatch(/>\s*\{r\}\s*</);
   });
 
@@ -63,8 +69,12 @@ describe('cycle-panel rhythm buttons are translated', () => {
     expect(panel).toMatch(/resetCycle\(r\)/);
   });
 
-  it('the existing rhythm.* keys keep the exact English button text', () => {
-    expect((EN as Record<string, string>)['rhythm.Asystole']).toBe('Asystole');
-    expect((EN as Record<string, string>)['rhythm.Pulse']).toBe('Pulse');
+  it('the rhythm.* keys keep the exact English text for all five rhythms', () => {
+    const en = EN as Record<string, string>;
+    expect(en['rhythm.VF']).toBe('VF');
+    expect(en['rhythm.pVT']).toBe('pVT');
+    expect(en['rhythm.PEA']).toBe('PEA');
+    expect(en['rhythm.Asystole']).toBe('Asystole');
+    expect(en['rhythm.Pulse']).toBe('Pulse');
   });
 });
