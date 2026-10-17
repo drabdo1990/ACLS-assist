@@ -104,7 +104,8 @@ export interface SendDeps {
   isOnline: () => boolean;
 }
 
-const REQUEST_TIMEOUT_MS = 15_000;
+// Longer than the script's 25 s lock wait (wrapper.gs): giving up first would turn a "busy" reply into a no-cors "sent".
+const REQUEST_TIMEOUT_MS = 30_000;
 
 function timeoutSignal(): AbortSignal | undefined {
   return typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
