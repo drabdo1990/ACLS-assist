@@ -124,6 +124,7 @@ const UI = {
   'peds.grid.shock.escalate': 'Escalate ≤ 10 J/kg',
   'peds.grid.energyNote': 'Use the nearest available setting at or below',
   'peds.grid.amio.title': 'Amiodarone {mg} mg · 5 mg/kg',
+  'peds.grid.amio.exceeds': '⚠ Exceeds 15 mg/kg cumulative max',
   'peds.grid.lido.title': 'Lidocaine {mg} mg · 1 mg/kg',
   'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg',
   'peds.max': '(max)',
@@ -569,7 +570,7 @@ const UI = {
   'enroll.linkInvalid': 'That enrollment link was not valid and was ignored.',
   'enroll.confirmTitle': 'Enroll this device for code upload?',
   'enroll.notice':
-    "If you enroll, each finished code's statistics (times, shocks, drugs, outcome), its start date and time, your unit and a summary note with relative times — never patient identifiers — are sent to the Google Sheet of the admin who issued this code.",
+    "If you enroll, each finished code's statistics (times, shocks, drugs, outcome, weight, and age for pediatric codes), its start date and time, your unit and a summary note with relative times — never patient identifiers — are sent to the Google Sheet of the admin who issued this code.",
   'enroll.destination': 'Destination',
   'enroll.checkId': 'Check that this ID matches the one your administrator gave you. If it does not, tap Cancel.',
   'enroll.unit': 'Unit',

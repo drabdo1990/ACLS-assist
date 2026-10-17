@@ -24,8 +24,15 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       window.location.reload();
     }
   });
+  // A ward tablet can stay open for days: re-check on load, whenever the page is shown again, and hourly.
   navigator.serviceWorker.getRegistration().then((reg) => {
-    void reg?.update();
+    if (!reg) return;
+    const check = () => void reg.update().catch(() => {}); // offline: try again next time
+    check();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') check();
+    });
+    setInterval(check, 60 * 60 * 1000);
   });
 }
 

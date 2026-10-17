@@ -112,6 +112,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'peds.grid.shock.escalate': 'تصعيد ≤ 10 J/kg', // draft — clinician review required
   'peds.grid.energyNote': 'استخدم أقرب قيمة متاحة تساوي أو تقل عن المطلوب', // draft — clinician review required
   'peds.grid.amio.title': 'Amiodarone {mg} mg · 5 mg/kg', // draft — clinician review required
+  'peds.grid.amio.exceeds': '⚠ يتجاوز الحد الأقصى التراكمي 15 mg/kg', // draft — clinician review required
   'peds.grid.lido.title': 'Lidocaine {mg} mg · 1 mg/kg', // draft — clinician review required
   'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg', // draft — clinician review required
   'peds.max': '(حد أقصى)', // draft — clinician review required
@@ -562,7 +563,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'enroll.linkInvalid': 'رابط التسجيل هذا غير صالح وتم تجاهله.',
   'enroll.confirmTitle': 'تسجيل هذا الجهاز لرفع بيانات النداءات؟',
   'enroll.notice':
-    'عند التسجيل، تُرسل إحصاءات كل نداء منتهٍ (الأوقات، الصدمات، الأدوية، النتيجة) وتاريخ ووقت بدئه ووحدتك وملخصاً بأوقات نسبية — دون أي معرّفات للمرضى — إلى جدول Google الخاص بالمسؤول الذي أصدر هذا الرمز.', // draft — clinician review required (consent wording)
+    'عند التسجيل، تُرسل إحصاءات كل نداء منتهٍ (الأوقات، الصدمات، الأدوية، النتيجة، الوزن، والعمر في نداءات الأطفال) وتاريخ ووقت بدئه ووحدتك وملخصاً بأوقات نسبية — دون أي معرّفات للمرضى — إلى جدول Google الخاص بالمسؤول الذي أصدر هذا الرمز.', // draft — clinician review required (consent wording)
   'enroll.destination': 'الوجهة',
   'enroll.checkId': 'تأكد من أن هذا المعرّف يطابق المعرّف الذي أعطاك إياه المسؤول. وإن لم يطابقه فاضغط «إلغاء».', // draft — clinician review required (consent wording)
   'enroll.unit': 'الوحدة',
