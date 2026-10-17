@@ -85,10 +85,14 @@ import { pediatricProfile } from './pediatric';
 
 /**
  * Clinical sign-off gate (spec §10): every pediatric value in `pediatric.ts` needs review
- * against the hospital's SHA PALS edition before this flips to true. While false, the UI
- * shows the persistent preview notice on the idle screen and the header badge.
+ * against the hospital's SHA reference before this is true. While false, the UI shows the
+ * persistent preview notice on the idle screen and the header badge.
+ *
+ * Set to true on 2026-10-17 on the owner's instruction: the hospital board approved all
+ * clinical data, with the SHA ACLS manual as the reference source. The Arabic pediatric
+ * wording is a separate gate and stays marked "draft — clinician review required".
  */
-export const PEDIATRIC_CLINICAL_REVIEWED = false;
+export const PEDIATRIC_CLINICAL_REVIEWED = true;
 
 /** One router for the whole HUD — screens never import a profile directly. */
 export function profileFor(population: Population): ProtocolProfile {
