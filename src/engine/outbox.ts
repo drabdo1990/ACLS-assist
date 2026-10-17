@@ -3,7 +3,7 @@
  * enrolled: nothing is queued, stored or sent before enrollment. Spec §5.2.
  */
 import type { KV } from './kv';
-import { loadPrefs, savePrefs, type Enrollment } from './prefs';
+import { loadPrefs, savePrefs, type Enrollment, type Retention } from './prefs';
 import { loadHistory, pruneHistory, updateRecord, type CodeRecord, type UploadStatus } from './history';
 import { buildPayload, isRejectError, sendPayload, type RejectError, type SendDeps, type UploadPayload } from './upload';
 
@@ -66,6 +66,16 @@ export function enqueue(kv: KV, payload: UploadPayload, now: number): boolean {
     payload.sbar === undefined && old?.payload.sbar !== undefined ? { ...payload, sbar: old.payload.sbar } : payload;
   state.entries[payload.recordId] = { payload: merged, attempts: 0, nextAttemptAt: now, unconfirmed: false };
   return saveOutbox(kv, state);
+}
+
+/**
+ * Enqueue a just-recorded code. If the outbox cannot be saved (storage full), put the record back to
+ * 'local' so Backfill can retry it: a 'queued' record with no outbox entry is never sent.
+ */
+export function enqueueOrRevert(kv: KV, rec: CodeRecord, payload: UploadPayload, now: number, retention: Retention): boolean {
+  const ok = enqueue(kv, payload, now);
+  if (!ok) updateRecord(kv, rec.id, { uploadStatus: 'local' }, retention);
+  return ok;
 }
 
 /** Earliest time a retry is due (unconfirmed entries wait for the next app start), or null. */

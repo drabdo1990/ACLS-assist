@@ -15,6 +15,7 @@ import {
   clearOutbox,
   enqueue,
   enqueueBackfill,
+  enqueueOrRevert,
   enroll,
   flushOutbox,
   nextDueAt,
@@ -82,7 +83,7 @@ export function startService(): void {
     onRecorded: (rec, sbar) => {
       const prefs = loadPrefs(store);
       if (!prefs.enrollment) return;
-      enqueue(store, buildPayload(rec, { enrollmentKey: prefs.enrollment.key, sbar }), Date.now());
+      enqueueOrRevert(store, rec, buildPayload(rec, { enrollmentKey: prefs.enrollment.key, sbar }), Date.now(), prefs.retention);
       notify();
       void flushNow();
     },

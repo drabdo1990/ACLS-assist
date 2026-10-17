@@ -11,6 +11,7 @@ import {
   backoffMs,
   enqueue,
   enqueueBackfill,
+  enqueueOrRevert,
   enroll,
   flushOutbox,
   loadOutbox,
@@ -57,6 +58,25 @@ describe('enqueue', () => {
     expect(e.payload.sbar).toBe('SBAR-1');
     enqueue(kv, pl(1, { sbar: 'SBAR-2' }), T0 + 9);
     expect(loadOutbox(kv).entries[mkRecord(1).id].payload.sbar).toBe('SBAR-2');
+  });
+});
+
+describe('enqueueOrRevert', () => {
+  it('puts the record back to local when the outbox cannot be saved, so Backfill can retry it', () => {
+    const kv = enrolledKV();
+    const rec = queued(kv, 1).record;
+    const realSet = kv.set;
+    kv.set = (k, v) => (k === OUTBOX_KEY ? false : realSet(k, v)); // storage refuses the outbox only
+    expect(enqueueOrRevert(kv, rec, pl(1), T0, loadPrefs(kv).retention)).toBe(false);
+    expect(statusOf(kv, 1)).toBe('local');
+    expect(backfillCandidates(kv).map((r) => r.id)).toContain(rec.id);
+  });
+
+  it('leaves the record queued when the outbox saves', () => {
+    const kv = enrolledKV();
+    const rec = queued(kv, 1).record;
+    expect(enqueueOrRevert(kv, rec, pl(1), T0, loadPrefs(kv).retention)).toBe(true);
+    expect(statusOf(kv, 1)).toBe('queued');
   });
 });
 
