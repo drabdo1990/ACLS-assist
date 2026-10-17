@@ -123,6 +123,13 @@ describe('storage', () => {
     expect(bad.get(HISTORY_CORRUPT_KEY)).toBe('{truncated');
   });
 
+  it('backs up entries it drops, and drops a record whose shocks.joules is not a list', () => {
+    const noJoules = { ...mkRecord(3), stats: { ...mkRecord(3).stats, shocks: { count: 0 } } };
+    const kv = memoryKV({ [HISTORY_KEY]: JSON.stringify([mkRecord(1), noJoules]) });
+    expect(loadHistory(kv).map((r) => r.id)).toEqual([mkRecord(1).id]);
+    expect(JSON.parse(kv.get(HISTORY_CORRUPT_KEY)!)).toEqual([JSON.parse(JSON.stringify(noJoules))]);
+  });
+
   it('reports a failed write', () => {
     const kv = memoryKV();
     kv.failWrites = true;

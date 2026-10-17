@@ -101,6 +101,7 @@ function sanitizeRecord(x: unknown): CodeRecord | null {
   if (!isNum(st.weightKg) && st.weightKg !== null) st.weightKg = null;
   if (st.weightSource !== 'measured' && st.weightSource !== 'estimated') st.weightSource = null;
   if (!isNum(st.ageMonths) && st.ageMonths !== null) st.ageMonths = null;
+  if (!Array.isArray(st.shocks.joules)) return null; // the log tab, CSV and aggregates iterate it
   if (!Array.isArray(st.shocks.perKg)) st.shocks.perKg = (Array.isArray(st.shocks.joules) ? st.shocks.joules : []).map(() => null);
   for (const g of [st.epi, st.amiodarone, st.lidocaine, st.magnesium] as Array<Record<string, unknown>>) {
     if (!isNum(g.notCalculated)) g.notCalculated = 0;
@@ -122,9 +123,16 @@ export function loadHistory(kv: KV): CodeRecord[] {
     return [];
   }
   const byId = new Map<string, CodeRecord>();
+  const skipped: unknown[] = [];
   for (const x of parsed) {
     const r = sanitizeRecord(x);
     if (r) byId.set(r.id, r);
+    else skipped.push(x);
+  }
+  if (skipped.length) {
+    // The next save drops these; keep the raw copies (shortcut: one slot, overwritten by the next bad load).
+    const backup = JSON.stringify(skipped);
+    if (kv.get(HISTORY_CORRUPT_KEY) !== backup) kv.set(HISTORY_CORRUPT_KEY, backup);
   }
   return [...byId.values()].sort((a, b) => a.startedAt - b.startedAt);
 }

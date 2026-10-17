@@ -168,6 +168,22 @@ describe('loadPersisted / writePersisted', () => {
     expect(store.get(CORRUPT_STORAGE_KEY)).toBe(truncated);
   });
 
+  it('keeps the unreadable session when the park write fails (storage full)', () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        ...fakeStorage,
+        setItem: (k: string, v: string) => {
+          if (k === CORRUPT_STORAGE_KEY) throw new Error('QuotaExceededError');
+          store.set(k, v);
+        },
+      },
+    });
+    const truncated = JSON.stringify(good()).slice(0, 40);
+    store.set(STORAGE_KEY, truncated);
+    expect(loadPersisted()).toBeNull();
+    expect(store.get(STORAGE_KEY)).toBe(truncated);
+  });
+
   it('boots idle on structurally invalid events', () => {
     vi.stubGlobal('window', { localStorage: fakeStorage });
     store.set(STORAGE_KEY, JSON.stringify({ ...good(), events: [{ nope: true }] }));

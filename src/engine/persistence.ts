@@ -397,7 +397,7 @@ function quarantine(raw: string): void {
   try {
     window.localStorage.setItem(CORRUPT_STORAGE_KEY, raw);
   } catch {
-    /* nothing more we can do */
+    return; // storage full: keep the only copy rather than destroy a code in progress
   }
   window.localStorage.removeItem(STORAGE_KEY);
 }

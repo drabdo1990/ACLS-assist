@@ -12,6 +12,7 @@ import { LogScreen } from './screens/LogScreen';
 import { AudioHint, SaveFailedChip } from './components/ui/StatusChips';
 import { ClockChangeNotice } from './components/ui/ClockChangeNotice';
 import { EnrollConfirm } from './components/EnrollConfirm';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsSheet } from './components/SettingsSheet';
 import type { EnrollFragment } from './engine/enrollLink';
 import { useT } from './i18n/useT';
@@ -180,11 +181,16 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
         <div className={tab === 'hud' ? 'block' : 'hidden'}>
           <HudScreen onEnd={() => setTab('log')} onOpenCauses={() => setTab('causes')} />
         </div>
+        {/* Own boundaries: a bad record in Log/Causes must not blank the HUD mid-code. */}
         <div className={tab === 'causes' ? 'block' : 'hidden'}>
-          <CausesScreen />
+          <ErrorBoundary>
+            <CausesScreen />
+          </ErrorBoundary>
         </div>
         <div className={tab === 'log' ? 'block' : 'hidden'}>
-          <LogScreen />
+          <ErrorBoundary>
+            <LogScreen />
+          </ErrorBoundary>
         </div>
 
         <p className="mt-4 text-center text-[10px] leading-relaxed text-mute">
