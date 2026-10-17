@@ -39,10 +39,19 @@ export function driveEveryEvent(extra: { pulseCheck: () => void; checklistToggle
   at(185_000);
   s().resetCycle('pVT');
   at(190_000);
+  // 2 s apart: the store ignores a repeat of the same dose within 1.5 s (gloved double-tap).
+  let tick = 190_000;
+  const step = () => at((tick += 2_000));
   s().administerAmiodarone();
+  step();
   s().administerAmiodarone();
+  step();
   s().administerAmiodarone();
-  for (let i = 0; i < 6; i++) s().administerLidocaine();
+  for (let i = 0; i < 6; i++) {
+    step();
+    s().administerLidocaine();
+  }
+  step();
   s().administerMagnesium();
   s().markAirwayPlaced('ETT');
   s().markAirwayPlaced();
