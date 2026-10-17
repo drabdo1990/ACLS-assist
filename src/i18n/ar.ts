@@ -117,7 +117,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg', // draft — clinician review required
   'peds.max': '(حد أقصى)', // draft — clinician review required
   'peds.grid.epi.flush': 'IV/IO + دفع بمحلول ملحي', // draft — clinician review required
-  'peds.roscBanner.sub': 'SpO₂ 94–99% · تجنب SBP دون المئين الخامس للعمر — فتح القائمة', // draft — clinician review required
+  'peds.roscBanner.sub': 'SpO₂ 94–99% · تجنب انخفاض SBP عن حد العمر — فتح القائمة', // draft — clinician review required
   'app.title.pediatric': 'قيادة إنعاش الأطفال (PALS)', // draft — clinician review required
   'peds.vent.none': 'ضغطات صدرية بنسبة {ratio} — التوقف للتهوية فقط', // draft — clinician review required
 
@@ -145,7 +145,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'p.cpr.ratio': '15:2 (منقذان) / 30:2 (منقذ واحد)', // draft — clinician review required
   'p.cpr.depth': 'حوالي ثلث عمق الصدر (≈4 cm للرضيع، ≈5 cm للطفل)', // draft — clinician review required
   'p.cpr.rate': 'المعدل 100–120/min', // draft — clinician review required
-  'p.cpr.airway': 'ضغطات متواصلة + نفسة كل 2–3 s (20–30/min)', // draft — clinician review required
+  'p.cpr.airway': 'ضغطات متواصلة + نفسة كل 6–8 s (8–10/min)', // draft — clinician review required
 
   // ---- Pediatric algorithm ----
   'p.algo.title.shockable': 'رجفان بطيني / تسرع بطيني عديم النبض عند الأطفال (VF / pVT)', // draft — clinician review required
@@ -163,7 +163,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   // ---- Pediatric post-ROSC bundle ----
   'pPostRosc.spo2': 'SpO₂ 94–99% — تجنب فرط الأكسجة', // draft — clinician review required
   'pPostRosc.co2': 'CO₂ طبيعي — تحقق بواسطة قياس CO₂ الزفيري (capnography) أو غازات الدم', // draft — clinician review required
-  'pPostRosc.bp': 'تجنب انخفاض ضغط الدم (SBP دون المئين الخامس للعمر) — سوائل أو موسعات وعائية حسب البروتوكول المحلي', // draft — clinician review required
+  'pPostRosc.bp': 'تجنب انخفاض ضغط الدم — SBP < 60 حديث الولادة، < 70 رضيع، < 70 + (2 × العمر بالسنوات) طفل، < 90 مراهق — سوائل أو موسعات وعائية حسب البروتوكول المحلي', // draft — clinician review required
   'pPostRosc.temp': 'معالجة الحمى؛ التحكم بالحرارة حسب البروتوكول المحلي', // draft — clinician review required
   'pPostRosc.glucose': 'فحص السكر وتصحيحه', // draft — clinician review required
   'pPostRosc.ecg': 'تخطيط قلب 12-lead / إيكو حسب الحاجة', // draft — clinician review required
@@ -260,7 +260,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'ev.rosc.detail.epiPartial':
     'إجمالي مدة التوقف: {durationMs}. إجمالي الصدمات: {shocks}. إجمالي Epinephrine: على الأقل {epiMg} mg (بعض الجرعات غير محسوبة).', // draft — clinician review required
   'sbar.peds.rec.rosc1': '- SpO₂ 94–99% — تجنب فرط الأكسجة؛ CO₂ طبيعي.', // draft — clinician review required
-  'sbar.peds.rec.rosc2': '- تجنب انخفاض الضغط (SBP دون المئين الخامس للعمر) — سوائل أو موسعات وعائية حسب البروتوكول المحلي.', // draft — clinician review required
+  'sbar.peds.rec.rosc2': '- تجنب انخفاض الضغط (SBP < 60 حديث الولادة، < 70 رضيع، < 70 + (2 × العمر بالسنوات) طفل، < 90 مراهق) — سوائل أو موسعات وعائية حسب البروتوكول المحلي.', // draft — clinician review required
   'sbar.peds.rec.rosc3': '- تخطيط قلب 12-lead / إيكو عند الحاجة؛ معالجة الحمى وضبط الحرارة حسب البروتوكول المحلي.', // draft — clinician review required
   'sbar.peds.rec.rosc4': '- فحص السكر وتصحيحه؛ مراقبة التشنجات؛ النقل إلى PICU؛ مناقشة الفريق (debrief).', // draft — clinician review required
   'sbar.rec.none': '- لم يتم تسجيل إنعاش.', // draft — clinician review required
@@ -362,7 +362,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'app.restored.freshSession':
     'تمت استعادة الجلسة من هذا الجهاز — المؤقتات مستمرة وفق الطوابع الزمنية المحفوظة.', // draft — clinician review required
   'app.disclaimer':
-    'أداة مساعدة لدعم القرار السريري فقط، مستندة إلى دليل مقدم خدمة ACLS الصادر عن جمعية القلب السعودية 2024 (المتوافق مع AHA/ERC). تحقق من كل جرعة وفقاً للبروتوكول المحلي. ليست بديلاً عن التقدير السريري. خالية من المعلومات الصحية المحمية (PHI) — لا تُسجَّل أي بيانات تعريفية للمريض. تبقى البيانات على هذا الجهاز ما لم يتم تسجيل وحدتك لرفع بيانات الإنعاش (الإعدادات).', // draft — clinician review required
+    'أداة مساعدة لدعم القرار السريري فقط، مستندة إلى دليل مقدم خدمة ACLS 2024 ودورة مقدم خدمة إنعاش الأطفال المتقدم (SHA PALS) الصادرين عن جمعية القلب السعودية (المتوافقين مع AHA/ERC). تحقق من كل جرعة وفقاً للبروتوكول المحلي. ليست بديلاً عن التقدير السريري. خالية من المعلومات الصحية المحمية (PHI) — لا تُسجَّل أي بيانات تعريفية للمريض. تبقى البيانات على هذا الجهاز ما لم يتم تسجيل وحدتك لرفع بيانات الإنعاش (الإعدادات).', // draft — clinician review required
   'tab.hud': 'شاشة التحكم (HUD)', // draft — clinician review required
   'tab.causes': 'الأسباب (H’s & T’s)', // draft — clinician review required
   'tab.log': 'السجل و SBAR', // draft — clinician review required

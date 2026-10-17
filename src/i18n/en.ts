@@ -129,7 +129,7 @@ const UI = {
   'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg',
   'peds.max': '(max)',
   'peds.grid.epi.flush': 'IV/IO + saline flush',
-  'peds.roscBanner.sub': 'SpO₂ 94–99% · avoid SBP < 5th centile for age — open checklist',
+  'peds.roscBanner.sub': 'SpO₂ 94–99% · avoid low SBP for age — open checklist',
   'app.title.pediatric': 'Pediatric PALS Command',
   'peds.vent.none': 'Compressions {ratio} ventilations — pause only for breaths',
 
@@ -157,7 +157,7 @@ const UI = {
   'p.cpr.ratio': '15:2 (2 rescuers) / 30:2 (1 rescuer)',
   'p.cpr.depth': 'About ⅓ of chest depth (≈4 cm infant, ≈5 cm child)',
   'p.cpr.rate': 'Rate 100–120/min',
-  'p.cpr.airway': 'Continuous compressions + 1 breath every 2–3 s (20–30/min)',
+  'p.cpr.airway': 'Continuous compressions + 1 breath every 6–8 s (8–10/min)',
 
   // ---- Pediatric algorithm ----
   'p.algo.title.shockable': 'Pediatric VF / pulseless VT',
@@ -175,7 +175,7 @@ const UI = {
   // ---- Pediatric post-ROSC bundle ----
   'pPostRosc.spo2': 'SpO₂ 94–99% — avoid hyperoxia',
   'pPostRosc.co2': 'Normal CO₂ — check capnography / blood gas',
-  'pPostRosc.bp': 'Avoid hypotension (SBP < 5th centile for age) — fluids or vasoactives per local protocol',
+  'pPostRosc.bp': 'Avoid hypotension — SBP < 60 neonate, < 70 infant, < 70 + 2 × age (yr) child, < 90 adolescent — fluids or vasoactives per local protocol',
   'pPostRosc.temp': 'Treat fever; temperature control per local protocol',
   'pPostRosc.glucose': 'Check glucose and correct it',
   'pPostRosc.ecg': '12-lead ECG / echo as indicated',
@@ -270,7 +270,7 @@ const UI = {
   'ev.rosc.detail.epiPartial':
     'Total arrest duration: {durationMs}. Total shocks: {shocks}. Total epi: at least {epiMg} mg (some doses not calculated).',
   'sbar.peds.rec.rosc1': '- SpO₂ 94–99% — avoid hyperoxia; normal CO₂.',
-  'sbar.peds.rec.rosc2': '- Avoid hypotension (SBP < 5th centile for age) — fluids or vasoactives per local protocol.',
+  'sbar.peds.rec.rosc2': '- Avoid hypotension (SBP < 60 neonate, < 70 infant, < 70 + 2 × age (yr) child, < 90 adolescent) — fluids or vasoactives per local protocol.',
   'sbar.peds.rec.rosc3': '- 12-lead ECG / echo as indicated; treat fever, temperature control per local protocol.',
   'sbar.peds.rec.rosc4': '- Check glucose and correct it; seizure monitoring; transfer to PICU; team debrief.',
   'sbar.rec.none': '- No resuscitation recorded.',
@@ -370,7 +370,7 @@ const UI = {
   'app.restored.stale': 'Saved session is {hours} h old — probably a previous code. Start fresh, or keep it to review.',
   'app.restored.freshSession': 'Session restored from this device — timers continued from saved timestamps.',
   'app.disclaimer':
-    'Clinical decision-support aid only, benchmarked to the SHA ACLS Provider Manual 2024 (AHA/ERC-aligned). Verify every dose against your local protocol. Not a substitute for clinical judgement. PHI-free — no patient identifiers are recorded. Data stays on this device unless your unit has enrolled it for code upload (Settings).',
+    'Clinical decision-support aid only, benchmarked to the SHA ACLS Provider Manual 2024 and SHA PALS Provider Course (AHA/ERC-aligned). Verify every dose against your local protocol. Not a substitute for clinical judgement. PHI-free — no patient identifiers are recorded. Data stays on this device unless your unit has enrolled it for code upload (Settings).',
   'tab.hud': 'ACLS HUD',
   'tab.causes': "H's & T's",
   'tab.log': 'Log / SBAR',

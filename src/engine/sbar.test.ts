@@ -311,7 +311,7 @@ describe('pediatric SBAR (phase 4a)', () => {
   it('pediatric recommendations replace the adult post-ROSC lines', () => {
     const out = buildSbar(pedsBase, T0 + 500_000);
     expect(out).toContain('- SpO₂ 94–99% — avoid hyperoxia; normal CO₂.');
-    expect(out).toContain('- Avoid hypotension (SBP < 5th centile for age)');
+    expect(out).toContain('- Avoid hypotension (SBP < 60 neonate, < 70 infant, < 70 + 2 × age (yr) child, < 90 adolescent)');
     expect(out).not.toContain('- Post-ROSC bundle: secure airway (ETT)');
   });
 
