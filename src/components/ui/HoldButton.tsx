@@ -1,8 +1,19 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { haptic } from '../../engine/haptics';
 import type { ButtonVariant } from './BigButton';
 import { useT } from '../../i18n/useT';
+import {
+  HOLD_DEFAULT_MS,
+  HOLD_RELEASE_MS,
+  cancelHold,
+  idleHold,
+  isHoldKey,
+  releaseHold,
+  startHold,
+  tickHold,
+  type HoldState,
+} from './holdLogic';
 
 const VARIANT_SKIN: Record<ButtonVariant, { base: string; fill: string }> = {
   neutral: { base: 'border-line text-ink', fill: 'bg-white/10' },
@@ -28,17 +39,23 @@ export interface HoldButtonProps {
   ariaLabel?: string;
 }
 
+type HoldSource = 'pointer' | 'key';
+
 /**
  * Press-and-hold to confirm — a deliberate gate against accidental taps on
  * irreversible actions (ROSC / terminate) WITHOUT the friction of a modal dialog.
  * A fill sweeps across the button so the user always sees how much longer to hold.
+ *
+ * Pointer press and keyboard press (Space / Enter) drive the same pure state machine
+ * (`holdLogic`), so a keyboard hold needs exactly the same full duration. A quick
+ * keypress or release/blur before the duration cancels.
  */
 export function HoldButton({
   label,
   sub,
   icon: Icon,
   onComplete,
-  durationMs = 1500,
+  durationMs = HOLD_DEFAULT_MS,
   variant = 'neutral',
   size = 'lg',
   className = '',
@@ -46,45 +63,93 @@ export function HoldButton({
   ariaLabel,
 }: HoldButtonProps) {
   const { t } = useT();
+  const hintId = useId();
   const [pct, setPct] = useState(0);
   const raf = useRef<number | null>(null);
-  const startedAt = useRef(0);
-  const fired = useRef(false);
+  const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hold = useRef<HoldState>(idleHold());
+  const source = useRef<HoldSource | null>(null);
+  const mounted = useRef(true);
 
-  const cancel = useCallback(() => {
+  // Always read the latest props from the running rAF loop (no stale closures).
+  const onCompleteRef = useRef(onComplete);
+  const durationRef = useRef(durationMs);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+    durationRef.current = durationMs;
+  }, [onComplete, durationMs]);
+
+  const stopFrame = useCallback(() => {
     if (raf.current != null) {
       cancelAnimationFrame(raf.current);
       raf.current = null;
     }
-    if (!fired.current) setPct(0);
   }, []);
 
+  const cancel = useCallback(() => {
+    stopFrame();
+    const next = cancelHold(hold.current);
+    if (next !== hold.current) {
+      hold.current = next;
+      source.current = null;
+      setPct(0);
+    }
+  }, [stopFrame]);
+
   const loop = useCallback(() => {
-    const elapsed = performance.now() - startedAt.current;
-    const p = Math.min(1, elapsed / durationMs);
-    setPct(p);
-    if (p >= 1) {
-      fired.current = true;
-      if (raf.current != null) cancelAnimationFrame(raf.current);
-      raf.current = null;
+    raf.current = null;
+    if (!mounted.current) return;
+    const r = tickHold(hold.current, performance.now(), durationRef.current);
+    hold.current = r.state;
+    setPct(r.progress);
+    if (r.complete) {
+      source.current = null;
       haptic.alarm();
-      onComplete();
+      onCompleteRef.current();
       // release visual after a beat
-      setTimeout(() => {
-        fired.current = false;
+      releaseTimer.current = setTimeout(() => {
+        releaseTimer.current = null;
+        hold.current = releaseHold(hold.current);
         setPct(0);
-      }, 250);
+      }, HOLD_RELEASE_MS);
       return;
     }
     raf.current = requestAnimationFrame(loop);
-  }, [durationMs, onComplete]);
+  }, []);
 
-  const begin = useCallback(() => {
-    if (disabled) return;
-    startedAt.current = performance.now();
-    fired.current = false;
-    raf.current = requestAnimationFrame(loop);
-  }, [disabled, loop]);
+  const begin = useCallback(
+    (from: HoldSource) => {
+      if (disabled) return;
+      const next = startHold(hold.current, performance.now());
+      if (next === hold.current) return; // a hold is already counting
+      if (releaseTimer.current != null) {
+        clearTimeout(releaseTimer.current);
+        releaseTimer.current = null;
+      }
+      hold.current = next;
+      source.current = from;
+      raf.current = requestAnimationFrame(loop);
+    },
+    [disabled, loop],
+  );
+
+  // Unmounting mid-hold must stop the rAF loop and the release timer and never call onComplete.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (raf.current != null) cancelAnimationFrame(raf.current);
+      raf.current = null;
+      if (releaseTimer.current != null) clearTimeout(releaseTimer.current);
+      releaseTimer.current = null;
+      hold.current = idleHold();
+    };
+  }, []);
+
+  // Becoming disabled mid-hold abandons the hold.
+  useEffect(() => {
+    if (disabled) cancel();
+  }, [disabled, cancel]);
 
   const skin = VARIANT_SKIN[variant];
   const height = size === 'xl' ? 'min-h-[84px]' : 'min-h-[64px]';
@@ -92,15 +157,28 @@ export function HoldButton({
   return (
     <button
       type="button"
-      aria-label={ariaLabel ?? `${label} — ${t('ui.hold.confirm')}`}
+      aria-label={ariaLabel ?? label}
+      aria-describedby={hintId}
       disabled={disabled}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture?.(e.pointerId);
-        begin();
+        begin('pointer');
       }}
       onPointerUp={cancel}
       onPointerCancel={cancel}
       onPointerLeave={cancel}
+      onKeyDown={(e) => {
+        if (!isHoldKey(e.key)) return;
+        e.preventDefault(); // Space must not scroll; Enter must not synthesize a click
+        if (e.repeat) return; // auto-repeat must not restart or extend the hold
+        begin('key');
+      }}
+      onKeyUp={(e) => {
+        if (!isHoldKey(e.key)) return;
+        e.preventDefault();
+        if (source.current === 'key') cancel();
+      }}
+      onBlur={cancel}
       onContextMenu={(e) => e.preventDefault()}
       className={[
         'touch-hit relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-4 text-start',
@@ -111,6 +189,9 @@ export function HoldButton({
         className,
       ].join(' ')}
     >
+      <span id={hintId} className="sr-only">
+        {t('ui.hold.confirm')}
+      </span>
       <span
         aria-hidden
         className={`absolute inset-y-0 start-0 ${skin.fill} transition-none`}
@@ -123,7 +204,9 @@ export function HoldButton({
           {sub ? (
             <span className="text-xs font-medium leading-tight opacity-80">{sub}</span>
           ) : (
-            <span className="text-xs font-medium leading-tight opacity-60">{t('ui.hold.confirm')}</span>
+            <span aria-hidden className="text-xs font-medium leading-tight opacity-60">
+              {t('ui.hold.confirm')}
+            </span>
           )}
         </span>
       </span>
