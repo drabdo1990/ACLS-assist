@@ -337,14 +337,29 @@ describe('boot population', () => {
 });
 
 describe('ROSC summary with unweighted doses', () => {
-  it('says the epinephrine total is a lower bound instead of printing "0 mg"', () => {
+  it('says the epinephrine total is not calculated when no dose had a weight (not "0 mg")', () => {
     s().setPopulation('pediatric');
     s().startCode();
     s().administerEpi(); // no weight → mg null
     at(300_000);
     s().declareRosc();
     expect(lastEvent().detail).toBe(
-      'Total arrest duration: 5m 00s. Total shocks: 0. Total epi: at least 0 mg (some doses not calculated).',
+      'Total arrest duration: 5m 00s. Total shocks: 0. Total epi: not calculated (no weight).',
+    );
+  });
+
+  it('calls the total a lower bound when only some doses were calculated', () => {
+    s().setPopulation('pediatric');
+    s().startCode();
+    s().administerEpi(); // unweighted
+    at(10_000);
+    s().setPediatricWeight(10, 'measured');
+    at(20_000);
+    s().administerEpi(); // 0.1 mg
+    at(300_000);
+    s().declareRosc();
+    expect(lastEvent().detail).toBe(
+      'Total arrest duration: 5m 00s. Total shocks: 0. Total epi: at least 0.1 mg (some doses not calculated).',
     );
   });
 });

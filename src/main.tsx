@@ -17,12 +17,18 @@ applyDocumentLang(getLang());
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   const hadController = Boolean(navigator.serviceWorker.controller);
   let refreshing = false;
+  let reloadWhenIdle = false;
+  const reload = () => {
+    refreshing = true;
+    window.location.reload();
+  };
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController || refreshing) return;
-    if (useCodeStore.getState().status === 'idle') {
-      refreshing = true;
-      window.location.reload();
-    }
+    if (useCodeStore.getState().status === 'idle') reload();
+    else reloadWhenIdle = true; // controllerchange fires once: apply the update when the code ends
+  });
+  useCodeStore.subscribe((s) => {
+    if (reloadWhenIdle && !refreshing && s.status === 'idle') reload();
   });
   // A ward tablet can stay open for days: re-check on load, whenever the page is shown again, and hourly.
   navigator.serviceWorker.getRegistration().then((reg) => {

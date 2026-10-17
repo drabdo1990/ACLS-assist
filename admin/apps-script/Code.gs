@@ -191,8 +191,10 @@ function handleUpload(body, sheet, nowMs) {
   if (row == null) sheet.appendRow(cells);
   else {
     // A key may only update rows its own unit wrote (record ids are guessable: start time + device id).
+    // Not "Send test record" rows (TEST-<deviceId>): a device moved to another unit must still be able to test.
     const owner = sheet.readCell(row, 'unit');
-    if (owner != null && String(owner) !== '' && String(owner) !== unit.name) return { ok: false, error: 'key' };
+    const isTest = String(p.recordId).indexOf('TEST-') === 0;
+    if (!isTest && owner != null && String(owner) !== '' && String(owner) !== unit.name) return { ok: false, error: 'key' };
     sheet.updateCells(row, cells);
   }
   return { ok: true };

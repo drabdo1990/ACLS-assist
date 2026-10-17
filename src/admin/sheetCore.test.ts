@@ -85,6 +85,14 @@ describe('insert / find-or-insert', () => {
     expect(send(s, P({}))).toEqual({ ok: true }); // the owning unit can still update
   });
 
+  it('lets a device that moved to another unit re-send its test record', () => {
+    const s = memorySheet();
+    expect(send(s, buildTestPayload(DEVICE, KEY, T0))).toEqual({ ok: true });
+    expect(send(s, buildTestPayload(DEVICE, 'unit-ward-2026', T0))).toEqual({ ok: true });
+    expect(s.rows).toHaveLength(1);
+    expect(s.rows[0].unit).toBe('Ward 7');
+  });
+
   it('two uploads of one record produce one row (two tabs, retries)', () => {
     const s = memorySheet();
     send(s, P());

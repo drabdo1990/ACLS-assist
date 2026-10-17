@@ -265,6 +265,8 @@ const UI = {
   'sbar.peds.lido': 'Lidocaine: {count} × 1 mg/kg {details}',
   'sbar.peds.dosesNotCalculated': 'doses not calculated',
   'sbar.peds.doseNotCalculated': 'not calculated',
+  'ev.rosc.detail.epiUnknown':
+    'Total arrest duration: {durationMs}. Total shocks: {shocks}. Total epi: not calculated (no weight).',
   'ev.rosc.detail.epiPartial':
     'Total arrest duration: {durationMs}. Total shocks: {shocks}. Total epi: at least {epiMg} mg (some doses not calculated).',
   'sbar.peds.rec.rosc1': '- SpO₂ 94–99% — avoid hyperoxia; normal CO₂.',

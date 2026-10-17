@@ -13,7 +13,6 @@ import {
   backfillCandidates,
   browserLock,
   clearOutbox,
-  enqueue,
   enqueueBackfill,
   enqueueOrRevert,
   enroll,
@@ -109,7 +108,7 @@ export function editRecordFlags(id: string, patch: { training?: boolean; voided?
   const prefs = loadPrefs(kv);
   const rec = editRecordFlagsCore(kv, useCodeStore, id, patch);
   if (rec && prefs.enrollment) {
-    enqueue(kv, buildPayload(rec, { enrollmentKey: prefs.enrollment.key }), Date.now());
+    enqueueOrRevert(kv, rec, buildPayload(rec, { enrollmentKey: prefs.enrollment.key }), Date.now(), prefs.retention);
     void flushNow();
   }
   notify();

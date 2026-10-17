@@ -33,6 +33,10 @@ One row per unit on the `Units` tab:
 
 To revoke a unit, untick `active`.
 
+A unit can only update rows its own `unit_name` wrote (a record is re-sent when a user edits its
+Training/Void flags). If you rename a unit, later edits to its **older** records are refused
+(`key`); new codes are not affected. Fix an old row by editing its `unit` cell to the new name.
+
 ## 6. Deploy
 
 **Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone**, then copy the
