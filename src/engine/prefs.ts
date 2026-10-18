@@ -18,14 +18,37 @@ export interface Enrollment {
   key: string;
   unit: string | null;
 }
+/** Clinician identification — local-only, printed on exports, never uploaded automatically. */
+export interface Identity {
+  name: string;
+  role: string;
+}
 export interface Prefs {
   deviceId: string;
   enrollment: Enrollment | null;
   retention: Retention;
+  identity: Identity | null;
 }
 
 export const DEFAULT_RETENTION: Retention = { mode: 'all', keep: 100 };
 export const KEEP_OPTIONS: readonly number[] = [50, 100, 200];
+export const MAX_NAME_LEN = 80;
+export const MAX_ROLE_LEN = 60;
+
+/** Empty name invalidates; role is optional. Bounds are enforced so a pasted blob cannot persist. */
+export function validateIdentity(name: unknown, role: unknown): Identity | null {
+  if (typeof name !== 'string' || typeof role !== 'string') return null;
+  const n = name.trim();
+  const r = role.trim();
+  if (!n || n.length > MAX_NAME_LEN || r.length > MAX_ROLE_LEN) return null;
+  return { name: n, role: r };
+}
+
+function sanitizeIdentity(x: unknown): Identity | null {
+  if (typeof x !== 'object' || x === null) return null;
+  const o = x as Record<string, unknown>;
+  return validateIdentity(o.name, o.role ?? '');
+}
 
 const DEVICE_ID_RE = /^[0-9a-f]{12}$/;
 // Only Google Apps Script web-app endpoints. This does NOT stop a forged link to someone else's script:
@@ -111,6 +134,7 @@ export function loadPrefs(kv: KV | null): Prefs {
     deviceId: known ?? newDeviceId(),
     enrollment: validateEnrollment(raw.enrollment),
     retention: sanitizeRetention(raw.retention),
+    identity: sanitizeIdentity(raw.identity),
   };
   if (known == null && kv) {
     try {

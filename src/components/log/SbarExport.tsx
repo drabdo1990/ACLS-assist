@@ -6,6 +6,9 @@ import { computeCodeStats } from '../../engine/stats';
 import { BigButton } from '../ui/BigButton';
 import { HoldButton } from '../ui/HoldButton';
 import { Panel } from '../ui/Panel';
+import { IdentityGate } from '../ui/IdentityGate';
+import { usePrefsState } from '../../hooks/useService';
+import type { Identity } from '../../engine/prefs';
 import { useT } from '../../i18n/useT';
 import { browserKV } from '../../engine/kv';
 import type { Lang } from '../../i18n/lang';
@@ -15,10 +18,12 @@ const SBAR_LANG_KEY = 'resuscode.sbarLang';
 /** SBAR debrief export — copy to the EMR clipboard or download a .txt. */
 export function SbarExport() {
   const { t, lang } = useT();
+  const prefs = usePrefsState();
   const eventCount = useCodeStore((s) => s.events.length);
   const reset = useCodeStore((s) => s.reset);
   const [copied, setCopied] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [pending, setPending] = useState<'copy' | 'download' | null>(null);
 
   const [sbarLang, setSbarLang] = useState<Lang>(() => {
     const stored = browserKV()?.get(SBAR_LANG_KEY);
@@ -32,14 +37,14 @@ export function SbarExport() {
     if (preview) setPreview(build(next));
   };
 
-  const build = (targetLang: Lang = sbarLang) => {
+  const build = (targetLang: Lang = sbarLang, identity: Identity | null = prefs.identity) => {
     const st = useCodeStore.getState();
     const now = Date.now();
-    return buildSbar({ ...st, stats: computeCodeStats(st, now) }, now, { lang: targetLang });
+    return buildSbar({ ...st, stats: computeCodeStats(st, now) }, now, { lang: targetLang, identity });
   };
 
-  const copy = async () => {
-    const text = build();
+  const copyNow = async (identity: Identity | null = prefs.identity) => {
+    const text = build(sbarLang, identity);
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -62,8 +67,8 @@ export function SbarExport() {
     }
   };
 
-  const download = () => {
-    const text = build();
+  const downloadNow = (identity: Identity | null = prefs.identity) => {
+    const text = build(sbarLang, identity);
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -74,6 +79,16 @@ export function SbarExport() {
     document.body.removeChild(a);
     // Revoke after the browser has had time to start the download (immediate revoke is flaky on some mobile browsers).
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  /** Copy and download leave the device, so they need a clinician identity. Preview does not. */
+  const runExport = (which: 'copy' | 'download') => {
+    if (!prefs.identity) {
+      setPending(which);
+      return;
+    }
+    if (which === 'copy') void copyNow();
+    else downloadNow();
   };
 
   return (
@@ -103,6 +118,20 @@ export function SbarExport() {
         </div>
       </div>
 
+      {pending ? (
+        <div className="mb-3">
+          <IdentityGate
+            onCancel={() => setPending(null)}
+            onDone={(identity) => {
+              const which = pending;
+              setPending(null);
+              if (which === 'copy') void copyNow(identity);
+              else downloadNow(identity);
+            }}
+          />
+        </div>
+      ) : null}
+
       <BigButton
         variant={copied ? 'good' : 'cyber'}
         size="xl"
@@ -110,7 +139,7 @@ export function SbarExport() {
         label={copied ? t('sbar.copied') : t('sbar.copyBtn')}
         sub={t('sbar.copySub')}
         disabled={eventCount === 0}
-        onClick={copy}
+        onClick={() => runExport('copy')}
       />
       <div className="mt-2 grid grid-cols-2 gap-2">
         <BigButton
@@ -118,7 +147,7 @@ export function SbarExport() {
           icon={Download}
           label={t('sbar.downloadBtn')}
           disabled={eventCount === 0}
-          onClick={download}
+          onClick={() => runExport('download')}
         />
         <BigButton
           variant="outline"

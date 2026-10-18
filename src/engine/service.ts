@@ -8,7 +8,7 @@ import { browserKV, type KV } from './kv';
 import { clearHistory, pruneHistory } from './history';
 import { editRecordFlagsCore } from './flagEdit';
 import { installHistoryCapture } from './historyCapture';
-import { loadPrefs, savePrefs, type Enrollment, type Prefs, type Retention } from './prefs';
+import { loadPrefs, savePrefs, type Enrollment, type Identity, type Prefs, type Retention } from './prefs';
 import {
   backfillCandidates,
   browserLock,
@@ -99,6 +99,13 @@ export function setRetention(retention: Retention): void {
   if (!kv) return;
   savePrefs(kv, { ...loadPrefs(kv), retention });
   pruneHistory(kv, retention);
+  notify();
+}
+
+/** Local clinician identification (name + role); printed on exports, never sent with uploads. */
+export function setIdentity(identity: Identity): void {
+  if (!kv) return;
+  savePrefs(kv, { ...loadPrefs(kv), identity });
   notify();
 }
 

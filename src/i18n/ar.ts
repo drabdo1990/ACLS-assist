@@ -194,6 +194,8 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   // ---- SBAR ----
   'sbar.title': 'ResusCode — ملخص الإنعاش', // draft — clinician review required
   'sbar.generated': 'تاريخ التقرير: {date}', // draft — clinician review required
+  'sbar.identity': 'سجّله: {name}', // draft — clinician review required
+  'sbar.identityRole': 'سجّله: {name} ({role})', // draft — clinician review required
   'sbar.totalArrestTime': 'إجمالي مدة التوقف: {clock}', // draft — clinician review required
   'sbar.outcome': 'النتيجة: {outcome}', // draft — clinician review required
   'sbar.outcome.none': 'لم يتم تسجيل توقف للقلب', // draft — clinician review required
@@ -529,6 +531,18 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   // ---- Settings sheet ----
   'settings.title': 'الإعدادات',
   'settings.close': 'إغلاق الإعدادات',
+  'settings.identity.title': 'تحديد هوية الممارس',
+  'settings.identity.save': 'حفظ الهوية',
+  'identity.title': 'التعرّف على المستخدم',
+  'identity.note': 'يبقى الاسم والدور على هذا الجهاز. يُطبعان على الملخصات المصدَّرة ولا يُرسلان مع الرفع.', // draft — clinician review required
+  'identity.name': 'الاسم',
+  'identity.namePlaceholder': 'الاسم الكامل أو الأحرف الأولى',
+  'identity.role': 'الدور',
+  'identity.rolePlaceholder': 'مثال: ممرض، طبيب، مسعف',
+  'identity.required': 'أدخل اسمك للمتابعة.',
+  'identity.continue': 'متابعة',
+  'identity.cancel': 'إلغاء',
+  'identity.saved': 'تم الحفظ على هذا الجهاز',
   'settings.upload.title': 'رفع بيانات النداءات',
   'settings.upload.enrolled': 'مسجَّل',
   'settings.upload.waiting': 'بانتظار الإرسال: {n}',

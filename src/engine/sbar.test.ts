@@ -78,6 +78,16 @@ describe('buildSbar', () => {
     expect(text).toContain('Outcome: ROSC achieved');
   });
 
+  it('prints the clinician identity only on a full export, never on the upload variant', () => {
+    const identity = { name: 'A. Rahman', role: 'RN' };
+    expect(buildSbar(base, T0 + 500_000, { identity })).toContain('Recorded by: A. Rahman (RN)');
+    expect(buildSbar(base, T0 + 500_000, { identity: { name: 'A. Rahman', role: '' } })).toContain(
+      'Recorded by: A. Rahman',
+    );
+    expect(buildSbar(base, T0 + 500_000)).not.toContain('Recorded by:');
+    expect(buildSbar(base, T0 + 500_000, { identity, relativeOnly: true })).not.toContain('Recorded by:');
+  });
+
   it('reports total arrest time frozen at ROSC', () => {
     expect(text).toContain('Total arrest time: 06:45 (6m 45s)');
   });

@@ -5,10 +5,11 @@ import { aggregateRows, recordFlags, recordTitle, uploadStatusLabel } from '../.
 import { translate } from '../../i18n/translate';
 import { csvFilename, recordsToCsv } from '../../engine/csv';
 import { clearAllHistory } from '../../engine/service';
-import { useHistoryRecords } from '../../hooks/useService';
+import { useHistoryRecords, usePrefsState } from '../../hooks/useService';
 import { BigButton } from '../ui/BigButton';
 import { HoldButton } from '../ui/HoldButton';
 import { Panel } from '../ui/Panel';
+import { IdentityGate } from '../ui/IdentityGate';
 import { RecordDetail } from './RecordDetail';
 import { downloadText } from './download';
 import { useT } from '../../i18n/useT';
@@ -19,10 +20,15 @@ const PAGE = 20;
 export function HistoryPanel() {
   const { t, lang } = useT();
   const records = useHistoryRecords();
+  const prefs = usePrefsState();
   const [openId, setOpenId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [askIdentity, setAskIdentity] = useState(false);
   const shown = showAll ? records : records.slice(0, PAGE);
   const agg = computeAggregates(records);
+
+  const exportCsv = () =>
+    downloadText(csvFilename(Date.now()), recordsToCsv([...records].reverse()), 'text/csv;charset=utf-8');
 
   return (
     <Panel title={t('history.title', { count: records.length })} icon={HistoryIcon}>
@@ -88,12 +94,21 @@ export function HistoryPanel() {
               {showAll ? t('history.showFewer') : t('history.showAll', { count: records.length })}
             </button>
           ) : null}
+          {askIdentity ? (
+            <IdentityGate
+              onCancel={() => setAskIdentity(false)}
+              onDone={() => {
+                setAskIdentity(false);
+                exportCsv();
+              }}
+            />
+          ) : null}
           <div className="mt-3 grid grid-cols-2 gap-2">
             <BigButton
               variant="neutral"
               icon={Download}
               label={t('history.exportCsv')}
-              onClick={() => downloadText(csvFilename(Date.now()), recordsToCsv([...records].reverse()), 'text/csv;charset=utf-8')}
+              onClick={() => (prefs.identity ? exportCsv() : setAskIdentity(true))}
             />
             <HoldButton
               variant="outline"

@@ -204,6 +204,8 @@ const UI = {
   // ---- SBAR ----
   'sbar.title': 'ResusCode — RESUSCITATION SUMMARY',
   'sbar.generated': 'Generated: {date}',
+  'sbar.identity': 'Recorded by: {name}',
+  'sbar.identityRole': 'Recorded by: {name} ({role})',
   'sbar.totalArrestTime': 'Total arrest time: {clock} ({duration})',
   'sbar.outcome': 'Outcome: {outcome}',
   'sbar.outcome.none': 'No cardiac arrest recorded',
@@ -536,6 +538,19 @@ const UI = {
   // ---- Settings sheet ----
   'settings.title': 'Settings',
   'settings.close': 'Close settings',
+  'settings.identity.title': 'Clinician identification',
+  'settings.identity.save': 'Save identification',
+  'identity.title': 'Identify yourself',
+  'identity.note':
+    'Your name and role stay on this device. They are printed on exported summaries and are not sent with uploads.',
+  'identity.name': 'Name',
+  'identity.namePlaceholder': 'Full name or initials',
+  'identity.role': 'Role',
+  'identity.rolePlaceholder': 'e.g. RN, physician, paramedic',
+  'identity.required': 'Enter your name to continue.',
+  'identity.continue': 'Continue',
+  'identity.cancel': 'Cancel',
+  'identity.saved': 'Saved on this device',
   'settings.upload.title': 'Code upload',
   'settings.upload.enrolled': 'Enrolled',
   'settings.upload.waiting': 'Waiting to send: {n}',

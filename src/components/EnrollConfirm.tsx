@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import type { EnrollFragment } from '../engine/enrollLink';
 import { enrollDevice, getPrefs } from '../engine/service';
+import { usePrefsState } from '../hooks/useService';
 import { useT } from '../i18n/useT';
 import { BigButton } from './ui/BigButton';
+import { IdentityGate } from './ui/IdentityGate';
 import { EnrollmentSummary } from './EnrollmentSummary';
 
 /** Shown once when the app was opened from an enrollment link. Nothing is stored until Enroll is tapped. */
 export function EnrollConfirm({ fragment, onEnrolled }: { fragment: EnrollFragment; onEnrolled: () => void }) {
   const { t } = useT();
+  const prefs = usePrefsState();
   const [done, setDone] = useState(false);
+  const [askIdentity, setAskIdentity] = useState(false);
   if (done || fragment.kind === 'none') return null;
 
   if (fragment.kind === 'invalid') {
@@ -23,6 +27,11 @@ export function EnrollConfirm({ fragment, onEnrolled }: { fragment: EnrollFragme
   }
 
   const e = fragment.enrollment;
+  const doEnroll = () => {
+    enrollDevice(e);
+    setDone(true);
+    onEnrolled();
+  };
   return (
     <div className="mb-3 rounded-xl border border-cyber/60 bg-cyber/10 p-3">
       <p className="mb-1 text-sm font-bold text-cyber">{t('enroll.confirmTitle')}</p>
@@ -31,14 +40,19 @@ export function EnrollConfirm({ fragment, onEnrolled }: { fragment: EnrollFragme
         <BigButton
           variant="cyber"
           label={t('enroll.enroll')}
-          onClick={() => {
-            enrollDevice(e);
-            setDone(true);
-            onEnrolled();
-          }}
+          onClick={() => (prefs.identity ? doEnroll() : setAskIdentity(true))}
         />
         <BigButton variant="outline" label={t('enroll.cancel')} onClick={() => setDone(true)} />
       </div>
+      {askIdentity ? (
+        <IdentityGate
+          onCancel={() => setAskIdentity(false)}
+          onDone={() => {
+            setAskIdentity(false);
+            doEnroll();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

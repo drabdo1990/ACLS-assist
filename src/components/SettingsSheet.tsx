@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Languages, Send, X } from 'lucide-react';
-import { KEEP_OPTIONS, parseEnrollmentCode, type Enrollment, type RetentionMode } from '../engine/prefs';
-import { backfillCount, enrollDevice, sendBackfill, sendTestRecord, setRetention, unenrollDevice } from '../engine/service';
+import { Languages, Send, UserRound, X } from 'lucide-react';
+import {
+  KEEP_OPTIONS,
+  MAX_NAME_LEN,
+  MAX_ROLE_LEN,
+  parseEnrollmentCode,
+  validateIdentity,
+  type Enrollment,
+  type RetentionMode,
+} from '../engine/prefs';
+import { backfillCount, enrollDevice, sendBackfill, sendTestRecord, setIdentity, setRetention, unenrollDevice } from '../engine/service';
 import type { SendResult } from '../engine/upload';
 import { rejectionMessage, testResultMessage, type Message } from '../engine/uploadLabels';
 import { useOutboxState, usePrefsState, useServiceVersion } from '../hooks/useService';
@@ -13,6 +21,7 @@ import { Chip } from './ui/Chip';
 import { HoldButton } from './ui/HoldButton';
 import { Panel } from './ui/Panel';
 import { TextField } from './ui/TextField';
+import { IdentityGate } from './ui/IdentityGate';
 import { EnrollmentSummary, destinationTail } from './EnrollmentSummary';
 
 const TONE: Record<Message['tone'], string> = { good: 'text-good', warn: 'text-warn', crit: 'text-crit' };
@@ -36,6 +45,19 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
   // The raw result is kept (not its text) so the message follows a language switch.
   const [testResult, setTestResult] = useState<SendResult | 'not_enrolled' | null>(null);
   const [backfillDismissed, setBackfillDismissed] = useState(false);
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('');
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  const [identitySaved, setIdentitySaved] = useState(false);
+  const [needIdentity, setNeedIdentity] = useState<{ run: () => void } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(prefs.identity?.name ?? '');
+    setRole(prefs.identity?.role ?? '');
+    setIdentitySaved(false);
+    setIdentityError(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -75,6 +97,21 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
       setTesting(false);
     }
   };
+  /** Every data-leaving action (enroll, test upload, backfill) requires a local identity first. */
+  const requireIdentity = (run: () => void) => {
+    if (prefs.identity) run();
+    else setNeedIdentity({ run });
+  };
+  const saveIdentity = () => {
+    const identity = validateIdentity(name, role);
+    if (!identity) {
+      setIdentityError(t('identity.required'));
+      return;
+    }
+    setIdentity(identity);
+    setIdentitySaved(true);
+    setIdentityError(null);
+  };
 
   return (
     <div role="dialog" aria-modal="true" aria-label={t('settings.title')} className="fixed inset-0 z-40 overflow-y-auto bg-bg">
@@ -104,6 +141,55 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
           {lang === 'ar' ? <p className="mt-2 text-[11px] text-warn">{t('i18n.draftNotice')}</p> : null}
         </Panel>
 
+        <Panel title={t('settings.identity.title')} icon={UserRound} accent={prefs.identity ? 'good' : 'none'}>
+          <p className="text-xs leading-snug text-mute">{t('identity.note')}</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <TextField
+              label={t('identity.name')}
+              value={name}
+              onChange={(v) => {
+                setName(v);
+                setIdentitySaved(false);
+                setIdentityError(null);
+              }}
+              placeholder={t('identity.namePlaceholder')}
+              maxLength={MAX_NAME_LEN}
+              error={identityError}
+            />
+            <TextField
+              label={t('identity.role')}
+              value={role}
+              onChange={(v) => {
+                setRole(v);
+                setIdentitySaved(false);
+              }}
+              placeholder={t('identity.rolePlaceholder')}
+              maxLength={MAX_ROLE_LEN}
+            />
+          </div>
+          <div className="mt-2">
+            <BigButton
+              variant={identitySaved ? 'good' : 'neutral'}
+              label={identitySaved ? t('identity.saved') : t('settings.identity.save')}
+              onClick={saveIdentity}
+            />
+          </div>
+        </Panel>
+
+        {needIdentity ? (
+          <IdentityGate
+            onCancel={() => setNeedIdentity(null)}
+            onDone={(identity) => {
+              setName(identity.name);
+              setRole(identity.role);
+              setIdentitySaved(true);
+              const run = needIdentity.run;
+              setNeedIdentity(null);
+              run();
+            }}
+          />
+        ) : null}
+
         <Panel title={t('settings.upload.title')} accent={enrolled ? 'cyber' : 'none'}>
           {enrolled ? (
             <>
@@ -128,7 +214,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
                   icon={Send}
                   label={testing ? t('settings.upload.sending') : t('settings.upload.sendTest')}
                   disabled={testing}
-                  onClick={runTest}
+                  onClick={() => requireIdentity(() => void runTest())}
                 />
                 <HoldButton
                   variant="outline"
@@ -153,7 +239,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
           <Panel title={t('settings.backfill.title')} accent="cyber">
             <p className="text-sm text-ink">{t('settings.backfill.ask', { n: toBackfill })}</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <BigButton variant="cyber" label={t('settings.backfill.send')} onClick={() => sendBackfill()} />
+              <BigButton variant="cyber" label={t('settings.backfill.send')} onClick={() => requireIdentity(() => sendBackfill())} />
               <BigButton variant="outline" label={t('settings.backfill.notNow')} onClick={() => setBackfillDismissed(true)} />
             </div>
           </Panel>
@@ -177,7 +263,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
             <div className="mt-2 rounded-xl border border-cyber/60 bg-cyber/10 p-3">
               <EnrollmentSummary enrollment={pending} replacing={enrolled != null} />
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <BigButton variant="cyber" label={t('enroll.enroll')} onClick={confirmEnroll} />
+                <BigButton variant="cyber" label={t('enroll.enroll')} onClick={() => requireIdentity(confirmEnroll)} />
                 <BigButton variant="outline" label={t('enroll.cancel')} onClick={() => setPending(null)} />
               </div>
             </div>

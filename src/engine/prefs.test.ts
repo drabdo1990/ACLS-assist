@@ -12,6 +12,7 @@ import {
   savePrefs,
   savePopulation,
   validateEnrollment,
+  validateIdentity,
 } from './prefs';
 
 const URL_OK = 'https://script.google.com/macros/s/AKfycbxAbC_123-xyz/exec';
@@ -68,6 +69,20 @@ describe('device id and prefs', () => {
     const q = loadPrefs(kv);
     expect(q.enrollment).toEqual({ url: URL_OK, key: KEY_OK, unit: 'ICU' });
     expect(q.retention.mode).toBe('after_upload');
+  });
+
+  it('stores clinician identity, trims it, and rejects a blank or overlong name', () => {
+    const kv = memoryKV();
+    const p = loadPrefs(kv);
+    expect(p.identity).toBeNull();
+    savePrefs(kv, { ...p, identity: { name: '  A. Rahman ', role: ' RN ' } });
+    expect(loadPrefs(kv).identity).toEqual({ name: 'A. Rahman', role: 'RN' });
+    const bad = memoryKV({
+      [PREFS_KEY]: JSON.stringify({ deviceId: 'a1b2c3d4e5f6', identity: { name: '   ', role: 'RN' } }),
+    });
+    expect(loadPrefs(bad).identity).toBeNull();
+    expect(validateIdentity('x'.repeat(81), '')).toBeNull();
+    expect(validateIdentity('A', 'y'.repeat(61))).toBeNull();
   });
 });
 

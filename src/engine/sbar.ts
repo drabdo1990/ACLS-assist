@@ -26,6 +26,7 @@ import { isChecklistItemOn } from './checklist';
 import { MAGNESIUM_PREFIX, POST_ROSC_PREFIX, RHYTHM_CHECK_PREFIX } from './eventQueries';
 import type { CodeStats } from './stats';
 import { statsRows, statsTimeNote } from './statsFormat';
+import type { Identity } from './prefs';
 import type { Lang } from '../i18n/lang';
 import { formatDateTime, ltr } from '../i18n/format';
 import { translate, hasKey } from '../i18n/translate';
@@ -63,6 +64,8 @@ export interface SbarOptions {
   relativeOnly?: boolean;
   /** Language for the generated summary (defaults to 'en'). */
   lang?: Lang;
+  /** Clinician identification — printed on non-upload summaries, never sent with an upload. */
+  identity?: Identity | null;
 }
 
 /** Timeline row: `[MM:SS] HH:MM:SS  Label — detail` (or `[MM:SS]  Label — detail` when relative-only). */
@@ -98,7 +101,16 @@ export function buildSbar(input: SbarInput, now: number = Date.now(), opts: Sbar
   const peds = input.population === 'pediatric';
 
   out.push(translate(lang, 'sbar.title'));
-  if (!rel) out.push(translate(lang, 'sbar.generated', { date: formatDateTime(now, lang) }));
+  if (!rel) {
+    out.push(translate(lang, 'sbar.generated', { date: formatDateTime(now, lang) }));
+    if (opts.identity) {
+      out.push(
+        opts.identity.role
+          ? translate(lang, 'sbar.identityRole', { name: opts.identity.name, role: opts.identity.role })
+          : translate(lang, 'sbar.identity', { name: opts.identity.name }),
+      );
+    }
+  }
   if (arrest) {
     const clock = isAr ? ltr(formatClock(total)) : formatClock(total);
     const dur = formatDuration(total);
