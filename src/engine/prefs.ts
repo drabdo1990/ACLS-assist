@@ -4,6 +4,7 @@
  * and the history retention choice. The enrollment (script URL + key) is never in the repository.
  */
 import type { KV } from './kv';
+import { canWriteSession } from './tabLock';
 
 export const PREFS_KEY = 'resuscode.prefs.v1';
 
@@ -43,6 +44,9 @@ export function validateIdentity(name: unknown, role: unknown): Identity | null 
   if (!n || n.length > MAX_NAME_LEN || r.length > MAX_ROLE_LEN) return null;
   return { name: n, role: r };
 }
+
+/** The single gate used by every export/upload entry point. */
+export const needsIdentity = (identity: Identity | null): boolean => identity == null;
 
 function sanitizeIdentity(x: unknown): Identity | null {
   if (typeof x !== 'object' || x === null) return null;
@@ -114,6 +118,7 @@ function sanitizeRetention(x: unknown): Retention {
 }
 
 export function savePrefs(kv: KV, prefs: Prefs): boolean {
+  if (!canWriteSession()) return false;
   return kv.set(PREFS_KEY, JSON.stringify(prefs));
 }
 

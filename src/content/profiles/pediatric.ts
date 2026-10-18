@@ -160,10 +160,14 @@ export const pediatricProfile: ProtocolProfile = {
 
   amiodarone: (weightKg, doseIndex) => (valid(weightKg) ? amiodaroneResult(weightKg as number, doseIndex) : null),
 
-  lidocaine: (weightKg) => {
+  lidocaine: (weightKg, doseIndex) => {
     if (!valid(weightKg)) return null;
-    const raw = round2(1 * (weightKg as number));
-    return { mg: Math.min(raw, 100), capped: raw >= 100, exceedsTotal: false };
+    const kg = weightKg as number;
+    const raw = round2(1 * kg);
+    const mg = Math.min(raw, 100);
+    // PALS: 1 mg/kg per dose, total 3 mg/kg. Count the dose about to be given.
+    const cumulative = round2(mg * (doseIndex + 1));
+    return { mg, capped: raw >= 100, exceedsTotal: cumulative > round2(3 * kg) };
   },
 
   magnesium: (weightKg) => {

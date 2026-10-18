@@ -81,19 +81,29 @@ function validatePayload(p) {
   return null;
 }
 
-/** An unrevoked unit row for `key`, or null (unknown key, or the row has active = FALSE). */
+/** An unrevoked unit row for `key`, or null (unknown key, inactive row, or an ambiguous duplicate name). */
 function findActiveUnit(units, key) {
+  const active = function (a) {
+    return a === true || (typeof a === 'string' && a.trim().toUpperCase() === 'TRUE');
+  };
+  let found = -1;
   for (let i = 0; i < units.length; i++) {
     const u = units[i];
     const k = String(u.key == null ? '' : u.key).trim();
     if (k === '' || k !== key) continue;
-    const a = u.active;
-    if (a === true || (typeof a === 'string' && a.trim().toUpperCase() === 'TRUE')) {
-      return { name: String(u.unit == null ? '' : u.unit) };
-    }
-    return null;
+    if (!active(u.active)) return null;
+    found = i;
+    break;
   }
-  return null;
+  if (found < 0) return null;
+  const name = String(units[found].unit == null ? '' : units[found].unit);
+  // Ownership is stored as the display name. Two active units with the same name would let
+  // either key overwrite the other's rows, so refuse the ambiguous name rather than guess.
+  for (let j = 0; j < units.length; j++) {
+    if (j === found || !active(units[j].active)) continue;
+    if (String(units[j].unit == null ? '' : units[j].unit) === name) return null;
+  }
+  return { name: name };
 }
 
 function val(v) {
@@ -285,10 +295,13 @@ function makeAdapter_(ss) {
     },
     updateCells: function (row, cells) {
       const h = headers_();
-      Object.keys(cells).forEach(function (n) {
-        const c = h.indexOf(n) + 1;
-        if (c) codes.getRange(row, c).setValue(cells[n]);
-      });
+      const range = codes.getRange(row, 1, 1, h.length);
+      const current = range.getValues()[0];
+      range.setValues([
+        h.map(function (n, i) {
+          return Object.prototype.hasOwnProperty.call(cells, n) ? cells[n] : current[i];
+        }),
+      ]);
     },
     readUnits: function () {
       if (!units || units.getLastRow() < 2) return [];

@@ -6,6 +6,7 @@ import { translate } from '../../i18n/translate';
 import { csvFilename, recordsToCsv } from '../../engine/csv';
 import { clearAllHistory } from '../../engine/service';
 import { useHistoryRecords, usePrefsState } from '../../hooks/useService';
+import { needsIdentity } from '../../engine/prefs';
 import { BigButton } from '../ui/BigButton';
 import { HoldButton } from '../ui/HoldButton';
 import { Panel } from '../ui/Panel';
@@ -108,7 +109,7 @@ export function HistoryPanel() {
               variant="neutral"
               icon={Download}
               label={t('history.exportCsv')}
-              onClick={() => (prefs.identity ? exportCsv() : setAskIdentity(true))}
+              onClick={() => (needsIdentity(prefs.identity) ? setAskIdentity(true) : exportCsv())}
             />
             <HoldButton
               variant="outline"

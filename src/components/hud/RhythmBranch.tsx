@@ -26,6 +26,8 @@ export function RhythmBranch() {
   );
   const setRhythmBranch = useCodeStore((st) => st.setRhythmBranch);
   const population = useCodeStore((st) => st.population);
+  const status = useCodeStore((st) => st.status);
+  const canSelect = status !== 'rosc' && status !== 'terminated';
   // Through the profile, never the adult algorithm directly (pediatric shows weight-based steps).
   const view = profileFor(population).algorithm(s);
 
@@ -39,10 +41,12 @@ export function RhythmBranch() {
               key={b.id}
               type="button"
               aria-pressed={selected}
+              disabled={!canSelect}
               onClick={() => setRhythmBranch(b.id)}
               className={[
                 'touch-hit flex min-h-[72px] flex-col items-center justify-center gap-0.5 rounded-2xl border px-2 text-center active:scale-[0.97]',
                 selected ? b.on : 'border-line bg-panel2 text-ink',
+                !canSelect ? 'opacity-40' : '',
               ].join(' ')}
             >
               <span className="flex items-center gap-1.5 text-lg font-bold leading-tight">

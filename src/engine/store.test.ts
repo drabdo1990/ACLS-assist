@@ -9,7 +9,7 @@ vi.mock('./audio', () => ({
 // Pin the hybrid clock to the (faked) wall clock so elapsed times are exact.
 vi.mock('./clock', () => ({ clockNow: () => Date.now(), resyncClock: () => {} }));
 
-import { useCodeStore } from './store';
+import { canDocumentCode, canResetSession, useCodeStore } from './store';
 import { masterElapsedMs } from './timing';
 import { computeCodeStats } from './stats';
 import { emptySession, sanitizeSession } from './persistence';
@@ -531,5 +531,38 @@ describe('training / void flags', () => {
     s().reset();
     expect(s().training).toBe(false);
     expect(s().voided).toBe(false);
+  });
+});
+
+describe('status guards', () => {
+  it('allows reset only once the code has stopped', () => {
+    expect(canResetSession('idle')).toBe(false);
+    expect(canResetSession('active')).toBe(false);
+    expect(canResetSession('paused')).toBe(false);
+    expect(canResetSession('rosc')).toBe(true);
+    expect(canResetSession('terminated')).toBe(true);
+  });
+
+  it('does not log causes, POCUS or free events before the code starts', () => {
+    s().reset();
+    const before = s().events.length;
+    s().toggleCause('hypoxia');
+    s().togglePocus('effusion');
+    s().logEvent('system', 'manual');
+    expect(s().events).toHaveLength(before);
+    expect(s().causes.hypoxia).toBeUndefined();
+    expect(s().pocus.effusion).toBeUndefined();
+    expect(canDocumentCode('idle')).toBe(false);
+    expect(canDocumentCode('active')).toBe(true);
+  });
+
+  it('preselects a branch while idle without writing an event', () => {
+    s().reset();
+    const before = s().events.length;
+    s().setRhythmBranch('shockable');
+    expect(s().rhythmBranch).toBe('shockable');
+    expect(s().events).toHaveLength(before);
+    s().startCode();
+    expect(s().events.some((e) => e.category === 'rhythm' && e.label.includes('Shockable'))).toBe(true);
   });
 });

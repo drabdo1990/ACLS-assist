@@ -17,7 +17,6 @@ import {
   lidocaineBudget,
   lidocaineDose,
   waveformFor,
-  waveformLabel,
 } from './calc';
 import { nextAclsStep, type AlgorithmInput } from './algorithm';
 import { POST_ROSC_BUNDLE } from './protocols';
@@ -81,8 +80,6 @@ describe('golden: adult dose engine (content/calc.ts)', () => {
     expect(waveformFor(200)).toBe('biphasic');
     expect(waveformFor(360)).toBe('monophasic');
     expect(waveformFor(999)).toBe('biphasic'); // unknown energy falls back to biphasic
-    expect(waveformLabel('biphasic')).toBe('Biphasic');
-    expect(waveformLabel('monophasic')).toBe('Monophasic');
   });
 });
 

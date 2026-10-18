@@ -7,6 +7,7 @@ import {
   enrollmentLink,
   encodeEnrollment,
   loadPrefs,
+  needsIdentity,
   parseEnrollmentCode,
   readStoredPopulation,
   savePrefs,
@@ -83,6 +84,8 @@ describe('device id and prefs', () => {
     expect(loadPrefs(bad).identity).toBeNull();
     expect(validateIdentity('x'.repeat(81), '')).toBeNull();
     expect(validateIdentity('A', 'y'.repeat(61))).toBeNull();
+    expect(needsIdentity(null)).toBe(true);
+    expect(needsIdentity({ name: 'A', role: '' })).toBe(false);
   });
 });
 

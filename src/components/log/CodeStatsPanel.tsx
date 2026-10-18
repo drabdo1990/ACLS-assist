@@ -70,9 +70,19 @@ export function CodeStatsPanel() {
       </dl>
       <p className="mt-2 text-[11px] text-mute">{statsTimeNote(lang)}</p>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <Chip selected={training} onClick={() => setTraining(!training)}>
-          {training ? t('stats.trainingActive') : t('stats.markTraining')}
-        </Chip>
+        {training ? (
+          <Chip selected onClick={() => setTraining(false)}>
+            {t('stats.trainingActive')}
+          </Chip>
+        ) : (
+          <HoldButton
+            variant="outline"
+            label={t('stats.markTraining')}
+            sub={t('stats.trainingHold')}
+            durationMs={2000}
+            onComplete={() => setTraining(true)}
+          />
+        )}
         {voided ? (
           <Chip selected onClick={() => setVoided(false)}>
             {t('stats.restore')}

@@ -103,7 +103,3 @@ export const SHOCK_ENERGIES: readonly ShockEnergy[] = [
 export function waveformFor(joules: number): WaveformType {
   return SHOCK_ENERGIES.find((e) => e.joules === joules)?.waveform ?? 'biphasic';
 }
-
-export function waveformLabel(w: WaveformType): string {
-  return w === 'monophasic' ? 'Monophasic' : 'Biphasic';
-}

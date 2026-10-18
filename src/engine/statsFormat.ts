@@ -16,18 +16,9 @@ export interface StatRow {
   flag?: boolean;
 }
 
-export const OUTCOME_LABEL: Record<Outcome, string> = {
-  rosc: 'ROSC achieved',
-  rosc_then_terminated: 'ROSC achieved, later terminated',
-  terminated: 'Terminated without ROSC',
-  incomplete: 'Incomplete (code not ended)',
-};
-
 export function outcomeLabel(o: Outcome, lang: Lang = 'en'): string {
   return translate(lang, `outcome.${o}` as MessageKey);
 }
-
-export const STATS_TIME_NOTE = 'Times are from code activation, as logged.';
 
 export function statsTimeNote(lang: Lang = 'en'): string {
   return translate(lang, 'stats.timeNote');

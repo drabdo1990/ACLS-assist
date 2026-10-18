@@ -54,6 +54,7 @@ export function Checklist({
   prefix,
   icon: Icon,
   itemKeyPrefix,
+  disabled,
 }: {
   items: ChecklistItemLike[];
   category: EventCategory;
@@ -61,6 +62,7 @@ export function Checklist({
   icon?: LucideIcon;
   /** Translation-key prefix for item labels (`postRosc` / `pPostRosc`); items show their own text when omitted. */
   itemKeyPrefix?: string;
+  disabled?: boolean;
 }) {
   const { t } = useT();
   const i18n: ChecklistI18nConfig | undefined = itemKeyPrefix
@@ -79,10 +81,12 @@ export function Checklist({
             <button
               type="button"
               aria-pressed={on}
+              disabled={disabled}
               onClick={() => toggle(item)}
               className={[
                 'touch-hit flex min-h-[64px] w-full items-center gap-3 rounded-xl border px-3 text-start active:scale-[0.98]',
                 on ? 'border-good bg-good/10' : item.critical ? 'border-crit/50 bg-crit/5' : 'border-line bg-panel2',
+                disabled ? 'opacity-40' : '',
               ].join(' ')}
             >
               <span

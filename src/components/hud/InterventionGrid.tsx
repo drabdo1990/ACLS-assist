@@ -123,6 +123,14 @@ export function InterventionGrid() {
     setManualJoules(null);
   }, [shocks.length, status, population]);
 
+  // Never carry the previous code's energy into the next one. Only reset on idle so a pause
+  // or an in-code status change does not discard the energy the clinician just selected.
+  useEffect(() => {
+    if (status !== 'idle') return;
+    setJoules(defaultJoules);
+    setShowEnergy(false);
+  }, [status, population, defaultJoules]);
+
   const isLido = antiarrhythmic === 'lidocaine';
   // Adult HUD: null weight falls back to the 70 kg default (pediatric uses its own card).
   const lidoKg = weightKg ?? 70;
@@ -131,6 +139,16 @@ export function InterventionGrid() {
     lidoKg,
     lido.map((d) => d.mg ?? 0),
   );
+  const pedsLidoBudget =
+    peds && weightKg != null && isLido
+      ? {
+          givenMg: lido.reduce((sum, d) => sum + (d.mg ?? 0), 0),
+          maxMg: Math.round(weightKg * 3 * 10) / 10,
+          nextMg: Math.min(Math.round(weightKg * 10) / 10, 100),
+        }
+      : null;
+  const pedsLidoExceeds =
+    pedsLidoBudget != null && pedsLidoBudget.givenMg + pedsLidoBudget.nextMg > pedsLidoBudget.maxMg;
   const pedsAa = peds && weightKg != null ? (isLido ? profile.lidocaine(weightKg, lido.length) : profile.amiodarone(weightKg, amio.length)) : null;
   const aaLabel = peds
     ? noWeight
@@ -145,9 +163,13 @@ export function InterventionGrid() {
   const aaSub = peds
     ? noWeight
       ? t('peds.setWeightBanner')
-      : !isLido && pedsAa?.exceedsTotal
-        ? t('peds.grid.amio.exceeds')
-        : amioSubPeds(aaCount, t)
+      : isLido && pedsLidoBudget
+        ? pedsLidoExceeds
+          ? t('hud.grid.lido.exceeds', { given: pedsLidoBudget.givenMg, max: pedsLidoBudget.maxMg })
+          : amioSubPeds(aaCount, t)
+        : !isLido && pedsAa?.exceedsTotal
+          ? t('peds.grid.amio.exceeds')
+          : amioSubPeds(aaCount, t)
     : isLido
       ? lidoBudget.nextExceeds
         ? t('hud.grid.lido.exceeds', { given: lidoBudget.givenMg, max: lidoBudget.maxMg })
@@ -417,7 +439,11 @@ export function InterventionGrid() {
           icon={Pill}
           label={`${aaLabel}${aaCount && !(peds && noWeight) ? ` · ×${aaCount}` : ''}`}
           sub={aaSub}
-          className={!peds && isLido && lidoBudget.nextExceeds ? 'border-crit text-crit' : ''}
+          className={
+            (!peds && isLido && lidoBudget.nextExceeds) || (peds && isLido && pedsLidoExceeds)
+              ? 'border-crit text-crit'
+              : ''
+          }
           disabled={!canLog}
           onClick={peds && noWeight ? openWeight : administerAntiarrhythmic}
         />

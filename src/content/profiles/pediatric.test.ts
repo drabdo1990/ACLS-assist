@@ -118,6 +118,13 @@ describe('pediatric dose engine — weight table (spec §9)', () => {
     }
   });
 
+  it('warns when a lidocaine dose would push the total over 3 mg/kg', () => {
+    expect(peds.lidocaine(5, 2)!.exceedsTotal).toBe(false); // third dose: 15 mg = 3 mg/kg exactly
+    expect(peds.lidocaine(5, 3)!.exceedsTotal).toBe(true); // fourth dose: 20 mg > 15 mg
+    expect(peds.lidocaine(100, 1)!.exceedsTotal).toBe(false); // 200 mg <= 300 mg
+    expect(peds.lidocaine(100, 3)!.exceedsTotal).toBe(true); // 400 mg > 300 mg
+  });
+
   it('magnesium 25–50 mg/kg, capped at 2 g', () => {
     const rows: Record<number, [number, number, boolean]> = {
       3: [75, 150, false],

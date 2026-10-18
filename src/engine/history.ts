@@ -6,6 +6,8 @@ import type { PersistedSession } from './types';
 import { computeCodeStats, type CodeStats } from './stats';
 import type { KV } from './kv';
 import { DEFAULT_RETENTION, type Retention } from './prefs';
+import { reportSaveStatus } from './persistence';
+import { canWriteSession } from './tabLock';
 
 export const HISTORY_KEY = 'resuscode.history.v1';
 /** Where an unparseable history is parked so it is never silently destroyed. */
@@ -119,7 +121,12 @@ export function loadHistory(kv: KV): CodeRecord[] {
     parsed = null;
   }
   if (!Array.isArray(parsed)) {
-    kv.set(HISTORY_CORRUPT_KEY, raw);
+    if (canWriteSession()) {
+      kv.set(HISTORY_CORRUPT_KEY, raw);
+      // Do not leave an unreadable payload live: every load would re-park it and the recovery
+      // notice could never clear. The raw copy is preserved above.
+      kv.remove(HISTORY_KEY);
+    }
     return [];
   }
   const byId = new Map<string, CodeRecord>();
@@ -146,7 +153,10 @@ export function applyRetention(records: CodeRecord[], r: Retention): CodeRecord[
 
 function persist(kv: KV, records: CodeRecord[], retention: Retention): { kept: CodeRecord[]; saved: boolean } {
   const kept = applyRetention(records, retention);
-  return { kept, saved: kv.set(HISTORY_KEY, JSON.stringify(kept)) };
+  if (!canWriteSession()) return { kept, saved: false };
+  const saved = kv.set(HISTORY_KEY, JSON.stringify(kept));
+  reportSaveStatus(saved);
+  return { kept, saved };
 }
 
 export interface UpsertResult {
@@ -181,7 +191,26 @@ export function updateRecord(kv: KV, id: string, patch: RecordPatch, retention: 
   return all[i];
 }
 
+/** One read/write for a batch of ids (backfill); the per-id helper above stays for single edits. */
+export function updateRecords(
+  kv: KV,
+  ids: readonly string[],
+  patch: RecordPatch,
+  retention: Retention = DEFAULT_RETENTION,
+): void {
+  const wanted = new Set(ids);
+  const all = loadHistory(kv);
+  let changed = false;
+  for (let i = 0; i < all.length; i++) {
+    if (!wanted.has(all[i].id)) continue;
+    all[i] = { ...all[i], ...patch };
+    changed = true;
+  }
+  if (changed) persist(kv, all, retention);
+}
+
 export function clearHistory(kv: KV): void {
+  if (!canWriteSession()) return;
   kv.remove(HISTORY_KEY);
 }
 

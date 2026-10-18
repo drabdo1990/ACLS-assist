@@ -51,6 +51,7 @@ import type { KeyedEvent } from '../i18n/enText';
 import type { MessageKey } from '../i18n/en';
 import { profileFor } from '../content/profiles';
 import type { Population, WeightSource } from '../content/profiles';
+import { canWriteSession } from './tabLock';
 
 let idCounter = 0;
 function uid(): string {
@@ -212,6 +213,13 @@ export function isUndoable(e: CodeEvent): boolean {
   return true;
 }
 
+/** A finished-code screen may clear the session; a running code may not. */
+export const canResetSession = (status: SessionStatus): boolean => status === 'rosc' || status === 'terminated';
+
+/** Documentation actions only belong to a code that exists. */
+export const canDocumentCode = (status: SessionStatus): boolean =>
+  status === 'active' || status === 'paused' || status === 'rosc';
+
 /**
  * Length of the open CPR pause at `at`, never negative: a backward wall-clock step larger than
  * the pause would otherwise drive the accumulators below zero, which `sanitizeSession` rejects
@@ -264,6 +272,11 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const ev1 = keyed('ev.start', undefined, 'ev.start.detail');
         const ev2 = keyed('ev.compressions', undefined, 'ev.compressions.detail');
         const events: CodeEvent[] = [...s.events];
+        // A branch preselected on the idle screen becomes part of the audit trail at activation.
+        if (s.rhythmBranch) {
+          const bEv = keyed('ev.branch', { branch: `@branch.${s.rhythmBranch}` });
+          events.push(mkEvent('rhythm', bEv.label, undefined, at, 0, bEv.i18n));
+        }
         // The population event opens the pediatric audit trail; adult keeps today's two events.
         if (s.population === 'pediatric') {
           const pop = populationStartEvent(s.weightKg, s.weightSource, s.ageMonths);
@@ -424,6 +437,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
 
     logEvent: (category, label, detail, i18n) =>
       apply((s) => {
+        if (!canDocumentCode(s.status)) return {};
         const at = clockNow();
         return { events: [...s.events, mkEvent(category, label, detail, at, el(s, at), i18n)] };
       }),
@@ -469,8 +483,10 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     setRhythmBranch: (branch) =>
       apply((s) => {
         if (s.rhythmBranch === branch) return {};
+        if (s.status === 'rosc' || s.status === 'terminated') return {};
         const at = clockNow();
         haptic.confirm();
+        if (s.status === 'idle') return { rhythmBranch: branch };
         const bEv = keyed('ev.branch', { branch: `@branch.${branch}` });
         return {
           rhythmBranch: branch,
@@ -694,6 +710,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
 
     toggleCause: (id) =>
       apply((s) => {
+        if (!canDocumentCode(s.status)) return {};
         const next = { ...s.causes, [id]: !s.causes[id] };
         const at = clockNow();
         if (s.causes[id]) {
@@ -717,6 +734,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
 
     togglePocus: (id) =>
       apply((s) => {
+        if (!canDocumentCode(s.status)) return {};
         const next = { ...s.pocus, [id]: !s.pocus[id] };
         const at = clockNow();
         if (s.pocus[id]) {
@@ -815,6 +833,7 @@ let lastRev = useCodeStore.getState().rev;
 useCodeStore.subscribe((state) => {
   if (state.rev === lastRev) return;
   lastRev = state.rev;
+  if (!canWriteSession()) return;
   writer.save(toPersisted(state));
 });
 

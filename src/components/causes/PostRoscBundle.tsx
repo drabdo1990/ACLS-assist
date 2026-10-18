@@ -11,6 +11,7 @@ import { useT } from '../../i18n/useT';
 export function PostRoscBundle() {
   const { t } = useT();
   const population = useCodeStore((s) => s.population);
+  const rosc = useCodeStore((s) => s.status === 'rosc');
   const peds = population === 'pediatric';
   return (
     <Panel title={t('postRosc.title')} icon={HeartPulse} accent="good">
@@ -19,6 +20,7 @@ export function PostRoscBundle() {
         category="post"
         prefix={POST_ROSC_PREFIX}
         itemKeyPrefix={peds ? 'pPostRosc' : 'postRosc'}
+        disabled={!rosc}
       />
     </Panel>
   );

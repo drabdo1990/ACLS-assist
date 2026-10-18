@@ -8,7 +8,6 @@ import type { KV } from './kv';
 import { buildRecord, upsertRecord, type CodeRecord } from './history';
 import { loadPrefs } from './prefs';
 import { buildSbar } from './sbar';
-import { reportSaveStatus } from './persistence';
 
 export type CaptureState = PersistedSession & { rev: number };
 
@@ -49,7 +48,6 @@ export function createCapture(deps: CaptureDeps) {
     });
     if (!rec) return;
     const res = upsertRecord(kv, rec, prefs.retention);
-    if (!res.saved) reportSaveStatus(false);
     if (!res.changed) return;
     deps.onChanged?.();
     if (prefs.enrollment) {

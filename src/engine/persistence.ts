@@ -16,6 +16,7 @@ import type {
   Settings,
 } from './types';
 import { CODE_ENDED_LABEL, REARREST_LABEL } from './eventQueries';
+import { canWriteSession } from './tabLock';
 
 export const STORAGE_KEY = 'resuscode.session.v2';
 /** Where an unreadable payload is parked so it is never silently destroyed. */
@@ -454,6 +455,7 @@ export function reportSaveStatus(ok: boolean): void {
 /** Returns whether the write succeeded (quota / blocked storage -> false). */
 export function writePersisted(session: PersistedSession): boolean {
   if (!isBrowser()) return true;
+  if (!canWriteSession()) return false;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     setSaveOk(true);
@@ -465,7 +467,7 @@ export function writePersisted(session: PersistedSession): boolean {
 }
 
 export function clearPersisted(): void {
-  if (!isBrowser()) return;
+  if (!isBrowser() || !canWriteSession()) return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
   } catch {

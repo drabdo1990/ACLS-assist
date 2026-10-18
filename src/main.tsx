@@ -5,6 +5,7 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useCodeStore } from './engine/store';
 import { startService } from './engine/service';
+import { startTabLock } from './engine/tabLock';
 import { takeEnrollFragment } from './engine/enrollLink';
 import { applyDocumentLang, getLang } from './i18n/lang';
 
@@ -42,19 +43,21 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   });
 }
 
-startService();
+void startTabLock().then((canWrite) => {
+  if (canWrite) startService();
 
-// Read once, before render: StrictMode double-invokes initialisers and the fragment is removed from the URL.
-const pendingEnroll = takeEnrollFragment();
+  // Read once, before render: StrictMode double-invokes initialisers and the fragment is removed from the URL.
+  const pendingEnroll = takeEnrollFragment();
 
-const root = document.getElementById('root');
-if (root) {
-  createRoot(root).render(
-    <StrictMode>
-      <ErrorBoundary>
-        <App pendingEnroll={pendingEnroll} />
-      </ErrorBoundary>
-    </StrictMode>,
-  );
-}
+  const root = document.getElementById('root');
+  if (root) {
+    createRoot(root).render(
+      <StrictMode>
+        <ErrorBoundary>
+          <App pendingEnroll={pendingEnroll} />
+        </ErrorBoundary>
+      </StrictMode>,
+    );
+  }
+});
 

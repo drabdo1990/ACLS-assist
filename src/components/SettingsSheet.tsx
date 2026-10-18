@@ -4,6 +4,7 @@ import {
   KEEP_OPTIONS,
   MAX_NAME_LEN,
   MAX_ROLE_LEN,
+  needsIdentity,
   parseEnrollmentCode,
   validateIdentity,
   type Enrollment,
@@ -50,6 +51,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [identitySaved, setIdentitySaved] = useState(false);
   const [needIdentity, setNeedIdentity] = useState<{ run: () => void } | null>(null);
+  const [retentionDraft, setRetentionDraft] = useState(prefs.retention);
 
   useEffect(() => {
     if (!open) return;
@@ -57,6 +59,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
     setRole(prefs.identity?.role ?? '');
     setIdentitySaved(false);
     setIdentityError(null);
+    setRetentionDraft(prefs.retention);
   }, [open]);
 
   useEffect(() => {
@@ -67,6 +70,11 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!needIdentity) return;
+    document.getElementById('identity-gate')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [needIdentity]);
 
   if (!open) return null;
 
@@ -99,7 +107,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
   };
   /** Every data-leaving action (enroll, test upload, backfill) requires a local identity first. */
   const requireIdentity = (run: () => void) => {
-    if (prefs.identity) run();
+    if (!needsIdentity(prefs.identity)) run();
     else setNeedIdentity({ run });
   };
   const saveIdentity = () => {
@@ -110,6 +118,13 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
     }
     setIdentity(identity);
     setIdentitySaved(true);
+    setIdentityError(null);
+  };
+  const clearIdentity = () => {
+    setIdentity(null);
+    setName('');
+    setRole('');
+    setIdentitySaved(false);
     setIdentityError(null);
   };
 
@@ -167,27 +182,35 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
               maxLength={MAX_ROLE_LEN}
             />
           </div>
-          <div className="mt-2">
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <BigButton
               variant={identitySaved ? 'good' : 'neutral'}
               label={identitySaved ? t('identity.saved') : t('settings.identity.save')}
               onClick={saveIdentity}
             />
+            <BigButton
+              variant="outline"
+              label={t('settings.identity.clear')}
+              disabled={!prefs.identity}
+              onClick={clearIdentity}
+            />
           </div>
         </Panel>
 
         {needIdentity ? (
-          <IdentityGate
-            onCancel={() => setNeedIdentity(null)}
-            onDone={(identity) => {
-              setName(identity.name);
-              setRole(identity.role);
-              setIdentitySaved(true);
-              const run = needIdentity.run;
-              setNeedIdentity(null);
-              run();
-            }}
-          />
+          <div id="identity-gate">
+            <IdentityGate
+              onCancel={() => setNeedIdentity(null)}
+              onDone={(identity) => {
+                setName(identity.name);
+                setRole(identity.role);
+                setIdentitySaved(true);
+                const run = needIdentity.run;
+                setNeedIdentity(null);
+                run();
+              }}
+            />
+          </div>
         ) : null}
 
         <Panel title={t('settings.upload.title')} accent={enrolled ? 'cyber' : 'none'}>
@@ -277,20 +300,41 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
         <Panel title={t('settings.history.title')}>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {RETENTION_MODES.map(([mode, key]) => (
-              <Chip key={mode} selected={prefs.retention.mode === mode} onClick={() => setRetention({ ...prefs.retention, mode })}>
+              <Chip
+                key={mode}
+                selected={retentionDraft.mode === mode}
+                onClick={() => setRetentionDraft({ ...retentionDraft, mode })}
+              >
                 {t(key)}
               </Chip>
             ))}
           </div>
-          {prefs.retention.mode === 'last' ? (
+          {retentionDraft.mode === 'last' ? (
             <div className="mt-2 grid grid-cols-3 gap-2">
               {KEEP_OPTIONS.map((n) => (
-                <Chip key={n} selected={prefs.retention.keep === n} onClick={() => setRetention({ ...prefs.retention, keep: n })}>
+                <Chip
+                  key={n}
+                  selected={retentionDraft.keep === n}
+                  onClick={() => setRetentionDraft({ ...retentionDraft, keep: n })}
+                >
                   {n}
                 </Chip>
               ))}
             </div>
           ) : null}
+          <div className="mt-2">
+            <HoldButton
+              variant="outline"
+              label={t('settings.retention.apply')}
+              sub={t('settings.retention.applySub')}
+              durationMs={2000}
+              disabled={
+                retentionDraft.mode === prefs.retention.mode &&
+                (retentionDraft.mode !== 'last' || retentionDraft.keep === prefs.retention.keep)
+              }
+              onComplete={() => setRetention(retentionDraft)}
+            />
+          </div>
           <p className="mt-2 text-[11px] text-mute">{t('settings.retention.note')}</p>
         </Panel>
 

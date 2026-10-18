@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { HeartPulse, ListOrdered, Lock, LockOpen, Search, Settings, Siren, WifiOff } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useCodeStore } from './engine/store';
@@ -13,10 +13,12 @@ import { AudioHint, SaveFailedChip } from './components/ui/StatusChips';
 import { ClockChangeNotice } from './components/ui/ClockChangeNotice';
 import { EnrollConfirm } from './components/EnrollConfirm';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { RecoveryNotice } from './components/RecoveryNotice';
 import { SettingsSheet } from './components/SettingsSheet';
 import type { EnrollFragment } from './engine/enrollLink';
 import { useT } from './i18n/useT';
 import { AR_CLINICAL_REVIEWED } from './i18n/review';
+import { isTabBlocked, subscribeTabBlocked } from './engine/tabLock';
 
 type Tab = 'hud' | 'causes' | 'log';
 
@@ -69,6 +71,7 @@ function RhythmCheckBanner({ onOpenHud }: { onOpenHud: () => void }) {
 
 export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }) {
   const { t, lang } = useT();
+  const tabBlocked = useSyncExternalStore(subscribeTabBlocked, isTabBlocked, () => false);
   useTicker();
   const { active: wakeActive, supported: wakeSupported } = useWakeLock();
   const online = useOnline();
@@ -98,6 +101,22 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [tab]);
+
+  if (tabBlocked) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-bg p-6 text-center">
+        <p className="text-lg font-bold text-warn">{t('app.duplicateTab.title')}</p>
+        <p className="max-w-md text-sm leading-relaxed text-mute">{t('app.duplicateTab.body')}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="touch-hit min-h-[64px] w-full max-w-sm rounded-xl border border-cyber/60 bg-cyber/15 font-bold text-cyber"
+        >
+          {t('app.duplicateTab.reload')}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-bg">
@@ -152,6 +171,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
       {/* Body */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-3 pt-3 pb-appbar">
         <EnrollConfirm fragment={pendingEnroll} onEnrolled={() => setSettingsOpen(true)} />
+        <RecoveryNotice />
         {lang === 'ar' && !AR_CLINICAL_REVIEWED ? (
           <p role="note" className="mb-3 rounded-xl border border-warn/60 bg-warn/10 px-3 py-2 text-xs font-semibold text-warn">
             {t('i18n.draftNotice')}

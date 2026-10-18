@@ -6,7 +6,7 @@ A mobile-first, high-reliability **Progressive Web App** that serves as the real
 cognitive command HUD and timekeeper for adult cardiac arrest — built for Code Blue teams,
 Emergency Departments, ICUs, and rapid-response resuscitation leaders.
 
-**Live:** https://drabdo1990.github.io/ACLS-assist/
+**Live:** https://code-blue-excel.drabdo2020.workers.dev/
 
 > **Clinical safety notice:** ResusCode is a decision-support and documentation aid that
 > follows AHA / ERC adult ACLS. It is **not** a substitute for clinical judgement. Verify
@@ -143,11 +143,17 @@ experience.
 
 ## Deployment
 
-Published to GitHub Pages by `.github/workflows/deploy.yml` on every push to `main`. The
-workflow runs the typecheck and unit tests first — a failing test blocks the release.
+Deployed as the Cloudflare Worker `code-blue-excel` (static assets) by its connected Workers
+Build. `wrangler.jsonc` is the source of truth for the Worker name, compatibility date and SPA
+asset fallback; `npm run build` produces `dist`.
 
-GitHub Pages serves a project site from `/<repo>/`, so CI sets `VITE_BASE` from the repository
-name. `vite.config.ts` uses it for Vite's `base` and the PWA `start_url`/`scope`.
+`.github/workflows/ci.yml` runs the typecheck, unit tests and build on every push and pull
+request. The Cloudflare build must use the same command:
+`npm run typecheck && npm test && npm run build` — a failing check blocks the release. There is
+no GitHub Pages deployment.
+
+The app is served from the Worker root, so the default Vite `base` of `/` is correct. If the app
+is ever hosted under a sub-path, set `VITE_BASE` for both Vite and the PWA.
 
 ---
 

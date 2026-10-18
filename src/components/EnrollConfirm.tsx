@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { EnrollFragment } from '../engine/enrollLink';
 import { enrollDevice, getPrefs } from '../engine/service';
 import { usePrefsState } from '../hooks/useService';
+import { needsIdentity } from '../engine/prefs';
 import { useT } from '../i18n/useT';
 import { BigButton } from './ui/BigButton';
 import { IdentityGate } from './ui/IdentityGate';
@@ -40,7 +41,7 @@ export function EnrollConfirm({ fragment, onEnrolled }: { fragment: EnrollFragme
         <BigButton
           variant="cyber"
           label={t('enroll.enroll')}
-          onClick={() => (prefs.identity ? doEnroll() : setAskIdentity(true))}
+          onClick={() => (needsIdentity(prefs.identity) ? setAskIdentity(true) : doEnroll())}
         />
         <BigButton variant="outline" label={t('enroll.cancel')} onClick={() => setDone(true)} />
       </div>

@@ -1,5 +1,5 @@
 import { Check, ScanLine } from 'lucide-react';
-import { useCodeStore } from '../../engine/store';
+import { canDocumentCode, useCodeStore } from '../../engine/store';
 import { POCUS_ITEMS } from '../../content/pocus';
 import { Panel } from '../ui/Panel';
 import { useT } from '../../i18n/useT';
@@ -8,7 +8,9 @@ import { useT } from '../../i18n/useT';
 export function PocusChecklist() {
   const { t } = useT();
   const pocus = useCodeStore((s) => s.pocus);
+  const status = useCodeStore((s) => s.status);
   const togglePocus = useCodeStore((s) => s.togglePocus);
+  const canEdit = canDocumentCode(status);
 
   return (
     <Panel title={t('pocus.title')} icon={ScanLine} accent="cyber">
@@ -21,10 +23,12 @@ export function PocusChecklist() {
               key={p.id}
               type="button"
               aria-pressed={on}
+              disabled={!canEdit}
               onClick={() => togglePocus(p.id)}
               className={[
                 'touch-hit flex min-h-[64px] w-full items-start gap-3 rounded-xl border p-3 text-start active:scale-[0.98]',
                 on ? 'border-cyber bg-cyber/15' : 'border-line bg-panel2',
+                !canEdit ? 'opacity-40' : '',
               ].join(' ')}
             >
               <span

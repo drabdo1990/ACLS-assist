@@ -1,5 +1,5 @@
 import { Check, Search } from 'lucide-react';
-import { useCodeStore } from '../../engine/store';
+import { canDocumentCode, useCodeStore } from '../../engine/store';
 import { CAUSES } from '../../content/causes';
 import { Panel } from '../ui/Panel';
 import { useT } from '../../i18n/useT';
@@ -11,7 +11,9 @@ import { useT } from '../../i18n/useT';
 export function CausesGrid() {
   const { t } = useT();
   const causes = useCodeStore((s) => s.causes);
+  const status = useCodeStore((s) => s.status);
   const toggleCause = useCodeStore((s) => s.toggleCause);
+  const canEdit = canDocumentCode(status);
   const done = CAUSES.filter((c) => causes[c.id]).length;
 
   return (
@@ -37,10 +39,12 @@ export function CausesGrid() {
                     key={c.id}
                     type="button"
                     aria-pressed={on}
+                    disabled={!canEdit}
                     onClick={() => toggleCause(c.id)}
                     className={[
                       'touch-hit flex min-h-[72px] items-start gap-3 rounded-xl border p-3 text-start active:scale-[0.98]',
                       on ? 'border-warn bg-warn/15' : 'border-line bg-panel2',
+                      !canEdit ? 'opacity-40' : '',
                     ].join(' ')}
                   >
                     <span

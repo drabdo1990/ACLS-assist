@@ -28,7 +28,7 @@ One row per unit on the `Units` tab:
 | Column | Value |
 |---|---|
 | `enrollment_key` | 8–64 letters, digits, `-` or `_`. Make it random. |
-| `unit_name` | e.g. `ICU` |
+| `unit_name` | e.g. `ICU` — **must be unique among active units** |
 | `active` | ticked |
 
 To revoke a unit, untick `active`.
@@ -53,14 +53,14 @@ old version is deployed.
 
 ## 8. Make an enrollment link
 
-Run this in a browser console, then share the link or paste it into any QR-code generator.
+Open ResusCode in a browser, run this in the browser console, then share the link or paste it into any QR-code generator.
 **Treat the link like a password**: anyone with it can add rows to your sheet.
 
 ```js
 const e = { url: 'https://script.google.com/macros/s/XXXX/exec', key: 'your-unit-key', unit: 'ICU' };
 const b = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(e))))
   .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-console.log('https://drabdo1990.github.io/ACLS-assist/#enroll=' + b);
+console.log(location.href.split('#')[0] + '#enroll=' + b);
 ```
 
 ## 9. iPhone / iPad

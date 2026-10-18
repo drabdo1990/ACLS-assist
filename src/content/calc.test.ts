@@ -5,7 +5,6 @@ import {
   lidocaineBudget,
   lidocaineDose,
   waveformFor,
-  waveformLabel,
 } from './calc';
 
 describe('amiodarone sequencing', () => {
@@ -42,6 +41,5 @@ describe('defibrillation energies', () => {
     expect(SHOCK_ENERGIES.map((e) => e.joules)).toEqual([120, 150, 200, 360]);
     expect(waveformFor(200)).toBe('biphasic');
     expect(waveformFor(360)).toBe('monophasic');
-    expect(waveformLabel('monophasic')).toBe('Monophasic');
   });
 });

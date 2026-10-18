@@ -1,5 +1,5 @@
 import { isoWithOffset, type Aggregates, type CodeRecord, type Median, type UploadStatus } from './history';
-import { outcomeLabel, OUTCOME_LABEL, type StatRow } from './statsFormat';
+import { outcomeLabel, type StatRow } from './statsFormat';
 import { formatClock } from './timing';
 import type { Lang } from '../i18n/lang';
 import { translate } from '../i18n/translate';
@@ -23,12 +23,7 @@ const DASH = '—';
 
 export function recordTitle(r: CodeRecord, offsetMin?: number, lang: Lang = 'en'): string {
   const when = isoWithOffset(r.startedAt, offsetMin).slice(0, 16).replace('T', ' ');
-  const rawOutcome = lang === 'en' ? OUTCOME_LABEL[r.stats.outcome] : outcomeLabel(r.stats.outcome, lang);
-  const outcome = rawOutcome
-    .split('،')[0]
-    .split(',')[0]
-    .replace(' (code not ended)', '')
-    .replace(' (لم يُنهَ النداء)', '');
+  const outcome = outcomeLabel(r.stats.outcome, lang);
   const clock = lang === 'ar' ? ltr(formatClock(r.stats.arrestMs)) : formatClock(r.stats.arrestMs);
   return `${when} · ${outcome} · ${clock}`;
 }

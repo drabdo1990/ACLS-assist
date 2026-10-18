@@ -4,8 +4,9 @@
  */
 import type { KV } from './kv';
 import { loadPrefs, savePrefs, type Enrollment, type Retention } from './prefs';
-import { loadHistory, pruneHistory, updateRecord, type CodeRecord, type UploadStatus } from './history';
+import { loadHistory, pruneHistory, updateRecord, updateRecords, type CodeRecord, type UploadStatus } from './history';
 import { buildPayload, isRejectError, sendPayload, type RejectError, type SendDeps, type UploadPayload } from './upload';
+import { canWriteSession } from './tabLock';
 
 export const OUTBOX_KEY = 'resuscode.outbox.v1';
 const MAX_BACKOFF_MS = 300_000;
@@ -56,10 +57,12 @@ export function loadOutbox(kv: KV): OutboxState {
 }
 
 function saveOutbox(kv: KV, state: OutboxState): boolean {
+  if (!canWriteSession()) return false;
   return kv.set(OUTBOX_KEY, JSON.stringify(state));
 }
 
 export function clearOutbox(kv: KV): void {
+  if (!canWriteSession()) return;
   kv.remove(OUTBOX_KEY);
 }
 
@@ -68,13 +71,17 @@ export function backoffMs(attempts: number): number {
   return Math.min(MAX_BACKOFF_MS, 1000 * 2 ** Math.max(0, attempts - 1));
 }
 
-export function enqueue(kv: KV, payload: UploadPayload, now: number): boolean {
-  if (!loadPrefs(kv).enrollment) return false;
-  const state = loadOutbox(kv);
+function addEntry(state: OutboxState, payload: UploadPayload, now: number): void {
   const old = state.entries[payload.recordId];
   const merged =
     payload.sbar === undefined && old?.payload.sbar !== undefined ? { ...payload, sbar: old.payload.sbar } : payload;
   state.entries[payload.recordId] = { payload: merged, attempts: 0, nextAttemptAt: now, unconfirmed: false };
+}
+
+export function enqueue(kv: KV, payload: UploadPayload, now: number): boolean {
+  if (!loadPrefs(kv).enrollment) return false;
+  const state = loadOutbox(kv);
+  addEntry(state, payload, now);
   return saveOutbox(kv, state);
 }
 
@@ -128,6 +135,7 @@ export async function flushOutbox(deps: FlushDeps, opts: FlushOptions = {}): Pro
 
   const run = async (): Promise<FlushSummary> => {
     const { kv } = deps;
+    if (!canWriteSession()) return summary;
     const prefs = loadPrefs(kv);
     if (!prefs.enrollment) return summary;
     const setStatus = (id: string, uploadStatus: UploadStatus) => updateRecord(kv, id, { uploadStatus }, prefs.retention);
@@ -197,14 +205,13 @@ export function backfillCandidates(kv: KV): CodeRecord[] {
 export function enqueueBackfill(kv: KV, now: number): number {
   const prefs = loadPrefs(kv);
   if (!prefs.enrollment) return 0;
-  let n = 0;
-  for (const r of backfillCandidates(kv)) {
-    if (enqueue(kv, buildPayload(r, { enrollmentKey: prefs.enrollment.key }), now)) {
-      updateRecord(kv, r.id, { uploadStatus: 'queued' }, prefs.retention);
-      n += 1;
-    }
-  }
-  return n;
+  const candidates = backfillCandidates(kv);
+  if (!candidates.length) return 0;
+  const state = loadOutbox(kv);
+  for (const r of candidates) addEntry(state, buildPayload(r, { enrollmentKey: prefs.enrollment.key }), now);
+  if (!saveOutbox(kv, state)) return 0;
+  updateRecords(kv, candidates.map((r) => r.id), { uploadStatus: 'queued' }, prefs.retention);
+  return candidates.length;
 }
 
 export function enroll(kv: KV, enrollment: Enrollment): void {

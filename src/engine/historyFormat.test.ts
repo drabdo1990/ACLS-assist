@@ -7,6 +7,11 @@ describe('recordTitle / recordFlags', () => {
   it('shows local date-time, outcome and arrest time', () => {
     expect(recordTitle(mkRecord(1), 0)).toBe('2023-11-14 23:13 · ROSC achieved · 10:00');
   });
+  it('keeps the later-terminated part of the outcome', () => {
+    expect(recordTitle(mkRecord(1, {}, { outcome: 'rosc_then_terminated' }), 0)).toBe(
+      '2023-11-14 23:13 · ROSC achieved, later terminated · 10:00',
+    );
+  });
   it('lists training / void flags', () => {
     expect(recordFlags(mkRecord(1))).toEqual([]);
     expect(recordFlags(mkRecord(1, { training: true, voided: true }))).toEqual(['Training', 'Void']);

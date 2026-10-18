@@ -9,6 +9,7 @@ import { clearHistory, pruneHistory } from './history';
 import { editRecordFlagsCore } from './flagEdit';
 import { installHistoryCapture } from './historyCapture';
 import { loadPrefs, savePrefs, type Enrollment, type Identity, type Prefs, type Retention } from './prefs';
+import { reportSaveStatus } from './persistence';
 import {
   backfillCandidates,
   browserLock,
@@ -23,6 +24,7 @@ import {
   type FlushOptions,
 } from './outbox';
 import { buildPayload, buildTestPayload, sendPayload, type SendResult } from './upload';
+import { canWriteSession } from './tabLock';
 
 export const kv: KV | null = browserKV();
 
@@ -73,7 +75,7 @@ export async function flushNow(opts: FlushOptions = {}): Promise<void> {
 }
 
 export function startService(): void {
-  if (!kv || typeof window === 'undefined') return;
+  if (!kv || typeof window === 'undefined' || !canWriteSession()) return;
   const store = kv;
   installHistoryCapture(useCodeStore, {
     kv: store,
@@ -97,15 +99,16 @@ export const getPrefs = (): Prefs => loadPrefs(kv);
 
 export function setRetention(retention: Retention): void {
   if (!kv) return;
-  savePrefs(kv, { ...loadPrefs(kv), retention });
+  if (!savePrefs(kv, { ...loadPrefs(kv), retention })) reportSaveStatus(false);
   pruneHistory(kv, retention);
   notify();
 }
 
 /** Local clinician identification (name + role); printed on exports, never sent with uploads. */
-export function setIdentity(identity: Identity): void {
+export function setIdentity(identity: Identity | null): void {
   if (!kv) return;
-  savePrefs(kv, { ...loadPrefs(kv), identity });
+  const saved = savePrefs(kv, { ...loadPrefs(kv), identity });
+  if (!saved) reportSaveStatus(false);
   notify();
 }
 

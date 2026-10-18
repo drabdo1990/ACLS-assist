@@ -370,7 +370,16 @@ const UI = {
   'app.restored.fresh': 'Start fresh',
   'app.restored.dismiss': 'Dismiss',
   'app.restored.stale': 'Saved session is {hours} h old — probably a previous code. Start fresh, or keep it to review.',
-  'app.restored.freshSession': 'Session restored from this device — timers continued from saved timestamps.',
+  'app.restored.freshSession': 'Session restored from this device - timers continued from saved timestamps.',
+  'app.duplicateTab.title': 'ResusCode is open in another tab',
+  'app.duplicateTab.body':
+    'Only one tab may write this device’s code. Close the other tab, then reload this one. This tab is read-only until then.',
+  'app.duplicateTab.reload': 'Reload this tab',
+  'recovery.title': 'A saved record could not be read',
+  'recovery.body':
+    'One or more saved records were damaged. The raw copy is kept on this device; download it before discarding.',
+  'recovery.download': 'Download raw copy',
+  'recovery.discard': 'Discard damaged copy',
   'app.disclaimer':
     'Clinical decision-support aid only, benchmarked to the SHA ACLS Provider Manual 2024 and SHA PALS Provider Course (AHA/ERC-aligned). Verify every dose against your local protocol. Not a substitute for clinical judgement. PHI-free — no patient identifiers are recorded. Data stays on this device unless your unit has enrolled it for code upload (Settings).',
   'tab.hud': 'ACLS HUD',
@@ -495,6 +504,7 @@ const UI = {
   'stats.voidedNotice': 'VOIDED — kept on record, excluded from statistics',
   'stats.trainingActive': 'Training / simulation ✓',
   'stats.markTraining': 'Mark as training',
+  'stats.trainingHold': 'Hold 2 s — excludes it from stats',
   'stats.restore': 'Restore (un-void)',
   'stats.voidLabel': 'Void this code',
   'stats.voidSub': 'Hold 2 s — keeps it, excludes from stats',
@@ -551,6 +561,8 @@ const UI = {
   'identity.continue': 'Continue',
   'identity.cancel': 'Cancel',
   'identity.saved': 'Saved on this device',
+  'identity.change': 'Change',
+  'settings.identity.clear': 'Clear identification',
   'settings.upload.title': 'Code upload',
   'settings.upload.enrolled': 'Enrolled',
   'settings.upload.waiting': 'Waiting to send: {n}',
@@ -573,6 +585,8 @@ const UI = {
   'settings.retention.all': 'Keep all',
   'settings.retention.last': 'Keep last…',
   'settings.retention.afterUpload': 'Delete after upload',
+  'settings.retention.apply': 'Apply retention',
+  'settings.retention.applySub': 'Hold 2 s — this removes older records now',
   'settings.retention.note':
     'Up to 500 codes are kept. "Delete after upload" removes a code from this device only once the sheet has confirmed it.',
   'settings.device.title': 'This device',

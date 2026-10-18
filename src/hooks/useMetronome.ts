@@ -44,7 +44,6 @@ export function useMetronome(): { beat: number; running: boolean } {
     let stopped = false;
     let next = ac ? ac.currentTime + 0.08 : 0;
     let count = 0;
-    const visualTimers: number[] = [];
 
     const schedule = () => {
       if (!ac || stopped) return;
@@ -61,12 +60,11 @@ export function useMetronome(): { beat: number; running: boolean } {
         }
         const delayMs = Math.max(0, (next - ac.currentTime) * 1000);
         const isHapticBeat = hapticRef.current;
-        const id = window.setTimeout(() => {
+        window.setTimeout(() => {
           if (stopped) return;
           setBeat((b) => b + 1);
           if (isHapticBeat) haptic.tick();
         }, delayMs);
-        visualTimers.push(id);
         next += interval;
         count += 1;
       }
@@ -78,7 +76,6 @@ export function useMetronome(): { beat: number; running: boolean } {
     return () => {
       stopped = true;
       window.clearInterval(handle);
-      visualTimers.forEach((id) => window.clearTimeout(id));
     };
   }, [running, bpm]);
 

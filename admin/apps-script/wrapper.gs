@@ -83,10 +83,13 @@ function makeAdapter_(ss) {
     },
     updateCells: function (row, cells) {
       const h = headers_();
-      Object.keys(cells).forEach(function (n) {
-        const c = h.indexOf(n) + 1;
-        if (c) codes.getRange(row, c).setValue(cells[n]);
-      });
+      const range = codes.getRange(row, 1, 1, h.length);
+      const current = range.getValues()[0];
+      range.setValues([
+        h.map(function (n, i) {
+          return Object.prototype.hasOwnProperty.call(cells, n) ? cells[n] : current[i];
+        }),
+      ]);
     },
     readUnits: function () {
       if (!units || units.getLastRow() < 2) return [];

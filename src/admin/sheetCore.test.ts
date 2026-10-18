@@ -93,6 +93,13 @@ describe('insert / find-or-insert', () => {
     expect(s.rows[0].unit).toBe('Ward 7');
   });
 
+  it('refuses an ambiguous active unit name instead of allowing cross-unit overwrite', () => {
+    const units = [...UNITS, { key: 'unit-icu2-2026', unit: 'ICU', active: true }];
+    const s = memorySheet([], [], units);
+    expect(send(s, P())).toEqual({ ok: false, error: 'key' });
+    expect(s.rows).toHaveLength(0);
+  });
+
   it('two uploads of one record produce one row (two tabs, retries)', () => {
     const s = memorySheet();
     send(s, P());

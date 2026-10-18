@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ClipboardCopy, Download, Eye, RotateCcw, Check } from 'lucide-react';
-import { useCodeStore } from '../../engine/store';
+import { canResetSession, useCodeStore } from '../../engine/store';
 import { buildSbar, sbarFilename } from '../../engine/sbar';
 import { computeCodeStats } from '../../engine/stats';
 import { BigButton } from '../ui/BigButton';
@@ -8,7 +8,8 @@ import { HoldButton } from '../ui/HoldButton';
 import { Panel } from '../ui/Panel';
 import { IdentityGate } from '../ui/IdentityGate';
 import { usePrefsState } from '../../hooks/useService';
-import type { Identity } from '../../engine/prefs';
+import { needsIdentity, type Identity } from '../../engine/prefs';
+import { downloadText } from './download';
 import { useT } from '../../i18n/useT';
 import { browserKV } from '../../engine/kv';
 import type { Lang } from '../../i18n/lang';
@@ -20,10 +21,16 @@ export function SbarExport() {
   const { t, lang } = useT();
   const prefs = usePrefsState();
   const eventCount = useCodeStore((s) => s.events.length);
+  const status = useCodeStore((s) => s.status);
   const reset = useCodeStore((s) => s.reset);
   const [copied, setCopied] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [pending, setPending] = useState<'copy' | 'download' | null>(null);
+  const [editingIdentity, setEditingIdentity] = useState(false);
+
+  useEffect(() => {
+    if (eventCount === 0) setPreview(null);
+  }, [eventCount]);
 
   const [sbarLang, setSbarLang] = useState<Lang>(() => {
     const stored = browserKV()?.get(SBAR_LANG_KEY);
@@ -68,22 +75,12 @@ export function SbarExport() {
   };
 
   const downloadNow = (identity: Identity | null = prefs.identity) => {
-    const text = build(sbarLang, identity);
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = sbarFilename(Date.now());
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // Revoke after the browser has had time to start the download (immediate revoke is flaky on some mobile browsers).
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadText(sbarFilename(Date.now()), build(sbarLang, identity), 'text/plain;charset=utf-8');
   };
 
   /** Copy and download leave the device, so they need a clinician identity. Preview does not. */
   const runExport = (which: 'copy' | 'download') => {
-    if (!prefs.identity) {
+    if (needsIdentity(prefs.identity)) {
       setPending(which);
       return;
     }
@@ -117,6 +114,33 @@ export function SbarExport() {
           </button>
         </div>
       </div>
+
+      {prefs.identity ? (
+        <div className="mb-3 flex items-center gap-2 rounded-xl border border-line bg-panel2/60 px-3 py-2 text-xs">
+          <span className="min-w-0 flex-1 font-semibold text-ink">
+            {t(prefs.identity.role ? 'sbar.identityRole' : 'sbar.identity', {
+              name: prefs.identity.name,
+              role: prefs.identity.role,
+            })}
+          </span>
+          <button
+            type="button"
+            onClick={() => setEditingIdentity(true)}
+            className="touch-hit shrink-0 rounded-lg border border-line px-3 py-2 font-bold text-cyber"
+          >
+            {t('identity.change')}
+          </button>
+        </div>
+      ) : null}
+
+      {editingIdentity ? (
+        <div className="mb-3">
+          <IdentityGate
+            onCancel={() => setEditingIdentity(false)}
+            onDone={() => setEditingIdentity(false)}
+          />
+        </div>
+      ) : null}
 
       {pending ? (
         <div className="mb-3">
@@ -167,19 +191,21 @@ export function SbarExport() {
         </pre>
       ) : null}
 
-      <div className="mt-3 border-t border-line pt-3">
-        <HoldButton
-          variant="outline"
-          size="lg"
-          icon={RotateCcw}
-          label={t('sbar.resetBtn')}
-          durationMs={2500}
-          onComplete={reset}
-        />
-        <p className="mt-1 text-[11px] text-mute">
-          {t('sbar.resetSub')}
-        </p>
-      </div>
+      {canResetSession(status) ? (
+        <div className="mt-3 border-t border-line pt-3">
+          <HoldButton
+            variant="outline"
+            size="lg"
+            icon={RotateCcw}
+            label={t('sbar.resetBtn')}
+            durationMs={2500}
+            onComplete={reset}
+          />
+          <p className="mt-1 text-[11px] text-mute">
+            {t('sbar.resetSub')}
+          </p>
+        </div>
+      ) : null}
     </Panel>
   );
 }

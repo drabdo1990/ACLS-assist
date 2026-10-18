@@ -363,6 +363,14 @@ export const AR: Readonly<Record<MessageKey, string>> = {
     'الجلسة المحفوظة عمرها {hours} ساعة — قد تكون لنداء إنعاش سابق. ابدأ من جديد، أو احتفظ بها لمراجعتها.', // draft — clinician review required
   'app.restored.freshSession':
     'تمت استعادة الجلسة من هذا الجهاز — المؤقتات مستمرة وفق الطوابع الزمنية المحفوظة.', // draft — clinician review required
+  'app.duplicateTab.title': 'ResusCode مفتوح في تبويب آخر', // draft — clinician review required
+  'app.duplicateTab.body':
+    'يمكن لتبويب واحد فقط كتابة بيانات هذا الجهاز. أغلق التبويب الآخر ثم أعد تحميل هذا التبويب. هذا التبويب للقراءة فقط حتى يُغلق الآخر.', // draft — clinician review required
+  'app.duplicateTab.reload': 'إعادة تحميل هذا التبويب', // draft — clinician review required
+  'recovery.title': 'تعذّرت قراءة سجل محفوظ', // draft — clinician review required
+  'recovery.body': 'تضرر سجل محفوظ أو أكثر. النسخة الخام محفوظة على هذا الجهاز؛ نزّلها قبل حذفها.', // draft — clinician review required
+  'recovery.download': 'تنزيل النسخة الخام', // draft — clinician review required
+  'recovery.discard': 'حذف النسخة التالفة', // draft — clinician review required
   'app.disclaimer':
     'أداة مساعدة لدعم القرار السريري فقط، مستندة إلى دليل مقدم خدمة ACLS 2024 ودورة مقدم خدمة إنعاش الأطفال المتقدم (SHA PALS) الصادرين عن جمعية القلب السعودية (المتوافقين مع AHA/ERC). تحقق من كل جرعة وفقاً للبروتوكول المحلي. ليست بديلاً عن التقدير السريري. خالية من المعلومات الصحية المحمية (PHI) — لا تُسجَّل أي بيانات تعريفية للمريض. تبقى البيانات على هذا الجهاز ما لم يتم تسجيل وحدتك لرفع بيانات الإنعاش (الإعدادات).', // draft — clinician review required
   'tab.hud': 'شاشة التحكم (HUD)', // draft — clinician review required
@@ -487,6 +495,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'stats.voidedNotice': 'ملغى — محفوظ في السجل، مستثنى من الإحصاءات', // draft — clinician review required
   'stats.trainingActive': 'تدريب / محاكاة ✓', // draft — clinician review required
   'stats.markTraining': 'تحديد كتدريب', // draft — clinician review required
+  'stats.trainingHold': 'استمرار بالضغط ثانيتين — يُستثنى من الإحصاءات', // draft — clinician review required
   'stats.restore': 'استعادة (إلغاء الإلغاء)', // draft — clinician review required
   'stats.voidLabel': 'إلغاء هذا النداء', // draft — clinician review required
   'stats.voidSub': 'استمرار بالضغط ثانيتين — يُحفظ ويُستثنى من الإحصاءات', // draft — clinician review required
@@ -543,6 +552,8 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'identity.continue': 'متابعة',
   'identity.cancel': 'إلغاء',
   'identity.saved': 'تم الحفظ على هذا الجهاز',
+  'identity.change': 'تغيير',
+  'settings.identity.clear': 'مسح الهوية',
   'settings.upload.title': 'رفع بيانات النداءات',
   'settings.upload.enrolled': 'مسجَّل',
   'settings.upload.waiting': 'بانتظار الإرسال: {n}',
@@ -565,6 +576,8 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'settings.retention.all': 'الاحتفاظ بالكل',
   'settings.retention.last': 'الاحتفاظ بآخر…',
   'settings.retention.afterUpload': 'الحذف بعد الرفع',
+  'settings.retention.apply': 'تطبيق سياسة الاحتفاظ',
+  'settings.retention.applySub': 'استمرار بالضغط ثانيتين — يحذف السجلات الأقدم الآن',
   'settings.retention.note':
     'يُحتفظ بما يصل إلى 500 نداء. خيار «الحذف بعد الرفع» يزيل النداء من هذا الجهاز فقط بعد أن يؤكد الجدول استلامه.',
   'settings.device.title': 'هذا الجهاز',
