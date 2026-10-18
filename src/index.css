@@ -7,12 +7,14 @@
    Monospace is a system stack — nothing loads from the network (offline-safe).
 --------------------------------------------------------------------------- */
 @theme {
-  --color-bg: #06080e;
-  --color-panel: #0d1320;
-  --color-panel2: #131c2c;
-  --color-line: #223049;
-  --color-ink: #e9eefb;
-  --color-mute: #93a4c0;
+  --color-bg: #050811;
+  --color-panel: #0a1120;
+  --color-panel2: #101a2e;
+  --color-panel3: #16243f;
+  --color-line: #1e2e4a;
+  --color-line-bright: #2d4268;
+  --color-ink: #f0f4fd;
+  --color-mute: #8d9fb8;
 
   --color-crit: #ef4444;
   --color-critdeep: #7f1d1d;
@@ -50,6 +52,8 @@
   body {
     margin: 0;
     background-color: var(--color-bg);
+    background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(16, 32, 64, 0.55), transparent 70%);
+    background-attachment: fixed;
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
@@ -80,6 +84,24 @@
   .tnum {
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
+  }
+
+  .surface-card {
+    background: linear-gradient(180deg, rgba(16, 26, 46, 0.78) 0%, rgba(10, 17, 32, 0.88) 100%);
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.06) inset, 0 6px 16px 0 rgba(0, 0, 0, 0.38);
+  }
+
+  .surface-elevated {
+    background: linear-gradient(180deg, rgba(22, 36, 63, 0.82) 0%, rgba(14, 23, 42, 0.92) 100%);
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.08) inset, 0 8px 20px 0 rgba(0, 0, 0, 0.45);
+  }
+
+  .glow-cyan {
+    filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.25));
+  }
+
+  .glow-red {
+    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.28));
   }
 
   .safe-top {

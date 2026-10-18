@@ -102,12 +102,14 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
   return (
     <div className="flex min-h-[100dvh] flex-col bg-bg">
       {/* Header */}
-      <header className="safe-top sticky top-0 z-20 border-b border-line bg-bg/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center gap-2 px-3 py-2">
-          <HeartPulse className="h-5 w-5 text-crit" />
+      <header className="safe-top sticky top-0 z-20 border-b border-line/80 bg-[#050811]/90 shadow-[0_4px_20px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-3xl items-center gap-2.5 px-3.5 py-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-crit/40 bg-crit/15 shadow-[0_0_12px_rgba(239,68,68,0.2)]">
+            <HeartPulse className="h-4 w-4 text-crit" />
+          </span>
           <div className="leading-tight">
             <h1 className="font-mono text-base font-bold tracking-tight text-ink">ResusCode</h1>
-            <p className="text-[10px] uppercase tracking-widest text-mute">{t(appTitleKey(population))}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{t(appTitleKey(population))}</p>
           </div>
           <div className="ms-auto flex items-center gap-2">
             <SaveFailedChip />
@@ -121,15 +123,17 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
                   : t('app.wake.titleUnsupported')
               }
               className={[
-                'flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold',
-                wakeActive ? 'border-good/60 text-good' : 'border-line text-mute',
+                'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-wider',
+                wakeActive
+                  ? 'border-good/60 bg-good/10 text-good shadow-[0_0_10px_rgba(16,185,129,0.15)_inset]'
+                  : 'border-line/90 bg-panel2/70 text-mute',
               ].join(' ')}
             >
               {wakeActive ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
               {wakeSupported ? (wakeActive ? t('app.wake.active') : t('app.wake.idle')) : t('app.wake.unsupported')}
             </span>
             {!online ? (
-              <span className="flex items-center gap-1 rounded-full border border-warn/60 px-2 py-1 text-[10px] font-bold text-warn">
+              <span className="flex items-center gap-1.5 rounded-full border border-warn/60 bg-warn/10 px-2.5 py-1 text-[10px] font-bold tracking-wider text-warn">
                 <WifiOff className="h-3 w-3" /> {t('app.offline')}
               </span>
             ) : null}
@@ -137,7 +141,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
               type="button"
               aria-label={t('app.settings')}
               onClick={() => setSettingsOpen(true)}
-              className="touch-hit flex h-9 w-9 items-center justify-center rounded-full border border-line text-mute"
+              className="touch-hit flex h-9 w-9 items-center justify-center rounded-full border border-line/90 bg-panel2/80 text-mute shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset] hover:border-line-bright hover:text-ink"
             >
               <Settings className="h-4 w-4" />
             </button>
@@ -203,7 +207,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
       </main>
 
       {/* Tab bar */}
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-line/85 bg-[#060a15]/95 shadow-[0_-6px_24px_rgba(0,0,0,0.55)] backdrop-blur-xl">
         <div className="mx-auto grid max-w-3xl grid-cols-3 gap-2 p-2">
           {tabs.map((tabItem) => {
             const Icon = tabItem.icon;
@@ -217,15 +221,17 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
                 onClick={() => setTab(tabItem.id)}
                 aria-current={active ? 'page' : undefined}
                 className={[
-                  'touch-hit relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border text-xs font-bold active:scale-[0.97]',
-                  active ? 'border-cyber bg-cyber/15 text-cyber' : 'border-line bg-panel2 text-mute',
+                  'touch-hit relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border text-xs font-bold transition-[transform,background-color,border-color,color] duration-100 active:scale-[0.97]',
+                  active
+                    ? 'border-cyber/80 bg-gradient-to-b from-cyber/22 to-cyber/10 text-cyber shadow-[0_0_14px_rgba(6,182,212,0.2)_inset]'
+                    : 'border-line/85 bg-panel2/80 text-mute hover:border-line-bright hover:text-ink',
                 ].join(' ')}
               >
                 <Icon className="h-6 w-6" strokeWidth={2.3} />
                 {tabItem.label}
                 {badge ? (
                   <span
-                    className={`absolute top-2 end-3 h-2 w-2 rounded-full ${tabItem.id === 'causes' ? 'bg-good' : 'bg-crit'}`}
+                    className={`absolute top-2 end-3 h-2 w-2 rounded-full ${tabItem.id === 'causes' ? 'bg-good shadow-[0_0_8px_#10b981]' : 'bg-crit shadow-[0_0_8px_#ef4444]'}`}
                   />
                 ) : null}
               </button>

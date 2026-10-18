@@ -16,13 +16,34 @@ import {
 } from './holdLogic';
 
 const VARIANT_SKIN: Record<ButtonVariant, { base: string; fill: string }> = {
-  neutral: { base: 'border-line text-ink', fill: 'bg-white/10' },
-  primary: { base: 'border-cyber/60 text-cyber', fill: 'bg-cyber/30' },
-  cyber: { base: 'border-cyber/60 text-cyber', fill: 'bg-cyber/30' },
-  crit: { base: 'border-crit text-crit', fill: 'bg-crit/40' },
-  warn: { base: 'border-warn/70 text-warn', fill: 'bg-warn/40' },
-  good: { base: 'border-good/70 text-good', fill: 'bg-good/40' },
-  outline: { base: 'border-line text-ink', fill: 'bg-white/10' },
+  neutral: {
+    base: 'bg-panel2/80 border-line/95 text-ink shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset]',
+    fill: 'bg-white/15',
+  },
+  primary: {
+    base: 'bg-cyber/10 border-cyber/70 text-cyber shadow-[0_0_12px_rgba(6,182,212,0.12)_inset]',
+    fill: 'bg-cyber/35',
+  },
+  cyber: {
+    base: 'bg-cyber/10 border-cyber/70 text-cyber shadow-[0_0_12px_rgba(6,182,212,0.12)_inset]',
+    fill: 'bg-cyber/35',
+  },
+  crit: {
+    base: 'bg-crit/12 border-crit/80 text-crit shadow-[0_0_12px_rgba(239,68,68,0.14)_inset]',
+    fill: 'bg-crit/45',
+  },
+  warn: {
+    base: 'bg-warn/12 border-warn/75 text-warn shadow-[0_0_12px_rgba(245,158,11,0.14)_inset]',
+    fill: 'bg-warn/45',
+  },
+  good: {
+    base: 'bg-gradient-to-b from-good/20 to-good/10 border-good/75 text-good shadow-[0_0_14px_rgba(16,185,129,0.16)_inset]',
+    fill: 'bg-good/45',
+  },
+  outline: {
+    base: 'bg-panel/60 border-line/90 text-ink shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset]',
+    fill: 'bg-white/12',
+  },
 };
 
 export interface HoldButtonProps {

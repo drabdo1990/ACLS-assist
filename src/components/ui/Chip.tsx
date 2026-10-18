@@ -18,10 +18,10 @@ export function Chip({ selected, onClick, children, className = '', ariaLabel }:
       onClick={onClick}
       className={[
         'touch-hit tnum flex min-h-[56px] min-w-[64px] items-center justify-center rounded-xl border px-4',
-        'text-base font-bold transition-[transform,background-color,border-color,color] duration-100 active:scale-[0.96]',
+        'text-base font-bold transition-[transform,background-color,border-color,color,box-shadow] duration-100 active:scale-[0.96]',
         selected
-          ? 'border-cyber bg-cyber/20 text-cyber'
-          : 'border-line bg-panel2 text-ink hover:bg-white/5',
+          ? 'border-cyber bg-cyber/20 text-cyber shadow-[0_0_12px_rgba(6,182,212,0.22)_inset,0_1px_4px_rgba(0,0,0,0.3)]'
+          : 'border-line/90 bg-panel2/85 text-ink shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] hover:border-line-bright hover:bg-panel3/70',
         className,
       ].join(' ')}
     >

@@ -18,7 +18,7 @@ export function HudScreen({ onEnd, onOpenCauses }: { onEnd: () => void; onOpenCa
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-2xl border border-line bg-panel/80 p-3">
+      <div className="surface-card rounded-2xl border border-line/90 p-3.5 backdrop-blur-sm">
         <MasterClock />
         <div className="mt-3">
           <Controls onEnd={onEnd} />

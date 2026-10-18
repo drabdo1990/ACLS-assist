@@ -11,13 +11,17 @@ export type ButtonVariant =
   | 'outline';
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  neutral: 'bg-panel2 border-line text-ink hover:bg-[#1a2434]',
-  primary: 'bg-cyber/15 border-cyber/60 text-cyber hover:bg-cyber/25',
-  crit: 'bg-crit text-white border-crit hover:bg-[#f05252] shadow-[0_0_0_1px_rgba(239,68,68,0.4)]',
-  warn: 'bg-warn/15 border-warn/60 text-warn hover:bg-warn/25',
-  good: 'bg-good/15 border-good/60 text-good hover:bg-good/25',
-  cyber: 'bg-cyber/15 border-cyber/60 text-cyber hover:bg-cyber/25',
-  outline: 'bg-transparent border-line text-ink hover:bg-white/5',
+  neutral:
+    'bg-gradient-to-b from-panel3/85 to-panel2 border-line/95 text-ink shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_3px_8px_rgba(0,0,0,0.32)] hover:border-line-bright',
+  primary:
+    'bg-gradient-to-b from-cyber/25 to-cyber/12 border-cyber/70 text-cyber shadow-[0_0_14px_rgba(6,182,212,0.16)_inset,0_3px_8px_rgba(0,0,0,0.28)] hover:from-cyber/32 hover:to-cyber/18',
+  crit: 'bg-gradient-to-b from-[#f44343] to-[#dc2626] text-white border-crit shadow-[0_1px_0_0_rgba(255,255,255,0.22)_inset,0_4px_14px_rgba(239,68,68,0.35)] hover:from-[#f85252] hover:to-[#e12e2e]',
+  warn: 'bg-gradient-to-b from-warn/25 to-warn/12 border-warn/70 text-warn shadow-[0_0_14px_rgba(245,158,11,0.16)_inset,0_3px_8px_rgba(0,0,0,0.28)] hover:from-warn/32 hover:to-warn/18',
+  good: 'bg-gradient-to-b from-good/25 to-good/12 border-good/70 text-good shadow-[0_0_14px_rgba(16,185,129,0.16)_inset,0_3px_8px_rgba(0,0,0,0.28)] hover:from-good/32 hover:to-good/18',
+  cyber:
+    'bg-gradient-to-b from-cyber/25 to-cyber/12 border-cyber/70 text-cyber shadow-[0_0_14px_rgba(6,182,212,0.16)_inset,0_3px_8px_rgba(0,0,0,0.28)] hover:from-cyber/32 hover:to-cyber/18',
+  outline:
+    'bg-panel/60 border-line/90 text-ink shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] hover:border-line-bright hover:bg-panel2/60',
 };
 
 export interface BigButtonProps {

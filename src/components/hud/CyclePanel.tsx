@@ -87,29 +87,35 @@ export function CyclePanel() {
 
   return (
     <div
-      className={`rounded-2xl border bg-panel/80 p-3 ${
-        expired ? 'border-crit' : phase === 'crit' && active ? 'border-crit/70' : phase === 'warn' ? 'border-warn/50' : 'border-line'
+      className={`surface-card rounded-2xl border p-3.5 backdrop-blur-sm ${
+        expired
+          ? 'border-crit shadow-[0_0_20px_rgba(239,68,68,0.2)]'
+          : phase === 'crit' && active
+            ? 'border-crit/70 shadow-[0_0_16px_rgba(239,68,68,0.14)]'
+            : phase === 'warn'
+              ? 'border-warn/55 shadow-[0_0_16px_rgba(245,158,11,0.12)]'
+              : 'border-line/90'
       }`}
     >
-      <div className="mb-1 flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-mute">
-          <Timer className="h-4 w-4" /> {t('hud.cycle.title')}
+      <div className="mb-2 flex items-center justify-between border-b border-line/50 pb-2">
+        <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-mute">
+          <Timer className="h-4 w-4 text-cyber/85" /> {t('hud.cycle.title')}
         </span>
-        <span className="tnum rounded-full border border-line px-2 py-0.5 text-xs font-bold text-mute">
+        <span className="tnum rounded-full border border-line/90 bg-panel2/80 px-2.5 py-0.5 text-xs font-bold text-mute">
           {t('hud.cycle.index', { n: cyclic.cycleIndex })}
         </span>
       </div>
 
       {expired ? (
-        <div className="animate-flash-bg mb-2 rounded-2xl border-2 border-crit px-3 py-4 text-center text-white">
+        <div className="animate-flash-bg mb-2 rounded-2xl border-2 border-crit px-3 py-4 text-center text-white shadow-[0_0_20px_rgba(239,68,68,0.35)]">
           <p className="text-2xl font-black leading-tight tracking-tight sm:text-3xl">{t('hud.cycle.rhythmCheck')}</p>
           <p className="text-xl font-black leading-tight tracking-tight sm:text-2xl">{t('hud.cycle.switchCompressors')}</p>
         </div>
       ) : null}
 
-      <div className="relative mx-auto flex h-[236px] w-[236px] items-center justify-center">
+      <div className="relative mx-auto my-1 flex h-[236px] w-[236px] items-center justify-center rounded-full bg-gradient-to-b from-[#070c18] to-[#040710] shadow-[0_2px_12px_rgba(0,0,0,0.5)_inset]">
         <svg viewBox="0 0 260 260" className="absolute inset-0 h-full w-full -rotate-90">
-          <circle cx="130" cy="130" r={R} fill="none" stroke="#131c2c" strokeWidth="18" />
+          <circle cx="130" cy="130" r={R} fill="none" stroke="#111a2c" strokeWidth="18" />
           <circle
             cx="130"
             cy="130"
@@ -119,7 +125,10 @@ export function CyclePanel() {
             strokeWidth="18"
             strokeLinecap="round"
             strokeDasharray={`${arcLen} ${C}`}
-            style={{ transition: 'stroke 300ms linear' }}
+            style={{
+              transition: 'stroke 300ms linear',
+              filter: active ? `drop-shadow(0 0 8px ${color}55)` : undefined,
+            }}
           />
         </svg>
         <div className="flex flex-col items-center">
@@ -132,7 +141,7 @@ export function CyclePanel() {
             {formatCountdown(remaining)}
           </span>
           <span
-            className={`mt-1 max-w-[170px] text-center text-[11px] font-bold uppercase tracking-wider ${
+            className={`mt-1.5 max-w-[170px] text-center text-[11px] font-bold uppercase tracking-wider ${
               expired ? 'animate-flash text-crit' : 'text-mute'
             }`}
           >
@@ -142,7 +151,7 @@ export function CyclePanel() {
       </div>
 
       {expired ? (
-        <div className="mb-2 rounded-xl border border-crit p-2">
+        <div className="mb-2 rounded-xl border border-crit/80 bg-crit/5 p-2">
           <p className="mb-2 flex items-center justify-center gap-2 text-center text-sm font-bold text-crit">
             <Waves className="h-4 w-4" /> {t('hud.cycle.logRhythm')}
           </p>
@@ -152,7 +161,7 @@ export function CyclePanel() {
                 key={r}
                 type="button"
                 onClick={() => resetCycle(r)}
-                className="touch-hit min-h-[64px] rounded-xl border border-crit/60 bg-crit/10 text-sm font-bold text-ink active:scale-[0.96]"
+                className="touch-hit min-h-[64px] rounded-xl border border-crit/60 bg-crit/12 text-sm font-bold text-ink shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset] active:scale-[0.96]"
               >
                 {r === 'Asystole' || r === 'Pulse' ? t(`rhythm.${r}`) : r}
               </button>
@@ -166,17 +175,17 @@ export function CyclePanel() {
         onClick={() => resetCycle()}
         disabled={!active}
         className={[
-          'touch-hit tnum flex min-h-[72px] w-full items-center justify-center gap-2 rounded-2xl border text-lg font-bold active:scale-[0.98]',
+          'touch-hit tnum mt-1 flex min-h-[72px] w-full items-center justify-center gap-2 rounded-2xl border text-lg font-bold transition-[transform,background-color] duration-100 active:scale-[0.98]',
           phase === 'crit' && active
-            ? 'animate-flash-bg border-crit text-white'
-            : 'border-cyber/60 bg-cyber/15 text-cyber',
+            ? 'animate-flash-bg border-crit text-white shadow-[0_0_16px_rgba(239,68,68,0.3)]'
+            : 'border-cyber/70 bg-gradient-to-b from-cyber/25 to-cyber/12 text-cyber shadow-[0_0_14px_rgba(6,182,212,0.16)_inset]',
           active ? '' : 'pointer-events-none opacity-40',
         ].join(' ')}
       >
         <RotateCcw className="h-6 w-6" />
         {t('hud.cycle.resetBtn')}
       </button>
-      <p className="mt-1 text-center text-[11px] text-mute">
+      <p className="mt-1.5 text-center text-[11px] text-mute">
         {t('hud.cycle.subtext', { length: CYCLE_MS / 1000 })}
       </p>
     </div>
