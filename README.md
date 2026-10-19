@@ -1,15 +1,16 @@
-# ResusCode — Universal Adult ACLS Code Blue Command Engine
+# ResusCode — ACLS & PALS Code Blue Command Engine
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23410467.svg)](https://doi.org/10.5281/zenodo.23410467)
 
 A mobile-first, high-reliability **Progressive Web App** that serves as the real-time
-cognitive command HUD and timekeeper for adult cardiac arrest — built for Code Blue teams,
-Emergency Departments, ICUs, and rapid-response resuscitation leaders.
+cognitive command HUD and timekeeper for adult and pediatric cardiac arrest — built for Code
+Blue teams, Emergency Departments, ICUs, and rapid-response resuscitation leaders.
 
 **Live:** https://code-blue-excel.drabdo2020.workers.dev/
 
 > **Clinical safety notice:** ResusCode is a decision-support and documentation aid that
-> follows AHA / ERC adult ACLS. It is **not** a substitute for clinical judgement. Verify
+> follows AHA / ERC adult ACLS and the SHA PALS provider course. It is **not** a substitute
+> for clinical judgement. Verify
 > every dose against your local protocol. It records **no patient identifiers (PHI-free)** and
 > has **no third-party analytics**. Data stays on the device unless your unit's admin enrols it
 > for the optional statistics upload (off by default — see [Optional code upload](#optional-code-upload)).

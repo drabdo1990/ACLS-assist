@@ -280,6 +280,45 @@ describe('double-tap guard', () => {
   });
 });
 
+describe('intervention guard lives in the store, not only the UI', () => {
+  const actions = [
+    ['epinephrine', () => s().administerEpi(), () => s().epi.length],
+    ['shock', () => s().deliverShock(200), () => s().shocks.length],
+    ['amiodarone', () => s().administerAmiodarone(), () => s().amio.length],
+    ['lidocaine', () => s().administerLidocaine(), () => s().lido.length],
+    ['magnesium', () => s().administerMagnesium(), () => s().events.filter((e) => e.label.startsWith('Magnesium')).length],
+    ['airway', () => s().markAirwayPlaced(), () => (s().airwayPlaced ? 1 : 0)],
+  ] as const;
+
+  it.each(actions)('ignores %s while idle', (_name, act, count) => {
+    act();
+    expect(count()).toBe(0);
+  });
+
+  it.each(actions)('ignores %s after the code ends', (_name, act, count) => {
+    s().startCode();
+    s().declareRosc();
+    act();
+    expect(count()).toBe(0);
+  });
+
+  it('ignores an antiarrhythmic switch after termination', () => {
+    s().startCode();
+    s().terminateCode();
+    const before = s().antiarrhythmic;
+    s().setAntiarrhythmic(before === 'amiodarone' ? 'lidocaine' : 'amiodarone');
+    expect(s().antiarrhythmic).toBe(before);
+  });
+
+  it('ignores an adult weight change after termination', () => {
+    s().startCode();
+    s().terminateCode();
+    const before = s().weightKg;
+    s().setWeight(120);
+    expect(s().weightKg).toBe(before);
+  });
+});
+
 describe('magnesium', () => {
   it('logs magnesium for Torsades and can be undone', () => {
     s().startCode();

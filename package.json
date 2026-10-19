@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
-  "description": "ResusCode - Universal Adult ACLS Code Blue Command Engine. PHI-free offline-first PWA (optional anonymous statistics upload when your unit enrolls the device) for Code Blue, ED, ICU and rapid response resuscitation leaders.",
+  "description": "ResusCode - ACLS & PALS Code Blue Command Engine. PHI-free offline-first PWA (optional anonymous statistics upload when your unit enrolls the device) for Code Blue, ED, ICU and rapid response resuscitation leaders.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

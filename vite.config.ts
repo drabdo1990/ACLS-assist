@@ -7,9 +7,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 // - No external runtime assets: fonts are a system stack, audio is synthesized (Web Audio API),
 //   icons are generated PNGs served from /icons. Everything is precached by Workbox for offline use.
 //
-// `base` is configurable so the same source deploys to a GitHub Pages *project* site
-// (https://<user>.github.io/<repo>/) without breaking asset paths or the PWA scope.
-// Local dev defaults to '/' ; CI sets VITE_BASE=/<repo>/.
+// `base` is configurable so the same source can be served from a sub-path
+// (https://host/<path>/) without breaking asset paths or the PWA scope.
+// Local dev defaults to '/' ; set VITE_BASE=/<path>/ for sub-path hosting.
 const base = process.env.VITE_BASE ?? '/';
 
 export default defineConfig({
@@ -22,10 +22,10 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['icons/*.png', 'favicon.svg'],
       manifest: {
-        name: 'ResusCode — Adult ACLS Code Blue Command',
+        name: 'ResusCode — ACLS & PALS Code Blue Command',
         short_name: 'ResusCode',
         description:
-          'Universal adult ACLS Code Blue command HUD: CPR cycle timer, interventions, H’s & T’s, post-ROSC and SBAR export. PHI-free and offline-first, with optional anonymous statistics upload when your unit enrolls the device.',
+          'ACLS & PALS Code Blue command HUD: CPR cycle timer, adult and weight-based pediatric interventions, H’s & T’s, post-ROSC and SBAR export. PHI-free and offline-first, with optional anonymous statistics upload when your unit enrolls the device.',
         theme_color: '#06080e',
         background_color: '#06080e',
         display: 'standalone',

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { nextAclsStep, type AlgorithmInput } from './algorithm';
+import { EN, type MessageKey } from '../i18n/en';
 
 const base: AlgorithmInput = { branch: 'shockable', shocks: 0, epi: 0, antiarrhythmic: 0, causesChecked: 0 };
 const current = (i: AlgorithmInput) => nextAclsStep(i).steps.find((s) => s.state === 'current')?.id;
@@ -9,7 +10,7 @@ describe('nextAclsStep — no branch', () => {
     const v = nextAclsStep({ ...base, branch: null });
     expect(v.steps).toHaveLength(0);
     expect(v.focus).toBeNull();
-    expect(v.title).toBe('Select rhythm branch');
+    expect(EN[v.titleKey as MessageKey]).toBe('Select rhythm branch');
   });
 });
 
@@ -28,7 +29,7 @@ describe('nextAclsStep — VF / pVT', () => {
     const v = nextAclsStep({ ...base, shocks: 3, epi: 1, antiarrhythmic: 1 });
     expect(v.steps.every((s) => s.state === 'done')).toBe(true);
     expect(v.focus).toBeNull();
-    expect(v.ongoing).toContain('150 mg');
+    expect(EN[v.ongoingKey as MessageKey]).toContain('150 mg');
   });
 
   it('tolerates out-of-order logging (epi before shock #2)', () => {
@@ -48,6 +49,6 @@ describe('nextAclsStep — Asystole / PEA', () => {
     expect(current({ ...ns, epi: 1 })).toBe('causes');
     const v = nextAclsStep({ ...ns, epi: 1, causesChecked: 2 });
     expect(v.focus).toBeNull();
-    expect(v.ongoing).toContain('recheck rhythm');
+    expect(EN[v.ongoingKey as MessageKey]).toContain('recheck rhythm');
   });
 });

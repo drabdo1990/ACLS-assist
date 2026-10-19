@@ -9,7 +9,7 @@
  * - Post–cardiac arrest care (SpO₂ 94–99%, normocarbia, age-based SBP, TTM, glucose, EEG): Module 4, Ch. 6 (pp. 102–105)
  *
  * Contract: every calculator takes `weightKg: number | null` and returns `null` when the
- * weight is missing or invalid (null, NaN, ≤ 0, > 150) — the UI then shows "Set weight".
+ * weight is missing or invalid (null, NaN, < 0.5, > 150) — the UI then shows "Set weight".
  * Functions never return NaN. Rounding: mg → 2–3 decimals, mL → 1–2 decimals, joules → whole.
  * `capped` is true when a ceiling applies at this weight (the value shows "(max)").
  */
@@ -18,7 +18,7 @@ import type { ChecklistItem } from '../protocols';
 import type { Population, ProtocolProfile } from './index';
 
 /** Valid dosing weight range in kg (session schema validates 0.5–150). */
-const MIN_KG = 0;
+const MIN_KG = 0.5;
 const MAX_KG = 150;
 
 /** APLS formulas (spec §6). Over 12 years: kg entry only → null. */
@@ -57,27 +57,24 @@ export const PEDIATRIC_POST_ROSC_BUNDLE: ChecklistItem<PediatricPostRoscId>[] = 
 
 interface StepDef {
   id: string;
-  label: string;
   key: string;
   focus: StepFocus;
   done: (i: AlgorithmInput) => boolean;
 }
 
 const SHOCKABLE: StepDef[] = [
-  { id: 'shock1', label: 'Shock — 2 J/kg', key: 'p.algo.step.shock1', focus: 'shock', done: (i) => i.shocks >= 1 },
-  { id: 'cpr1', label: 'CPR 2 min · IV/IO access', key: 'algo.step.cpr1', focus: 'cpr', done: (i) => i.shocks >= 2 || i.epi >= 1 },
-  { id: 'shock2', label: 'Shock — 4 J/kg', key: 'p.algo.step.shock2', focus: 'shock', done: (i) => i.shocks >= 2 },
+  { id: 'shock1', key: 'p.algo.step.shock1', focus: 'shock', done: (i) => i.shocks >= 1 },
+  { id: 'cpr1', key: 'algo.step.cpr1', focus: 'cpr', done: (i) => i.shocks >= 2 || i.epi >= 1 },
+  { id: 'shock2', key: 'p.algo.step.shock2', focus: 'shock', done: (i) => i.shocks >= 2 },
   {
     id: 'epi',
-    label: 'CPR 2 min + Epinephrine 0.01 mg/kg · consider advanced airway',
     key: 'p.algo.step.epi',
     focus: 'epi',
     done: (i) => i.epi >= 1,
   },
-  { id: 'shock3', label: 'Shock — ≥ 4 J/kg', key: 'p.algo.step.shock3', focus: 'shock', done: (i) => i.shocks >= 3 },
+  { id: 'shock3', key: 'p.algo.step.shock3', focus: 'shock', done: (i) => i.shocks >= 3 },
   {
     id: 'aa',
-    label: 'CPR 2 min + Amiodarone 5 mg/kg or Lidocaine 1 mg/kg · treat H’s & T’s',
     key: 'p.algo.step.aa',
     focus: 'antiarrhythmic',
     done: (i) => i.antiarrhythmic >= 1,
@@ -87,19 +84,18 @@ const SHOCKABLE: StepDef[] = [
 const NONSHOCKABLE: StepDef[] = [
   {
     id: 'epi',
-    label: 'CPR 2 min + Epinephrine 0.01 mg/kg ASAP',
     key: 'p.algo.step.nonshockableEpi',
     focus: 'epi',
     done: (i) => i.epi >= 1,
   },
-  { id: 'access', label: 'IV/IO + advanced airway + capnography', key: 'p.algo.step.access', focus: 'cpr', done: (i) => i.epi >= 1 },
-  { id: 'causes', label: 'Identify reversible causes (H’s & T’s)', key: 'algo.step.causes', focus: 'causes', done: (i) => i.causesChecked >= 1 },
+  { id: 'access', key: 'p.algo.step.access', focus: 'cpr', done: (i) => i.epi >= 1 },
+  { id: 'causes', key: 'algo.step.causes', focus: 'causes', done: (i) => i.causesChecked >= 1 },
 ];
 
-function buildView(input: AlgorithmInput, defs: StepDef[], title: string, titleKey: string, ongoing: string, ongoingKey: string): AlgorithmView {
+function buildView(input: AlgorithmInput, defs: StepDef[], titleKey: string, ongoingKey: string): AlgorithmView {
   let currentAssigned = false;
   const steps: AlgorithmStep[] = defs.map((d) => {
-    const base = { id: d.id, label: d.label, key: d.key, focus: d.focus };
+    const base = { id: d.id, key: d.key, focus: d.focus };
     if (d.done(input)) return { ...base, state: 'done' as const };
     if (!currentAssigned) {
       currentAssigned = true;
@@ -108,10 +104,8 @@ function buildView(input: AlgorithmInput, defs: StepDef[], title: string, titleK
     return { ...base, state: 'todo' as const };
   });
   return {
-    title,
     titleKey,
     steps,
-    ongoing,
     ongoingKey,
     focus: steps.find((s) => s.state === 'current')?.focus ?? null,
   };
@@ -193,36 +187,20 @@ export const pediatricProfile: ProtocolProfile = {
   algorithm: (input: AlgorithmInput): AlgorithmView => {
     if (input.branch == null) {
       return {
-        title: 'Select rhythm branch',
         titleKey: 'algo.title.none',
         steps: [],
-        ongoing: 'Attach monitor/defibrillator, check rhythm, then choose Shockable or Non-shockable.',
         ongoingKey: 'algo.ongoing.none',
         focus: null,
       };
     }
     return input.branch === 'shockable'
-      ? buildView(
-          input,
-          SHOCKABLE,
-          'Pediatric VF / pulseless VT',
-          'p.algo.title.shockable',
-          'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min.',
-          'p.algo.ongoing.shockable',
-        )
-      : buildView(
-          input,
-          NONSHOCKABLE,
-          'Pediatric asystole / PEA',
-          'p.algo.title.nonshockable',
-          'CPR 2 min → recheck rhythm · Epi every 3–5 min.',
-          'p.algo.ongoing.nonshockable',
-        );
+      ? buildView(input, SHOCKABLE, 'p.algo.title.shockable', 'p.algo.ongoing.shockable')
+      : buildView(input, NONSHOCKABLE, 'p.algo.title.nonshockable', 'p.algo.ongoing.nonshockable');
   },
 
   postRoscBundle: PEDIATRIC_POST_ROSC_BUNDLE as ChecklistItem[],
 };
 
 function valid(weightKg: number | null): boolean {
-  return typeof weightKg === 'number' && Number.isFinite(weightKg) && weightKg > MIN_KG && weightKg <= MAX_KG;
+  return typeof weightKg === 'number' && Number.isFinite(weightKg) && weightKg >= MIN_KG && weightKg <= MAX_KG;
 }

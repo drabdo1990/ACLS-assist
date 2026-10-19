@@ -1,7 +1,8 @@
 /**
  * ResusCode domain types.
  * PHI-free by construction: no fields exist for patient identity, MRN, or demographics.
- * Weight is a dosing input only (lidocaine mg/kg) and is not linked to any identifier.
+ * Weight is a dosing input only (weight-based adult lidocaine; every pediatric dose) and is
+ * not linked to any identifier.
  */
 
 import type { Population, WeightSource } from '../content/profiles';

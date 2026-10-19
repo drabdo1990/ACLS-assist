@@ -216,9 +216,12 @@ export function isUndoable(e: CodeEvent): boolean {
 /** A finished-code screen may clear the session; a running code may not. */
 export const canResetSession = (status: SessionStatus): boolean => status === 'rosc' || status === 'terminated';
 
-/** Documentation actions only belong to a code that exists. */
+/** Documentation actions only belong to a code that exists (post-ROSC care still documents). */
 export const canDocumentCode = (status: SessionStatus): boolean =>
   status === 'active' || status === 'paused' || status === 'rosc';
+
+/** Drugs, shocks and airway changes belong to a running arrest; after ROSC the team re-arrests first. */
+const canLogIntervention = (status: SessionStatus): boolean => status === 'active' || status === 'paused';
 
 /**
  * Length of the open CPR pause at `at`, never negative: a backward wall-clock step larger than
@@ -500,6 +503,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     administerEpi: () => {
       if (isRepeatTap(get().epi.at(-1)?.at, clockNow())) return;
       apply((s) => {
+        if (!canLogIntervention(s.status)) return {};
         const at = clockNow();
         const t = el(s, at);
         const n = s.epi.length + 1;
@@ -533,6 +537,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     deliverShock: (joules, perKg, waveformOverride) => {
       if (isRepeatTap(get().shocks.at(-1)?.at, clockNow())) return;
       apply((s) => {
+        if (!canLogIntervention(s.status)) return {};
         const at = clockNow();
         const t = el(s, at);
         const n = s.shocks.length + 1;
@@ -555,7 +560,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       });
     },
 
-    setAntiarrhythmic: (drug) => apply(() => ({ antiarrhythmic: drug })),
+    setAntiarrhythmic: (drug) => apply((s) => (s.status === 'terminated' ? {} : { antiarrhythmic: drug })),
 
     administerAntiarrhythmic: () => {
       if (get().antiarrhythmic === 'lidocaine') get().administerLidocaine();
@@ -565,6 +570,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     administerAmiodarone: () => {
       if (isRepeatTap(get().amio.at(-1)?.at, clockNow())) return;
       apply((s) => {
+        if (!canLogIntervention(s.status)) return {};
         const at = clockNow();
         const t = el(s, at);
         const count = s.amio.length;
@@ -606,6 +612,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
     administerLidocaine: () => {
       if (isRepeatTap(get().lido.at(-1)?.at, clockNow())) return;
       apply((s) => {
+        if (!canLogIntervention(s.status)) return {};
         const at = clockNow();
         const t = el(s, at);
         playConfirm();
@@ -663,6 +670,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       const last = get().events.at(-1);
       if (last?.category === 'drug' && last.label.startsWith('Magnesium') && isRepeatTap(last.at, clockNow())) return;
       apply((s) => {
+        if (!canLogIntervention(s.status)) return {};
         const at = clockNow();
         playConfirm();
         haptic.confirm();
@@ -684,6 +692,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
 
     markAirwayPlaced: (type = 'ETT') =>
       apply((s) => {
+        if (!canLogIntervention(s.status)) return {};
         const at = clockNow();
         haptic.confirm();
         if (s.airwayPlaced) {
@@ -754,8 +763,9 @@ export const useCodeStore = create<CodeStore>((set, get) => {
 
     setWeight: (kg) =>
       apply((s) => {
-        // Adult-only slider; pediatric weight goes through setPediatricWeight.
-        if (s.population === 'pediatric') return {};
+        // Adult-only slider; pediatric weight goes through setPediatricWeight. A terminated
+        // code's dosing weight is part of the saved audit record, so it cannot change after.
+        if (s.population === 'pediatric' || s.status === 'terminated') return {};
         const clamped = Math.max(30, Math.min(250, Math.round(kg)));
         return { weightKg: clamped };
       }),

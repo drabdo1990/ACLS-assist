@@ -9,11 +9,6 @@
 
 import type { WaveformType } from '../engine/types';
 
-export function round(value: number, decimals = 1): number {
-  const f = 10 ** decimals;
-  return Math.round(value * f) / f;
-}
-
 /** Epinephrine ACLS dose reference. */
 export const EPINEPHRINE = {
   label: 'Epinephrine',

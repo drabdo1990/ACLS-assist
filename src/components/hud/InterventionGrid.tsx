@@ -326,6 +326,7 @@ export function InterventionGrid() {
               className="mt-2"
               variant="crit"
               icon={Zap}
+              disabled={!canLog || nextShock == null}
               label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules: nextShock?.joules ?? 0 })}
               sub={t('peds.grid.shock.jkg', {
                 joules: nextShock?.joules ?? 0,
@@ -355,7 +356,7 @@ export function InterventionGrid() {
               className="mt-2"
               variant="crit"
               icon={Zap}
-              disabled={manualJoules == null}
+              disabled={!canLog || manualJoules == null}
               label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules: manualJoules ?? 0 })}
               onClick={() => {
                 if (manualJoules != null) deliverShock(manualJoules, null);
@@ -413,6 +414,7 @@ export function InterventionGrid() {
               className="mt-2"
               variant="crit"
               icon={Zap}
+              disabled={!canLog}
               label={t('hud.grid.shock.deliver', { n: shocks.length + 1, joules })}
               sub={t('hud.grid.shock.waveformSub', { waveform: t(`waveform.${joules === 360 ? waveform360 : waveformFor(joules)}` as never) })}
               onClick={() => {
@@ -457,7 +459,7 @@ export function InterventionGrid() {
             {t(logAnyway)}
           </button>
         ) : null}
-        {isLido && !peds ? (
+        {isLido && !peds && status !== 'terminated' ? (
           <div className="mt-2">
             <WeightControl />
           </div>

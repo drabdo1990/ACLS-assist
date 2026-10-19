@@ -130,6 +130,14 @@ describe('storage', () => {
     expect(JSON.parse(kv.get(HISTORY_CORRUPT_KEY)!)).toEqual([JSON.parse(JSON.stringify(noJoules))]);
   });
 
+  it('drops a record whose nested counters are missing, instead of rendering undefined', () => {
+    const noCounters = JSON.parse(JSON.stringify(mkRecord(3)));
+    noCounters.stats.epi = {};
+    const kv = memoryKV({ [HISTORY_KEY]: JSON.stringify([mkRecord(1), noCounters]) });
+    expect(loadHistory(kv).map((r) => r.id)).toEqual([mkRecord(1).id]);
+    expect(JSON.parse(kv.get(HISTORY_CORRUPT_KEY)!)).toEqual([noCounters]);
+  });
+
   it('reports a failed write', () => {
     const kv = memoryKV();
     kv.failWrites = true;

@@ -19,6 +19,7 @@ import {
   waveformFor,
 } from './calc';
 import { nextAclsStep, type AlgorithmInput } from './algorithm';
+import { EN, type MessageKey } from '../i18n/en';
 import { POST_ROSC_BUNDLE } from './protocols';
 import { CAUSES } from './causes';
 import { POCUS_ITEMS } from './pocus';
@@ -88,45 +89,46 @@ describe('golden: adult algorithm view (content/algorithm.ts)', () => {
 
   it('no branch selected', () => {
     expect(nextAclsStep({ ...base, branch: null })).toEqual({
-      title: 'Select rhythm branch',
       titleKey: 'algo.title.none',
       steps: [],
-      ongoing: 'Attach monitor/defibrillator, check rhythm, then choose Shockable or Non-shockable.',
       ongoingKey: 'algo.ongoing.none',
       focus: null,
     });
+    expect(EN['algo.title.none' as MessageKey]).toBe('Select rhythm branch');
+    expect(EN['algo.ongoing.none' as MessageKey]).toBe(
+      'Attach monitor/defibrillator, check rhythm, then choose Shockable or Non-shockable.',
+    );
   });
 
   it('shockable branch, nothing logged', () => {
     expect(nextAclsStep(base)).toEqual({
-      title: 'VF / pulseless VT',
       titleKey: 'algo.title.shockable',
       focus: 'shock',
-      ongoing:
-        'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min · ' +
-        'Amiodarone 150 mg (or Lidocaine 0.5–0.75 mg/kg q5–10 min, max 3 mg/kg) 2nd dose.',
       ongoingKey: 'algo.ongoing.shockable1',
       steps: [
-        { id: 'shock1', label: 'Shock #1', key: 'algo.step.shock1', focus: 'shock', state: 'current' },
-        { id: 'cpr1', label: 'CPR 2 min · IV/IO access', key: 'algo.step.cpr1', focus: 'cpr', state: 'todo' },
-        { id: 'shock2', label: 'Shock #2', key: 'algo.step.shock2', focus: 'shock', state: 'todo' },
+        { id: 'shock1', key: 'algo.step.shock1', focus: 'shock', state: 'current' },
+        { id: 'cpr1', key: 'algo.step.cpr1', focus: 'cpr', state: 'todo' },
+        { id: 'shock2', key: 'algo.step.shock2', focus: 'shock', state: 'todo' },
         {
           id: 'epi',
-          label: 'CPR 2 min + Epinephrine 1 mg · consider advanced airway',
           key: 'algo.step.shockableEpi',
           focus: 'epi',
           state: 'todo',
         },
-        { id: 'shock3', label: 'Shock #3', key: 'algo.step.shock3', focus: 'shock', state: 'todo' },
+        { id: 'shock3', key: 'algo.step.shock3', focus: 'shock', state: 'todo' },
         {
           id: 'aa',
-          label: 'CPR 2 min + Amiodarone 300 mg / Lidocaine · treat H’s & T’s',
           key: 'algo.step.aa',
           focus: 'antiarrhythmic',
           state: 'todo',
         },
       ],
     });
+    expect(EN['algo.title.shockable' as MessageKey]).toBe('VF / pulseless VT');
+    expect(EN['algo.ongoing.shockable1' as MessageKey]).toBe(
+      'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min · ' +
+        'Amiodarone 150 mg (or Lidocaine 0.5–0.75 mg/kg q5–10 min, max 3 mg/kg) 2nd dose.',
+    );
   });
 
   it('shockable branch mid-script (2 shocks, 1 epi)', () => {
@@ -143,42 +145,46 @@ describe('golden: adult algorithm view (content/algorithm.ts)', () => {
   });
 
   it('shockable branch completed (ongoing switches after 2 antiarrhythmics)', () => {
-    expect(nextAclsStep({ ...base, shocks: 3, epi: 1, antiarrhythmic: 1 }).ongoing).toBe(
+    const one = nextAclsStep({ ...base, shocks: 3, epi: 1, antiarrhythmic: 1 });
+    expect(EN[one.ongoingKey as MessageKey]).toBe(
       'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min · ' +
         'Amiodarone 150 mg (or Lidocaine 0.5–0.75 mg/kg q5–10 min, max 3 mg/kg) 2nd dose.',
     );
-    expect(nextAclsStep({ ...base, shocks: 3, epi: 1, antiarrhythmic: 2 })).toEqual({
-      title: 'VF / pulseless VT',
+    const two = nextAclsStep({ ...base, shocks: 3, epi: 1, antiarrhythmic: 2 });
+    expect(two).toEqual({
       titleKey: 'algo.title.shockable',
       focus: null,
-      ongoing: 'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min · treat H’s & T’s.',
       ongoingKey: 'algo.ongoing.shockable2',
       steps: expect.arrayContaining([
         expect.objectContaining({ id: 'aa', state: 'done' }),
       ]),
     });
+    expect(EN['algo.ongoing.shockable2' as MessageKey]).toBe(
+      'Shock at every 2-min check while VF/pVT persists · Epi every 3–5 min · treat H’s & T’s.',
+    );
   });
 
   it('non-shockable branch', () => {
     const ns: AlgorithmInput = { ...base, branch: 'nonshockable' };
     expect(nextAclsStep(ns)).toEqual({
-      title: 'Asystole / PEA',
       titleKey: 'algo.title.nonshockable',
       focus: 'epi',
-      ongoing: 'CPR 2 min → recheck rhythm · Epi every 3–5 min · if shockable, switch branch and shock.',
       ongoingKey: 'algo.ongoing.nonshockable',
       steps: [
-        { id: 'epi', label: 'CPR 2 min + Epinephrine 1 mg ASAP', key: 'algo.step.nonshockableEpi', focus: 'epi', state: 'current' },
+        { id: 'epi', key: 'algo.step.nonshockableEpi', focus: 'epi', state: 'current' },
         {
           id: 'access',
-          label: 'IV/IO access · consider advanced airway + capnography',
           key: 'algo.step.access',
           focus: 'cpr',
           state: 'todo',
         },
-        { id: 'causes', label: 'Identify reversible causes (H’s & T’s)', key: 'algo.step.causes', focus: 'causes', state: 'todo' },
+        { id: 'causes', key: 'algo.step.causes', focus: 'causes', state: 'todo' },
       ],
     });
+    expect(EN['algo.title.nonshockable' as MessageKey]).toBe('Asystole / PEA');
+    expect(EN['algo.ongoing.nonshockable' as MessageKey]).toBe(
+      'CPR 2 min → recheck rhythm · Epi every 3–5 min · if shockable, switch branch and shock.',
+    );
     expect(nextAclsStep({ ...ns, epi: 1 }).steps.map((s) => [s.id, s.state])).toEqual([
       ['epi', 'done'],
       ['access', 'done'],

@@ -105,6 +105,36 @@ function sanitizeRecord(x: unknown): CodeRecord | null {
   if (!isNum(st.ageMonths) && st.ageMonths !== null) st.ageMonths = null;
   if (!Array.isArray(st.shocks.joules)) return null; // the log tab, CSV and aggregates iterate it
   if (!Array.isArray(st.shocks.perKg)) st.shocks.perKg = (Array.isArray(st.shocks.joules) ? st.shocks.joules : []).map(() => null);
+  // Optional fields that predate or postdate a record read as "not recorded".
+  for (const key of ['firstRoscMs', 'firstShockMs', 'firstEpiMs', 'branchAtFirstEpi', 'postRosc'] as const) {
+    if (st[key] === undefined) st[key] = null;
+  }
+  // Counters the statistics panel, CSV and aggregates read directly. A missing one would render
+  // "undefined" or poison an average with NaN, so reject the record (the raw copy is backed up).
+  const numOrNull = (v: unknown) => v === null || isNum(v);
+  if (
+    !isNum(st.shocks.count) ||
+    !isNum(st.roscCount) ||
+    !isNum(st.cycles) ||
+    !isNum(st.pausedMs) ||
+    !numOrNull(st.firstRoscMs) ||
+    !numOrNull(st.firstShockMs) ||
+    !numOrNull(st.firstEpiMs) ||
+    !(st.branchAtFirstEpi === null || st.branchAtFirstEpi === 'shockable' || st.branchAtFirstEpi === 'nonshockable') ||
+    !isNum(st.epi.count) ||
+    !numOrNull(st.epi.meanIntervalMs) ||
+    !numOrNull(st.epi.longestIntervalMs) ||
+    typeof st.epi.longestExceedsThreshold !== 'boolean' ||
+    !isNum(st.amiodarone.count) ||
+    !isNum(st.amiodarone.totalMg) ||
+    !isNum(st.lidocaine.count) ||
+    !isNum(st.magnesium.count) ||
+    !(st.airway.type === null || typeof st.airway.type === 'string') ||
+    !numOrNull(st.airway.firstPlacedMs) ||
+    (st.postRosc !== null && (!isObj(st.postRosc) || !isNum(st.postRosc.done) || !isNum(st.postRosc.total)))
+  ) {
+    return null;
+  }
   for (const g of [st.epi, st.amiodarone, st.lidocaine, st.magnesium] as Array<Record<string, unknown>>) {
     if (!isNum(g.notCalculated)) g.notCalculated = 0;
   }

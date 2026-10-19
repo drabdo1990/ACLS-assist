@@ -11,4 +11,6 @@ dev-dist
 .agents/
 .archon/
 .claude/
+.dsh/
 .omc/
+graphify-out/

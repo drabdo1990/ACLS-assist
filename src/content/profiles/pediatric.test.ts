@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { AGE_CHIPS, estimateWeightFromAgeMonths, pediatricProfile } from './pediatric';
 import { profileFor } from './index';
 import type { AlgorithmInput } from '../algorithm';
+import { EN, type MessageKey } from '../../i18n/en';
 
 const peds = pediatricProfile;
 const WEIGHTS = [3, 10, 18, 25, 40, 60, 100] as const;
@@ -141,8 +142,8 @@ describe('pediatric dose engine — weight table (spec §9)', () => {
     }
   });
 
-  it('invalid weights (null, 0, negative, > 150, NaN) return null from every calculator', () => {
-    for (const w of [null, 0, -5, 151, NaN]) {
+  it('invalid weights (null, below 0.5, 0, negative, > 150, NaN) return null from every calculator', () => {
+    for (const w of [null, 0, 0.4, -5, 151, NaN]) {
       expect(peds.epinephrine(w as never, 0), `epi ${w}`).toBeNull();
       expect(peds.shockEnergy(w as never, 0), `shock ${w}`).toBeNull();
       expect(peds.shockEnergy(w as never, 0, true), `shock esc ${w}`).toBeNull();
@@ -194,8 +195,10 @@ describe('pediatric CPR guidance and algorithm (spec §6)', () => {
     const v = peds.algorithm(base);
     expect(v.titleKey).toBe('p.algo.title.shockable');
     expect(v.steps.map((s) => s.id)).toEqual(['shock1', 'cpr1', 'shock2', 'epi', 'shock3', 'aa']);
-    expect(v.steps[0]).toMatchObject({ label: 'Shock — 2 J/kg', focus: 'shock', state: 'current' });
-    expect(v.steps[2]).toMatchObject({ label: 'Shock — 4 J/kg', focus: 'shock', state: 'todo' });
+    expect(v.steps[0]).toMatchObject({ key: 'p.algo.step.shock1', focus: 'shock', state: 'current' });
+    expect(v.steps[2]).toMatchObject({ key: 'p.algo.step.shock2', focus: 'shock', state: 'todo' });
+    expect(EN['p.algo.step.shock1' as MessageKey]).toBe('Shock — 2 J/kg');
+    expect(EN['p.algo.step.shock2' as MessageKey]).toBe('Shock — 4 J/kg');
     expect(v.ongoingKey).toBe('p.algo.ongoing.shockable');
     expect(peds.algorithm({ ...base, shocks: 2, epi: 1 }).steps.find((s) => s.id === 'shock3')!.state).toBe('current');
     const done = peds.algorithm({ ...base, shocks: 3, epi: 1, antiarrhythmic: 1 });
@@ -208,7 +211,8 @@ describe('pediatric CPR guidance and algorithm (spec §6)', () => {
     const v = peds.algorithm(ns);
     expect(v.titleKey).toBe('p.algo.title.nonshockable');
     expect(v.steps.map((s) => s.id)).toEqual(['epi', 'access', 'causes']);
-    expect(v.steps[0]).toMatchObject({ label: 'CPR 2 min + Epinephrine 0.01 mg/kg ASAP', focus: 'epi', state: 'current' });
+    expect(v.steps[0]).toMatchObject({ key: 'p.algo.step.nonshockableEpi', focus: 'epi', state: 'current' });
+    expect(EN['p.algo.step.nonshockableEpi' as MessageKey]).toBe('CPR 2 min + Epinephrine 0.01 mg/kg ASAP');
     expect(peds.algorithm({ ...ns, epi: 1 }).steps.find((s) => s.id === 'causes')!.state).toBe('current');
   });
 
