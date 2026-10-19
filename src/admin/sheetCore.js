@@ -9,6 +9,7 @@
 export const PAYLOAD_VERSION = 1;
 export const MAX_BODY_CHARS = 100000;
 export const MAX_CELL_CHARS = 50000;
+export const MAX_UPLOADS_PER_HOUR = 300;
 export const RECORD_ID_RE = /^(?:[0-9]{12,14}|TEST)-[0-9a-f]{8,32}$/;
 export const DEVICE_ID_RE = /^[0-9a-f]{8,32}$/;
 
@@ -182,6 +183,9 @@ export function handleUpload(body, sheet, nowMs) {
   if (bad) return { ok: false, error: bad };
   const unit = findActiveUnit(sheet.readUnits(), p.enrollmentKey);
   if (!unit) return { ok: false, error: 'key' };
+  // The endpoint is anonymous and the key travels in enrollment links, so cap what one unit can write per hour.
+  // 'busy' is retried by the app with backoff, so a legitimate backlog just drains over a few hours.
+  if (sheet.countUpload(unit.name, Math.floor(nowMs / 3600000)) > MAX_UPLOADS_PER_HOUR) return { ok: false, error: 'busy' };
 
   const values = flattenPayload(p, unit.name, new Date(nowMs).toISOString());
   const wanted = Object.keys(values);

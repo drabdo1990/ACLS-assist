@@ -1,5 +1,5 @@
 export type RejectCode = 'size' | 'version' | 'schema' | 'key';
-export type UploadResult = { ok: true } | { ok: false; error: RejectCode };
+export type UploadResult = { ok: true } | { ok: false; error: RejectCode | 'busy' };
 
 export interface UnitRow {
   key: unknown;
@@ -18,11 +18,14 @@ export interface SheetAdapter {
   appendRow(cells: Record<string, unknown>): void;
   updateCells(row: number, cells: Record<string, unknown>): void;
   readUnits(): UnitRow[];
+  /** counts one upload for `unitName` in the given hour bucket and returns the new count */
+  countUpload(unitName: string, hour: number): number;
 }
 
 export const PAYLOAD_VERSION: 1;
 export const MAX_BODY_CHARS: number;
 export const MAX_CELL_CHARS: number;
+export const MAX_UPLOADS_PER_HOUR: number;
 export const RECORD_ID_RE: RegExp;
 export const DEVICE_ID_RE: RegExp;
 export const DEVICE_COLUMNS: string[];

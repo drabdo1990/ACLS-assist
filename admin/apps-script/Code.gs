@@ -12,6 +12,7 @@
 const PAYLOAD_VERSION = 1;
 const MAX_BODY_CHARS = 100000;
 const MAX_CELL_CHARS = 50000;
+const MAX_UPLOADS_PER_HOUR = 300;
 const RECORD_ID_RE = /^(?:[0-9]{12,14}|TEST)-[0-9a-f]{8,32}$/;
 const DEVICE_ID_RE = /^[0-9a-f]{8,32}$/;
 
@@ -185,6 +186,9 @@ function handleUpload(body, sheet, nowMs) {
   if (bad) return { ok: false, error: bad };
   const unit = findActiveUnit(sheet.readUnits(), p.enrollmentKey);
   if (!unit) return { ok: false, error: 'key' };
+  // The endpoint is anonymous and the key travels in enrollment links, so cap what one unit can write per hour.
+  // 'busy' is retried by the app with backoff, so a legitimate backlog just drains over a few hours.
+  if (sheet.countUpload(unit.name, Math.floor(nowMs / 3600000)) > MAX_UPLOADS_PER_HOUR) return { ok: false, error: 'busy' };
 
   const values = flattenPayload(p, unit.name, new Date(nowMs).toISOString());
   const wanted = Object.keys(values);
@@ -303,6 +307,14 @@ function makeAdapter_(ss) {
         }),
       ]);
     },
+    countUpload: function (unitName, hour) {
+      // The script lock is held, so read-then-put cannot race; the key is bucketed per hour and expires after two.
+      const cache = CacheService.getScriptCache();
+      const k = 'up:' + hour + ':' + unitName.slice(0, 100);
+      const n = Number(cache.get(k) || 0) + 1;
+      cache.put(k, String(n), 7200);
+      return n;
+    },
     readUnits: function () {
       if (!units || units.getLastRow() < 2) return [];
       const v = units.getDataRange().getValues();
@@ -374,7 +386,7 @@ function setupAdminSheet() {
   const R = function (name) {
     if (!col(name)) throw new Error('Codes sheet has no "' + name + '" column — re-run setupAdminSheet');
     const c = letter_(col(name));
-    return 'Codes!$' + c + '$2:$' + c + '$' + last;
+    return 'Codes!$' + c + '$2:$' + c; // open-ended: rows past CHECKBOX_ROWS must still be counted
   };
   const real =
     R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"';
