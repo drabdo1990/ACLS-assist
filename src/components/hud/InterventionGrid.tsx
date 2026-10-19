@@ -17,6 +17,7 @@ import { Chip } from '../ui/Chip';
 import { Panel } from '../ui/Panel';
 import { WeightControl } from '../ui/WeightControl';
 import { WeightCard } from './WeightCard';
+import { antiarrhythmicText } from './antiarrhythmicText';
 import { epiFlushKey } from './populationText';
 import { appliedPerKg, chosenShock, defaultShockChip, pediatricShockChips } from './shockChips';
 import { keyed } from '../../i18n/enText';
@@ -129,57 +130,8 @@ export function InterventionGrid() {
   }, [status, population, defaultJoules]);
 
   const isLido = antiarrhythmic === 'lidocaine';
-  // Adult HUD: null weight falls back to the 70 kg default (pediatric uses its own card).
-  const lidoKg = weightKg ?? 70;
-  const lidoGivenMg = lido.map((d) => d.mg ?? 0);
-  // Adult-only values (pediatric reads its own budget below); the adult profile always returns a result.
-  const lidoNext = profile.lidocaine(lidoKg, lido.length, lidoGivenMg)!;
-  const lidoGivenTotal = lidoGivenMg.reduce((sum, mg) => sum + mg, 0);
-  const pedsLidoBudget =
-    peds && weightKg != null && isLido
-      ? {
-          givenMg: lido.reduce((sum, d) => sum + (d.mg ?? 0), 0),
-          maxMg: Math.round(weightKg * 3 * 10) / 10,
-          nextMg: Math.min(Math.round(weightKg * 10) / 10, 100),
-        }
-      : null;
-  const pedsLidoExceeds =
-    pedsLidoBudget != null && pedsLidoBudget.givenMg + pedsLidoBudget.nextMg > pedsLidoBudget.maxMg;
-  const pedsAa = peds && weightKg != null ? (isLido ? profile.lidocaine(weightKg, lido.length, []) : profile.amiodarone(weightKg, amio.length, [])) : null;
-  const aaLabel = peds
-    ? noWeight
-      ? t('peds.setWeight')
-      : isLido
-        ? `${t('peds.grid.lido.title', { mg: pedsAa?.mg ?? 0 })}${pedsAa?.capped ? ` ${t('peds.max')}` : ''}`
-        : `${t('peds.grid.amio.title', { mg: pedsAa?.mg ?? 0 })}${pedsAa?.capped ? ` ${t('peds.max')}` : ''}`
-    : isLido
-      ? `Lidocaine ${lidoNext.mg}–${lidoNext.mgMax} mg`
-      : `Amiodarone ${profile.amiodarone(weightKg, amio.length, amio.map((d) => d.mg ?? 0))?.mg} mg`;
+  const aa = antiarrhythmicText({ profile, peds, isLido, weightKg, amio, lido, t });
   const aaCount = isLido ? lido.length : amio.length;
-  const aaSub = peds
-    ? noWeight
-      ? t('peds.setWeightBanner')
-      : isLido && pedsLidoBudget
-        ? pedsLidoExceeds
-          ? t('hud.grid.lido.exceeds', { given: pedsLidoBudget.givenMg, max: pedsLidoBudget.maxMg })
-          : amioSubPeds(aaCount, t)
-        : !isLido && pedsAa?.exceedsTotal
-          ? t('peds.grid.amio.exceeds')
-          : amioSubPeds(aaCount, t)
-    : isLido
-      ? lidoNext.exceedsTotal
-        ? t('hud.grid.lido.exceeds', { given: lidoGivenTotal, max: lidoNext.maxTotalMg! })
-        : t('hud.grid.lido.sub', {
-            n: lido.length + 1,
-            perKg: lidoNext.perKgLabel!,
-            interval: lido.length ? ' q5–10 min' : '',
-            kg: lidoKg,
-          })
-      : amio.length === 0
-        ? t('hud.grid.amio.sub1')
-        : amio.length === 1
-          ? t('hud.grid.amio.sub2')
-          : t('hud.grid.amio.subMax');
 
   const openWeight = () => setShowWeight(true);
   const logAnyway = 'peds.grid.logNoWeight';
@@ -435,13 +387,9 @@ export function InterventionGrid() {
         <BigButton
           variant="warn"
           icon={Pill}
-          label={`${aaLabel}${aaCount && !(peds && noWeight) ? ` · ×${aaCount}` : ''}`}
-          sub={aaSub}
-          className={
-            (!peds && isLido && lidoNext.exceedsTotal) || (peds && isLido && pedsLidoExceeds)
-              ? 'border-crit text-crit'
-              : ''
-          }
+          label={`${aa.label}${aaCount && !(peds && noWeight) ? ` · ×${aaCount}` : ''}`}
+          sub={aa.sub}
+          className={aa.exceeds ? 'border-crit text-crit' : ''}
           disabled={!canLog}
           onClick={peds && noWeight ? openWeight : administerAntiarrhythmic}
         />
@@ -553,9 +501,4 @@ export function InterventionGrid() {
       </div>
     </Panel>
   );
-}
-
-/** Pediatric amiodarone sub-line: dose ordinal. */
-function amioSubPeds(count: number, t: ReturnType<typeof useT>['t']): string {
-  return count === 0 ? t('ev.dose.first') : count === 1 ? t('ev.dose.second') : t('ev.dose.additional');
 }

@@ -111,13 +111,13 @@ function buildView(input: AlgorithmInput, defs: StepDef[], titleKey: string, ong
   };
 }
 
-/** Amiodarone: 5 mg/kg per dose, capped at 300 mg; cumulative > 15 mg/kg flagged. */
-function amiodaroneResult(kg: number, doseIndex: number) {
+const sum = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0);
+
+/** Amiodarone: 5 mg/kg per dose, capped at 300 mg; given + this dose > 15 mg/kg flagged (real logged doses, so a weight correction mid-code is counted). */
+function amiodaroneResult(kg: number, givenMg: readonly number[]) {
   const raw = round2(5 * kg);
   const mg = Math.min(raw, 300);
-  let cumulative = 0;
-  for (let i = 0; i <= doseIndex; i++) cumulative += Math.min(round2(5 * kg), 300);
-  return { mg, capped: raw >= 300, exceedsTotal: cumulative > round2(15 * kg) };
+  return { mg, capped: raw >= 300, exceedsTotal: round2(sum(givenMg) + mg) > round2(15 * kg) };
 }
 
 export const pediatricProfile: ProtocolProfile = {
@@ -152,15 +152,15 @@ export const pediatricProfile: ProtocolProfile = {
     };
   },
 
-  amiodarone: (weightKg, doseIndex) => (valid(weightKg) ? amiodaroneResult(weightKg as number, doseIndex) : null),
+  amiodarone: (weightKg, _doseIndex, givenMg) => (valid(weightKg) ? amiodaroneResult(weightKg as number, givenMg) : null),
 
-  lidocaine: (weightKg, doseIndex) => {
+  lidocaine: (weightKg, _doseIndex, givenMg) => {
     if (!valid(weightKg)) return null;
     const kg = weightKg as number;
     const raw = round2(1 * kg);
     const mg = Math.min(raw, 100);
-    // PALS: 1 mg/kg per dose, total 3 mg/kg. Count the dose about to be given.
-    const cumulative = round2(mg * (doseIndex + 1));
+    // PALS: 1 mg/kg per dose, total 3 mg/kg. Count the doses already logged plus the one about to be given.
+    const cumulative = round2(sum(givenMg) + mg);
     return { mg, capped: raw >= 100, exceedsTotal: cumulative > round2(3 * kg) };
   },
 

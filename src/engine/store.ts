@@ -610,6 +610,9 @@ export const useCodeStore = create<CodeStore>((set, get) => {
       apply((s) => {
         if (!canLogIntervention(s.status)) return {};
         const at = clockNow();
+        // "Placed" replaces the ETT/SGA pair in the same spot, so a gloved double-tap would un-place it at once.
+        const lastEv = s.events.at(-1);
+        if (lastEv?.category === 'airway' && isRepeatTap(lastEv.at, at)) return {};
         haptic.confirm();
         if (s.airwayPlaced) {
           const offEv = keyed('ev.airwayOff', undefined, 'ev.airwayOff.detail');
