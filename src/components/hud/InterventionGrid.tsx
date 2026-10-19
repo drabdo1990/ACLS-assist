@@ -149,7 +149,7 @@ export function InterventionGrid() {
       : null;
   const pedsLidoExceeds =
     pedsLidoBudget != null && pedsLidoBudget.givenMg + pedsLidoBudget.nextMg > pedsLidoBudget.maxMg;
-  const pedsAa = peds && weightKg != null ? (isLido ? profile.lidocaine(weightKg, lido.length) : profile.amiodarone(weightKg, amio.length)) : null;
+  const pedsAa = peds && weightKg != null ? (isLido ? profile.lidocaine(weightKg, lido.length, []) : profile.amiodarone(weightKg, amio.length, [])) : null;
   const aaLabel = peds
     ? noWeight
       ? t('peds.setWeight')

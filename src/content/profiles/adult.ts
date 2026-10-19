@@ -8,6 +8,7 @@ import type { AlgorithmInput, AlgorithmView } from '../algorithm';
 import { nextAclsStep } from '../algorithm';
 import {
   amiodaroneDoseMg,
+  lidocaineBudget,
   lidocaineDose,
   waveformFor,
   SHOCK_ENERGIES,
@@ -33,15 +34,19 @@ export const adultProfile: ProtocolProfile = {
     exceedsTotal: false,
   }),
 
-  lidocaine: (weightKg, doseIndex) => {
+  lidocaine: (weightKg, doseIndex, givenMg) => {
     const kg = weightKg ?? ADULT_DEFAULT_KG;
     const d = lidocaineDose(kg, doseIndex);
+    const budget = lidocaineBudget(kg, [...givenMg]);
     return {
       mg: d.minMg,
       mgMax: d.maxMg,
       perKgLabel: d.perKgLabel,
       capped: false,
-      exceedsTotal: false,
+      exceedsTotal: budget.nextExceeds,
+      doseNo: d.doseNo,
+      cumulativeMg: budget.givenMg + d.minMg,
+      maxTotalMg: budget.maxMg,
     };
   },
 

@@ -96,22 +96,22 @@ describe('pediatric dose engine — weight table (spec §9)', () => {
       100: { mg: 300, capped: true },
     };
     for (const kg of WEIGHTS) {
-      expect(peds.amiodarone(kg, 0), `${kg} kg #1`).toEqual({
+      expect(peds.amiodarone(kg, 0, []), `${kg} kg #1`).toEqual({
         mg: dose[kg].mg,
         capped: dose[kg].capped,
         exceedsTotal: false,
       });
     }
     // cumulative tracking: 3 doses at 5 mg/kg = exactly 15 mg/kg (not exceeded); a 4th dose is
-    expect(peds.amiodarone(3, 2)!.exceedsTotal).toBe(false);
-    expect(peds.amiodarone(3, 3)!.exceedsTotal).toBe(true);
+    expect(peds.amiodarone(3, 2, [])!.exceedsTotal).toBe(false);
+    expect(peds.amiodarone(3, 3, [])!.exceedsTotal).toBe(true);
     // the 300 mg cap keeps the cumulative below 15 mg/kg for big children
-    expect(peds.amiodarone(100, 2)!.exceedsTotal).toBe(false);
+    expect(peds.amiodarone(100, 2, [])!.exceedsTotal).toBe(false);
   });
 
   it('lidocaine 1 mg/kg loading, capped at 100 mg', () => {
     for (const kg of WEIGHTS) {
-      expect(peds.lidocaine(kg, 0), `${kg} kg`).toEqual({
+      expect(peds.lidocaine(kg, 0, []), `${kg} kg`).toEqual({
         mg: Math.min(kg, 100),
         capped: kg >= 100,
         exceedsTotal: false,
@@ -120,10 +120,10 @@ describe('pediatric dose engine — weight table (spec §9)', () => {
   });
 
   it('warns when a lidocaine dose would push the total over 3 mg/kg', () => {
-    expect(peds.lidocaine(5, 2)!.exceedsTotal).toBe(false); // third dose: 15 mg = 3 mg/kg exactly
-    expect(peds.lidocaine(5, 3)!.exceedsTotal).toBe(true); // fourth dose: 20 mg > 15 mg
-    expect(peds.lidocaine(100, 1)!.exceedsTotal).toBe(false); // 200 mg <= 300 mg
-    expect(peds.lidocaine(100, 3)!.exceedsTotal).toBe(true); // 400 mg > 300 mg
+    expect(peds.lidocaine(5, 2, [])!.exceedsTotal).toBe(false); // third dose: 15 mg = 3 mg/kg exactly
+    expect(peds.lidocaine(5, 3, [])!.exceedsTotal).toBe(true); // fourth dose: 20 mg > 15 mg
+    expect(peds.lidocaine(100, 1, [])!.exceedsTotal).toBe(false); // 200 mg <= 300 mg
+    expect(peds.lidocaine(100, 3, [])!.exceedsTotal).toBe(true); // 400 mg > 300 mg
   });
 
   it('magnesium 25–50 mg/kg, capped at 2 g', () => {
@@ -147,8 +147,8 @@ describe('pediatric dose engine — weight table (spec §9)', () => {
       expect(peds.epinephrine(w as never, 0), `epi ${w}`).toBeNull();
       expect(peds.shockEnergy(w as never, 0), `shock ${w}`).toBeNull();
       expect(peds.shockEnergy(w as never, 0, true), `shock esc ${w}`).toBeNull();
-      expect(peds.amiodarone(w as never, 0), `amio ${w}`).toBeNull();
-      expect(peds.lidocaine(w as never, 0), `lido ${w}`).toBeNull();
+      expect(peds.amiodarone(w as never, 0, []), `amio ${w}`).toBeNull();
+      expect(peds.lidocaine(w as never, 0, []), `lido ${w}`).toBeNull();
       expect(peds.magnesium(w as never), `mag ${w}`).toBeNull();
     }
   });

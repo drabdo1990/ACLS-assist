@@ -577,7 +577,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         playConfirm();
         haptic.confirm();
         if (s.population === 'pediatric') {
-          const dose = profileFor('pediatric').amiodarone(s.weightKg, count);
+          const dose = profileFor('pediatric').amiodarone(s.weightKg, count, s.amio.map((x) => x.mg ?? 0));
           if (!dose) {
             const offEv = keyed('ev.pedsAmio.noWeight');
             return {
@@ -618,7 +618,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         playConfirm();
         haptic.confirm();
         if (s.population === 'pediatric') {
-          const dose = profileFor('pediatric').lidocaine(s.weightKg, s.lido.length);
+          const dose = profileFor('pediatric').lidocaine(s.weightKg, s.lido.length, []);
           if (!dose) {
             const offEv = keyed('ev.pedsLido.noWeight');
             return {
