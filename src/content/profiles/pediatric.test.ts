@@ -103,10 +103,10 @@ describe('pediatric dose engine — weight table (spec §9)', () => {
       });
     }
     // cumulative tracking: 3 doses at 5 mg/kg = exactly 15 mg/kg (not exceeded); a 4th dose is
-    expect(peds.amiodarone(3, 2, [])!.exceedsTotal).toBe(false);
-    expect(peds.amiodarone(3, 3, [])!.exceedsTotal).toBe(true);
+    expect(peds.amiodarone(3, 2, [15, 15])!.exceedsTotal).toBe(false);
+    expect(peds.amiodarone(3, 3, [15, 15, 15])!.exceedsTotal).toBe(true);
     // the 300 mg cap keeps the cumulative below 15 mg/kg for big children
-    expect(peds.amiodarone(100, 2, [])!.exceedsTotal).toBe(false);
+    expect(peds.amiodarone(100, 2, [300, 300])!.exceedsTotal).toBe(false);
   });
 
   it('lidocaine 1 mg/kg loading, capped at 100 mg', () => {
@@ -120,10 +120,16 @@ describe('pediatric dose engine — weight table (spec §9)', () => {
   });
 
   it('warns when a lidocaine dose would push the total over 3 mg/kg', () => {
-    expect(peds.lidocaine(5, 2, [])!.exceedsTotal).toBe(false); // third dose: 15 mg = 3 mg/kg exactly
-    expect(peds.lidocaine(5, 3, [])!.exceedsTotal).toBe(true); // fourth dose: 20 mg > 15 mg
-    expect(peds.lidocaine(100, 1, [])!.exceedsTotal).toBe(false); // 200 mg <= 300 mg
-    expect(peds.lidocaine(100, 3, [])!.exceedsTotal).toBe(true); // 400 mg > 300 mg
+    expect(peds.lidocaine(5, 2, [5, 5])!.exceedsTotal).toBe(false); // third dose: 15 mg = 3 mg/kg exactly
+    expect(peds.lidocaine(5, 3, [5, 5, 5])!.exceedsTotal).toBe(true); // fourth dose: 20 mg > 15 mg
+    expect(peds.lidocaine(100, 1, [100])!.exceedsTotal).toBe(false); // 200 mg <= 300 mg
+    expect(peds.lidocaine(100, 3, [100, 100, 100])!.exceedsTotal).toBe(true); // 400 mg > 300 mg
+  });
+
+  it('counts the doses actually logged, so a mid-code weight correction cannot hide the 15 mg/kg limit', () => {
+    // 100 mg given at 20 kg, then the weight is corrected to 10 kg (dose 5 mg/kg = 50 mg)
+    expect(peds.amiodarone(10, 1, [100])!.exceedsTotal).toBe(false); // 150 mg = 15 mg/kg exactly
+    expect(peds.amiodarone(10, 2, [100, 50])!.exceedsTotal).toBe(true); // 200 mg > 150 mg
   });
 
   it('magnesium 25–50 mg/kg, capped at 2 g', () => {
