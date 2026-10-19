@@ -52,11 +52,11 @@ function isObj(v) {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** Truncate to the Sheets cell limit and defuse formula starters (= + - @ tab CR). Non-strings pass through. */
+/** Truncate to the Sheets cell limit and defuse formula starters (= + - @ tab CR LF). Non-strings pass through. */
 export function neutralise(v) {
   if (typeof v !== 'string') return v;
   let s = v.length > MAX_CELL_CHARS ? v.slice(0, MAX_CELL_CHARS) : v;
-  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  if (/^[=+\-@\t\r\n]/.test(s)) s = "'" + s;
   return s.length > MAX_CELL_CHARS ? s.slice(0, MAX_CELL_CHARS) : s;
 }
 

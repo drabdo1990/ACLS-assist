@@ -38,7 +38,7 @@ describe('population-specific HUD text keys', () => {
       EN[roscBannerSubKey('pediatric')],
     ].join(' | ');
     expect(texts).not.toMatch(/Adult|ACLS|MAP|TTM|20 mL|92/);
-    expect(EN[epiFlushKey('pediatric')]).toBe('IV/IO + saline flush');
+    expect(EN[epiFlushKey('pediatric')]).toBe('0.1 mg/mL (1:10,000) · IV/IO + saline flush');
     expect(EN[appTitleKey('pediatric')]).toBe('Pediatric PALS Command');
     // Only the SpO2 / SBP values already present in the pediatric post-ROSC content.
     expect(EN[roscBannerSubKey('pediatric')]).toContain('SpO₂ 94–99%');

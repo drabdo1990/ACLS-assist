@@ -75,7 +75,7 @@ export interface ProtocolProfile {
   shockEnergy(weightKg: number | null, shockIndex: number, escalate?: boolean): ShockEnergyResult | null;
   /** Fixed chip list where energy selection is not weight-derived (adult). */
   shockEnergies?: ReadonlyArray<{ joules: number; waveform: WaveformType }>;
-  /** `givenMg` = doses already logged (adult cumulative rules use it; pediatric ignores it). */
+  /** `givenMg` = doses already logged (both adult and pediatric cumulative rules use it). */
   amiodarone(weightKg: number | null, doseIndex: number, givenMg: readonly number[]): AmiodaroneResult | null;
   lidocaine(weightKg: number | null, doseIndex: number, givenMg: readonly number[]): LidocaineResult | null;
   magnesium(weightKg: number | null): MagnesiumResult | null;

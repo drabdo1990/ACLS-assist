@@ -198,6 +198,7 @@ describe('safety', () => {
     expect(neutralise('-x')).toBe("'-x");
     expect(neutralise('@x')).toBe("'@x");
     expect(neutralise('\tx')).toBe("'\tx");
+    expect(neutralise('\nx')).toBe("'\nx");
     expect(neutralise('plain')).toBe('plain');
     expect(neutralise(-5)).toBe(-5);
     expect(neutralise(true)).toBe(true);
