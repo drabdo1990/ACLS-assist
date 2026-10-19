@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { profileFor } from './index';
-import { amiodaroneDoseMg, lidocaineDose } from '../calc';
+import { amiodaroneDoseMg, lidocaineBudget, lidocaineDose } from '../calc';
 import { nextAclsStep, type AlgorithmInput } from '../algorithm';
 import { POST_ROSC_BUNDLE } from '../protocols';
 
@@ -32,7 +32,7 @@ describe('adult profile — dose engine parity with content/calc.ts', () => {
 
   it('amiodarone matches amiodaroneDoseMg', () => {
     for (const i of [0, 1, 2, 3]) {
-      expect(adult.amiodarone(null, i)).toEqual({
+      expect(adult.amiodarone(null, i, [])).toEqual({
         mg: amiodaroneDoseMg(i),
         capped: false,
         exceedsTotal: false,
@@ -41,26 +41,52 @@ describe('adult profile — dose engine parity with content/calc.ts', () => {
   });
 
   it('lidocaine wraps lidocaineDose with a null weight defaulting to 70 kg', () => {
-    expect(adult.lidocaine(null, 0)).toEqual(adult.lidocaine(70, 0));
-    expect(adult.lidocaine(null, 0)).toEqual({
+    expect(adult.lidocaine(null, 0, [])).toEqual(adult.lidocaine(70, 0, []));
+    expect(adult.lidocaine(null, 0, [])).toEqual({
       mg: 70,
       mgMax: 105,
       perKgLabel: '1–1.5 mg/kg',
       capped: false,
       exceedsTotal: false,
+      doseNo: 1,
+      cumulativeMg: 70,
+      maxTotalMg: 210,
     });
-    expect(adult.lidocaine(80, 1)).toEqual({
+    expect(adult.lidocaine(80, 1, [80])).toEqual({
       mg: 40,
       mgMax: 60,
       perKgLabel: '0.5–0.75 mg/kg',
       capped: false,
       exceedsTotal: false,
+      doseNo: 2,
+      cumulativeMg: 120,
+      maxTotalMg: 240,
     });
+  });
+
+  // The store/grid used lidocaineDose + lidocaineBudget directly; the profile must return the same
+  // numbers, including the 3 mg/kg warning flipping on (the clinical safety net for the refactor).
+  it('lidocaine matches lidocaineDose + lidocaineBudget for dose indexes 0–5, given the logged doses', () => {
     for (const kg of [40, 70, 100]) {
-      for (const i of [0, 1, 2]) {
+      const given: number[] = [];
+      let flipped = false;
+      for (let i = 0; i <= 5; i++) {
         const d = lidocaineDose(kg, i);
-        expect(adult.lidocaine(kg, i)).toMatchObject({ mg: d.minMg, mgMax: d.maxMg });
+        const b = lidocaineBudget(kg, given);
+        expect(adult.lidocaine(kg, i, given), `${kg} kg #${i + 1}`).toEqual({
+          mg: d.minMg,
+          mgMax: d.maxMg,
+          perKgLabel: d.perKgLabel,
+          capped: false,
+          exceedsTotal: b.nextExceeds,
+          doseNo: d.doseNo,
+          cumulativeMg: b.givenMg + d.minMg,
+          maxTotalMg: b.maxMg,
+        });
+        flipped ||= b.nextExceeds;
+        given.push(d.minMg);
       }
+      expect(flipped, `${kg} kg: warning flips by dose 6`).toBe(true);
     }
   });
 

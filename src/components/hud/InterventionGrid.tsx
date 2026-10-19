@@ -7,9 +7,6 @@ import { playConfirm } from '../../engine/audio';
 import { haptic } from '../../engine/haptics';
 import {
   SHOCK_ENERGIES,
-  amiodaroneDoseMg,
-  lidocaineBudget,
-  lidocaineDose,
   waveformFor,
 } from '../../content/calc';
 import type { StepFocus } from '../../content/algorithm';
@@ -134,11 +131,10 @@ export function InterventionGrid() {
   const isLido = antiarrhythmic === 'lidocaine';
   // Adult HUD: null weight falls back to the 70 kg default (pediatric uses its own card).
   const lidoKg = weightKg ?? 70;
-  const lidoNext = lidocaineDose(lidoKg, lido.length);
-  const lidoBudget = lidocaineBudget(
-    lidoKg,
-    lido.map((d) => d.mg ?? 0),
-  );
+  const lidoGivenMg = lido.map((d) => d.mg ?? 0);
+  // Adult-only values (pediatric reads its own budget below); the adult profile always returns a result.
+  const lidoNext = profile.lidocaine(lidoKg, lido.length, lidoGivenMg)!;
+  const lidoGivenTotal = lidoGivenMg.reduce((sum, mg) => sum + mg, 0);
   const pedsLidoBudget =
     peds && weightKg != null && isLido
       ? {
@@ -149,7 +145,7 @@ export function InterventionGrid() {
       : null;
   const pedsLidoExceeds =
     pedsLidoBudget != null && pedsLidoBudget.givenMg + pedsLidoBudget.nextMg > pedsLidoBudget.maxMg;
-  const pedsAa = peds && weightKg != null ? (isLido ? profile.lidocaine(weightKg, lido.length) : profile.amiodarone(weightKg, amio.length)) : null;
+  const pedsAa = peds && weightKg != null ? (isLido ? profile.lidocaine(weightKg, lido.length, []) : profile.amiodarone(weightKg, amio.length, [])) : null;
   const aaLabel = peds
     ? noWeight
       ? t('peds.setWeight')
@@ -157,8 +153,8 @@ export function InterventionGrid() {
         ? `${t('peds.grid.lido.title', { mg: pedsAa?.mg ?? 0 })}${pedsAa?.capped ? ` ${t('peds.max')}` : ''}`
         : `${t('peds.grid.amio.title', { mg: pedsAa?.mg ?? 0 })}${pedsAa?.capped ? ` ${t('peds.max')}` : ''}`
     : isLido
-      ? `Lidocaine ${lidoNext.minMg}–${lidoNext.maxMg} mg`
-      : `Amiodarone ${amiodaroneDoseMg(amio.length)} mg`;
+      ? `Lidocaine ${lidoNext.mg}–${lidoNext.mgMax} mg`
+      : `Amiodarone ${profile.amiodarone(weightKg, amio.length, amio.map((d) => d.mg ?? 0))?.mg} mg`;
   const aaCount = isLido ? lido.length : amio.length;
   const aaSub = peds
     ? noWeight
@@ -171,11 +167,11 @@ export function InterventionGrid() {
           ? t('peds.grid.amio.exceeds')
           : amioSubPeds(aaCount, t)
     : isLido
-      ? lidoBudget.nextExceeds
-        ? t('hud.grid.lido.exceeds', { given: lidoBudget.givenMg, max: lidoBudget.maxMg })
+      ? lidoNext.exceedsTotal
+        ? t('hud.grid.lido.exceeds', { given: lidoGivenTotal, max: lidoNext.maxTotalMg! })
         : t('hud.grid.lido.sub', {
             n: lido.length + 1,
-            perKg: lidoNext.perKgLabel,
+            perKg: lidoNext.perKgLabel!,
             interval: lido.length ? ' q5–10 min' : '',
             kg: lidoKg,
           })
@@ -442,7 +438,7 @@ export function InterventionGrid() {
           label={`${aaLabel}${aaCount && !(peds && noWeight) ? ` · ×${aaCount}` : ''}`}
           sub={aaSub}
           className={
-            (!peds && isLido && lidoBudget.nextExceeds) || (peds && isLido && pedsLidoExceeds)
+            (!peds && isLido && lidoNext.exceedsTotal) || (peds && isLido && pedsLidoExceeds)
               ? 'border-crit text-crit'
               : ''
           }

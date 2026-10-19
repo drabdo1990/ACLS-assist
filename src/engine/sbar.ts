@@ -19,9 +19,7 @@ import { formatClock, formatDuration, formatWallClock, masterElapsedMs } from '.
 import { CAUSES } from '../content/causes';
 import { POCUS_ITEMS } from '../content/pocus';
 import { waveformFor } from '../content/calc';
-import { POST_ROSC_BUNDLE } from '../content/protocols';
-import { PEDIATRIC_POST_ROSC_BUNDLE } from '../content/profiles/pediatric';
-import type { Population, WeightSource } from '../content/profiles';
+import { profileFor, type Population, type WeightSource } from '../content/profiles';
 import { isChecklistItemOn } from './checklist';
 import { MAGNESIUM_PREFIX, POST_ROSC_PREFIX, RHYTHM_CHECK_PREFIX } from './eventQueries';
 import type { CodeStats } from './stats';
@@ -250,7 +248,7 @@ export function buildSbar(input: SbarInput, now: number = Date.now(), opts: Sbar
 
   // Only meaningful once ROSC has occurred; otherwise every item would read as "pending".
   if (rosc) {
-    const bundle = peds ? PEDIATRIC_POST_ROSC_BUNDLE : POST_ROSC_BUNDLE;
+    const bundle = profileFor(input.population ?? 'adult').postRoscBundle;
     const itemKey = (id: string): MessageKey => (peds ? `pPostRosc.${id}` : `postRosc.${id}`) as MessageKey;
     const done = bundle.filter((i) => isChecklistItemOn(input.events, POST_ROSC_PREFIX, i.text));
     const pending = bundle.filter((i) => !done.includes(i));

@@ -40,12 +40,8 @@ import { playChime, playClose, playConfirm } from './audio';
 import { haptic } from './haptics';
 import { CAUSES } from '../content/causes';
 import { POCUS_ITEMS } from '../content/pocus';
-import {
-  amiodaroneDoseMg,
-  lidocaineBudget,
-  lidocaineDose,
-  waveformFor,
-} from '../content/calc';
+import { waveformFor } from '../content/calc';
+import { amioEvent, epiEvent, lidoEvent, magEvent } from './doseEvents';
 import { keyed } from '../i18n/enText';
 import type { KeyedEvent } from '../i18n/enText';
 import type { MessageKey } from '../i18n/en';
@@ -509,23 +505,10 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const n = s.epi.length + 1;
         playConfirm();
         haptic.confirm();
-        if (s.population === 'pediatric') {
-          const dose = profileFor('pediatric').epinephrine(s.weightKg, n - 1);
-          const epiEv = dose
-            ? keyed('ev.pedsEpi', { mg: dose.mg }, 'ev.pedsEpi.detail', { n, kg: s.weightKg ?? 0 })
-            : keyed('ev.pedsEpi.noWeight', undefined, 'ev.pedsEpi.noWeight.detail', { n });
-          return {
-            epi: [...s.epi, { at, t, label: epiEv.label, mg: dose ? dose.mg : null }],
-            events: [
-              ...s.events,
-              mkEvent('drug', epiEv.label, epiEv.detail, at, t, epiEv.i18n),
-            ],
-          };
-        }
-        const label = 'Epinephrine 1 mg IV/IO';
-        const epiEv = keyed('ev.epi', undefined, 'ev.epi.detail', { n });
+        // kg only reaches the text when a weight exists (pediatric) or as the adult default.
+        const epiEv = epiEvent(s.population, profileFor(s.population).epinephrine(s.weightKg, n - 1), n, s.weightKg ?? DEFAULT_WEIGHT_KG);
         return {
-          epi: [...s.epi, { at, t, label, mg: 1 }],
+          epi: [...s.epi, { at, t, label: epiEv.label, mg: epiEv.mg }],
           events: [
             ...s.events,
             mkEvent('drug', epiEv.label, epiEv.detail, at, t, epiEv.i18n),
@@ -576,31 +559,9 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const count = s.amio.length;
         playConfirm();
         haptic.confirm();
-        if (s.population === 'pediatric') {
-          const dose = profileFor('pediatric').amiodarone(s.weightKg, count);
-          if (!dose) {
-            const offEv = keyed('ev.pedsAmio.noWeight');
-            return {
-              amio: [...s.amio, { at, t, label: offEv.label, mg: null }],
-              events: [...s.events, mkEvent('drug', offEv.label, undefined, at, t, offEv.i18n)],
-            };
-          }
-          const detailKey: MessageKey = count === 0 ? 'ev.dose.first' : count === 1 ? 'ev.dose.second' : 'ev.dose.additional';
-          const amioEv = keyed('ev.amio', { mg: dose.mg }, detailKey);
-          return {
-            amio: [...s.amio, { at, t, label: amioEv.label, mg: dose.mg }],
-            events: [
-              ...s.events,
-              mkEvent('drug', amioEv.label, amioEv.detail, at, t, amioEv.i18n),
-            ],
-          };
-        }
-        const mg = amiodaroneDoseMg(count);
-        const label = `Amiodarone ${mg} mg IV/IO`;
-        const detailKey: MessageKey = count === 0 ? 'ev.dose.first' : count === 1 ? 'ev.dose.second' : 'ev.dose.additional';
-        const amioEv = keyed('ev.amio', { mg }, detailKey);
+        const amioEv = amioEvent(profileFor(s.population).amiodarone(s.weightKg, count, s.amio.map((x) => x.mg ?? 0)), count);
         return {
-          amio: [...s.amio, { at, t, label, mg }],
+          amio: [...s.amio, { at, t, label: amioEv.label, mg: amioEv.mg }],
           events: [
             ...s.events,
             mkEvent('drug', amioEv.label, amioEv.detail, at, t, amioEv.i18n),
@@ -617,46 +578,10 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const t = el(s, at);
         playConfirm();
         haptic.confirm();
-        if (s.population === 'pediatric') {
-          const dose = profileFor('pediatric').lidocaine(s.weightKg, s.lido.length);
-          if (!dose) {
-            const offEv = keyed('ev.pedsLido.noWeight');
-            return {
-              lido: [...s.lido, { at, t, label: offEv.label, mg: null }],
-              events: [...s.events, mkEvent('drug', offEv.label, undefined, at, t, offEv.i18n)],
-            };
-          }
-          const lidoEv = keyed('ev.pedsLido', { mg: dose.mg }, 'ev.pedsLido.detail', {
-            n: s.lido.length + 1,
-            kg: s.weightKg ?? 0,
-          });
-          return {
-            lido: [...s.lido, { at, t, label: lidoEv.label, mg: dose.mg }],
-            events: [
-              ...s.events,
-              mkEvent('drug', lidoEv.label, lidoEv.detail, at, t, lidoEv.i18n),
-            ],
-          };
-        }
-        const kg = s.weightKg ?? DEFAULT_WEIGHT_KG;
-        const d = lidocaineDose(kg, s.lido.length);
-        const budget = lidocaineBudget(kg, s.lido.map((x) => x.mg ?? 0));
-        const label = `Lidocaine ${d.minMg}–${d.maxMg} mg IV/IO`;
-        const detailKey: MessageKey = budget.nextExceeds ? 'ev.lido.detailExceeds' : 'ev.lido.detail';
-        const lidoEv = keyed(
-          'ev.lido',
-          { minMg: d.minMg, maxMg: d.maxMg },
-          detailKey,
-          {
-            n: d.doseNo,
-            perKg: d.perKgLabel,
-            kg,
-            cumMg: budget.givenMg + d.minMg,
-            maxMg: budget.maxMg,
-          },
-        );
+        const dose = profileFor(s.population).lidocaine(s.weightKg, s.lido.length, s.lido.map((x) => x.mg ?? 0));
+        const lidoEv = lidoEvent(s.population, dose, s.lido.length + 1, s.weightKg ?? DEFAULT_WEIGHT_KG);
         return {
-          lido: [...s.lido, { at, t, label, mg: d.minMg }],
+          lido: [...s.lido, { at, t, label: lidoEv.label, mg: lidoEv.mg }],
           events: [
             ...s.events,
             mkEvent('drug', lidoEv.label, lidoEv.detail, at, t, lidoEv.i18n),
@@ -674,16 +599,7 @@ export const useCodeStore = create<CodeStore>((set, get) => {
         const at = clockNow();
         playConfirm();
         haptic.confirm();
-        if (s.population === 'pediatric') {
-          const dose = profileFor('pediatric').magnesium(s.weightKg);
-          const magEv = dose
-            ? keyed('ev.pedsMag', { minMg: dose.minMg, maxMg: dose.maxMg })
-            : keyed('ev.pedsMag.noWeight');
-          return {
-            events: [...s.events, mkEvent('drug', magEv.label, magEv.detail, at, el(s, at), magEv.i18n)],
-          };
-        }
-        const magEv = keyed('ev.mag', undefined, 'ev.mag.detail');
+        const magEv = magEvent(s.population, profileFor(s.population).magnesium(s.weightKg));
         return {
           events: [...s.events, mkEvent('drug', magEv.label, magEv.detail, at, el(s, at), magEv.i18n)],
         };

@@ -51,6 +51,10 @@ export interface LidocaineResult {
   capped: boolean;
   /** true when the cumulative dose exceeds the total mg/kg ceiling. */
   exceedsTotal: boolean;
+  /** Adult only: 1-based dose number, cumulative mg including this dose, and the 3 mg/kg ceiling. */
+  doseNo?: number;
+  cumulativeMg?: number;
+  maxTotalMg?: number;
 }
 
 export interface MagnesiumResult {
@@ -71,8 +75,9 @@ export interface ProtocolProfile {
   shockEnergy(weightKg: number | null, shockIndex: number, escalate?: boolean): ShockEnergyResult | null;
   /** Fixed chip list where energy selection is not weight-derived (adult). */
   shockEnergies?: ReadonlyArray<{ joules: number; waveform: WaveformType }>;
-  amiodarone(weightKg: number | null, doseIndex: number): AmiodaroneResult | null;
-  lidocaine(weightKg: number | null, doseIndex: number): LidocaineResult | null;
+  /** `givenMg` = doses already logged (adult cumulative rules use it; pediatric ignores it). */
+  amiodarone(weightKg: number | null, doseIndex: number, givenMg: readonly number[]): AmiodaroneResult | null;
+  lidocaine(weightKg: number | null, doseIndex: number, givenMg: readonly number[]): LidocaineResult | null;
   magnesium(weightKg: number | null): MagnesiumResult | null;
   cpr: CprProfile;
   ventilationWithAirwayKey: MessageKey;

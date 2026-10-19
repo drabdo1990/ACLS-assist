@@ -19,8 +19,7 @@ import {
 } from './eventQueries';
 import { CAUSES } from '../content/causes';
 import { POCUS_ITEMS } from '../content/pocus';
-import { POST_ROSC_BUNDLE } from '../content/protocols';
-import { PEDIATRIC_POST_ROSC_BUNDLE } from '../content/profiles/pediatric';
+import { profileFor } from '../content/profiles';
 
 export const STATS_VERSION = 2;
 /** Upper bound of the guideline epinephrine interval ("every 3–5 min"). */
@@ -188,7 +187,7 @@ export function computeCodeStats(s: StatsInput, now: number): CodeStats | null {
     pocus: POCUS_ITEMS.filter((p) => s.pocus?.[p.id]).map((p) => p.id),
     postRosc: (() => {
       if (roscCount === 0) return null;
-      const bundle = (s.population ?? 'adult') === 'pediatric' ? PEDIATRIC_POST_ROSC_BUNDLE : POST_ROSC_BUNDLE;
+      const bundle = profileFor(s.population ?? 'adult').postRoscBundle;
       return {
         done: bundle.filter((i) => isChecklistItemOn(events, POST_ROSC_PREFIX, i.text)).length,
         total: bundle.length,
