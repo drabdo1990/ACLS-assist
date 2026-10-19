@@ -80,6 +80,34 @@ describe('enqueueOrRevert', () => {
   });
 });
 
+describe('entry age', () => {
+  const DAY = 86_400_000;
+
+  it('drops an entry stuck for over 30 days back to local, without sending it', async () => {
+    const kv = enrolledKV();
+    queued(kv, 1);
+    enqueue(kv, pl(1), T0);
+    const f = fakeFetch(json({ ok: true }));
+    await flushOutbox(mk(kv, f, () => T0 + 31 * DAY));
+    expect(f.calls).toHaveLength(0);
+    expect(Object.keys(loadOutbox(kv).entries)).toHaveLength(0);
+    expect(statusOf(kv, 1)).toBe('local');
+  });
+
+  it('keeps and sends an entry saved before queuedAt existed, starting its clock now', async () => {
+    const kv = enrolledKV();
+    queued(kv, 1);
+    enqueue(kv, pl(1), T0);
+    const state = JSON.parse(kv.get(OUTBOX_KEY)!);
+    delete state.entries[mkRecord(1).id].queuedAt;
+    kv.set(OUTBOX_KEY, JSON.stringify(state));
+    const f = fakeFetch(json({ ok: true }));
+    await flushOutbox(mk(kv, f, () => T0 + 31 * DAY));
+    expect(f.calls).toHaveLength(1);
+    expect(statusOf(kv, 1)).toBe('sent');
+  });
+});
+
 describe('flushOutbox', () => {
   it('delivers, removes the entry, marks the record sent, uses the current enrollment key and URL', async () => {
     const kv = enrolledKV();

@@ -5,6 +5,7 @@ import {
   ADMIN_COLUMNS,
   DEVICE_COLUMNS,
   MAX_CELL_CHARS,
+  MAX_UPLOADS_PER_HOUR,
   handleUpload,
   missingDeviceColumns,
   neutralise,
@@ -44,7 +45,9 @@ function memorySheet(headers: string[] = [], rows: Row[] = [], units: UnitRow[] 
       for (const [k, v] of Object.entries(cells)) if (headers.includes(k)) rows[row - 2][k] = v;
     },
     readUnits: () => units,
+    countUpload: (unit, hour) => (counts[`${unit}|${hour}`] = (counts[`${unit}|${hour}`] ?? 0) + 1),
   };
+  const counts: Record<string, number> = {};
   return sheet;
 }
 
@@ -53,6 +56,18 @@ const P = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 const send = (sheet: SheetAdapter, p: unknown, now = T0) => handleUpload(typeof p === 'string' ? p : JSON.stringify(p), sheet, now);
+
+describe('per-unit upload cap', () => {
+  it('answers busy above the hourly cap, per unit, and resets in the next hour', () => {
+    const s = memorySheet();
+    for (let i = 0; i < MAX_UPLOADS_PER_HOUR; i++) expect(send(s, P())).toEqual({ ok: true });
+    expect(send(s, P())).toEqual({ ok: false, error: 'busy' });
+    // another unit is not affected
+    expect(send(s, P({ enrollmentKey: 'unit-ward-2026' }))).not.toEqual({ ok: false, error: 'busy' });
+    // an hour later the same unit may write again
+    expect(send(s, P(), T0 + 3_600_000)).toEqual({ ok: true });
+  });
+});
 
 describe('insert / find-or-insert', () => {
   it('inserts one row mapped by header name, with the unit taken from the Units tab', () => {
@@ -183,6 +198,7 @@ describe('safety', () => {
     expect(neutralise('-x')).toBe("'-x");
     expect(neutralise('@x')).toBe("'@x");
     expect(neutralise('\tx')).toBe("'\tx");
+    expect(neutralise('\nx')).toBe("'\nx");
     expect(neutralise('plain')).toBe('plain');
     expect(neutralise(-5)).toBe(-5);
     expect(neutralise(true)).toBe(true);

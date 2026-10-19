@@ -104,7 +104,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'peds.grid.shock.logNoWeight': 'سجّل الصدمة — أدخل الطاقة', // draft — clinician review required
   'peds.grid.shock.manualNote': 'الوزن غير محدد — اختر الطاقة المضبوطة على جهاز الصدمات. لم تُحسب J/kg.', // draft — clinician review required
   'peds.grid.mag.logNoWeight': 'سجّل Magnesium — الجرعة غير محسوبة', // draft — clinician review required
-  'peds.grid.epi.title': 'Epi {mg} mg = {mL} mL', // draft — clinician review required
+  'peds.grid.epi.title': 'Epi {mg} mg = {mL} mL (1:10,000)', // draft — clinician review required
   'peds.grid.shock.title': 'صدمة', // draft — clinician review required
   'peds.grid.shock.jkg': '{joules} J · {perKg} J/kg', // draft — clinician review required
   'peds.grid.shock.chip2': '2 J/kg', // draft — clinician review required
@@ -116,7 +116,7 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'peds.grid.lido.title': 'Lidocaine {mg} mg · 1 mg/kg', // draft — clinician review required
   'peds.grid.mag.title': 'Mg {minMg}–{maxMg} mg', // draft — clinician review required
   'peds.max': '(حد أقصى)', // draft — clinician review required
-  'peds.grid.epi.flush': 'IV/IO + دفع بمحلول ملحي', // draft — clinician review required
+  'peds.grid.epi.flush': '0.1 mg/mL (1:10,000) · IV/IO + دفع بمحلول ملحي', // draft — clinician review required
   'peds.roscBanner.sub': 'SpO₂ 94–99% · تجنب انخفاض SBP عن حد العمر — فتح القائمة', // draft — clinician review required
   'app.title.pediatric': 'قيادة إنعاش الأطفال (PALS)', // draft — clinician review required
   'peds.vent.none': 'ضغطات صدرية بنسبة {ratio} — التوقف للتهوية فقط', // draft — clinician review required

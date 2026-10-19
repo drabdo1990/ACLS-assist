@@ -270,6 +270,17 @@ describe('double-tap guard', () => {
     expect(count()).toBe(2);
   });
 
+  it('airway: a double tap places it once, a later tap removes it', () => {
+    s().startCode();
+    s().markAirwayPlaced('ETT');
+    at(200);
+    s().markAirwayPlaced(); // the "placed" button now sits where ETT was
+    expect(s().airwayPlaced).toBe(true);
+    at(2_000);
+    s().markAirwayPlaced();
+    expect(s().airwayPlaced).toBe(false);
+  });
+
   it('does not treat a backward clock step as a repeat', () => {
     s().startCode();
     at(10_000);
@@ -402,6 +413,7 @@ describe('advanced airway', () => {
     expect(s().airwayPlaced).toBe(true);
     expect(s().airwayType).toBe('SGA');
     expect(lastEvent().label).toBe('Advanced airway placed — Supraglottic airway');
+    at(2_000);
     s().markAirwayPlaced();
     expect(s().airwayPlaced).toBe(false);
     expect(s().airwayType).toBeNull();
@@ -461,6 +473,7 @@ describe('undo consistency (audit fixes)', () => {
   it('undoing an airway un-mark restores the SAME airway type (SGA stays SGA)', () => {
     s().startCode();
     s().markAirwayPlaced('SGA');
+    at(2_000);
     s().markAirwayPlaced(); // un-mark
     expect(s().airwayType).toBeNull();
     s().undoLastEvent();
@@ -471,8 +484,11 @@ describe('undo consistency (audit fixes)', () => {
   it('restores the most recent placement type across several place/unmark cycles', () => {
     s().startCode();
     s().markAirwayPlaced('ETT');
+    at(2_000);
     s().markAirwayPlaced();
+    at(4_000);
     s().markAirwayPlaced('SGA');
+    at(6_000);
     s().markAirwayPlaced();
     s().undoLastEvent();
     expect(s().airwayType).toBe('SGA');

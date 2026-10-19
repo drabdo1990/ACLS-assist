@@ -91,6 +91,14 @@ function makeAdapter_(ss) {
         }),
       ]);
     },
+    countUpload: function (unitName, hour) {
+      // The script lock is held, so read-then-put cannot race; the key is bucketed per hour and expires after two.
+      const cache = CacheService.getScriptCache();
+      const k = 'up:' + hour + ':' + unitName.slice(0, 100);
+      const n = Number(cache.get(k) || 0) + 1;
+      cache.put(k, String(n), 7200);
+      return n;
+    },
     readUnits: function () {
       if (!units || units.getLastRow() < 2) return [];
       const v = units.getDataRange().getValues();
@@ -162,7 +170,7 @@ function setupAdminSheet() {
   const R = function (name) {
     if (!col(name)) throw new Error('Codes sheet has no "' + name + '" column — re-run setupAdminSheet');
     const c = letter_(col(name));
-    return 'Codes!$' + c + '$2:$' + c + '$' + last;
+    return 'Codes!$' + c + '$2:$' + c; // open-ended: rows past CHECKBOX_ROWS must still be counted
   };
   const real =
     R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"';

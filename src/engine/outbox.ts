@@ -12,6 +12,8 @@ export const OUTBOX_KEY = 'resuscode.outbox.v1';
 const MAX_BACKOFF_MS = 300_000;
 // ~20 server errors at the 5-minute backoff cap is nearly two hours; offline/network failures never count.
 const MAX_SERVER_ERRORS = 20;
+// A dead script URL never answers readably, so its entries would pile up in the localStorage the live code autosaves to.
+const MAX_ENTRY_AGE_MS = 30 * 86_400_000;
 
 export interface OutboxEntry {
   payload: UploadPayload;
@@ -21,6 +23,8 @@ export interface OutboxEntry {
   unconfirmed: boolean;
   /** replies of `{ok:false,error:'server'}` for this record; at MAX_SERVER_ERRORS it is dropped as unsendable */
   serverErrors?: number;
+  /** when it was queued; older than MAX_ENTRY_AGE_MS it is dropped (absent on entries saved by older builds) */
+  queuedAt?: number;
 }
 export interface OutboxState {
   entries: Record<string, OutboxEntry>;
@@ -45,6 +49,7 @@ export function loadOutbox(kv: KV): OutboxState {
           nextAttemptAt: e.nextAttemptAt,
           unconfirmed: !!e.unconfirmed,
           ...(typeof e.serverErrors === 'number' ? { serverErrors: e.serverErrors } : {}),
+          ...(typeof e.queuedAt === 'number' ? { queuedAt: e.queuedAt } : {}),
         };
       }
     }
@@ -75,7 +80,7 @@ function addEntry(state: OutboxState, payload: UploadPayload, now: number): void
   const old = state.entries[payload.recordId];
   const merged =
     payload.sbar === undefined && old?.payload.sbar !== undefined ? { ...payload, sbar: old.payload.sbar } : payload;
-  state.entries[payload.recordId] = { payload: merged, attempts: 0, nextAttemptAt: now, unconfirmed: false };
+  state.entries[payload.recordId] = { payload: merged, attempts: 0, nextAttemptAt: now, unconfirmed: false, queuedAt: now };
 }
 
 export function enqueue(kv: KV, payload: UploadPayload, now: number): boolean {
@@ -139,6 +144,20 @@ export async function flushOutbox(deps: FlushDeps, opts: FlushOptions = {}): Pro
     const prefs = loadPrefs(kv);
     if (!prefs.enrollment) return summary;
     const setStatus = (id: string, uploadStatus: UploadStatus) => updateRecord(kv, id, { uploadStatus }, prefs.retention);
+
+    // Start the clock on entries from older builds; drop stuck ones back to 'local' so Backfill can resend them
+    // once the destination works again.
+    const aged = loadOutbox(kv);
+    let agedChanged = false;
+    for (const [id, e] of Object.entries(aged.entries)) {
+      if (e.queuedAt === undefined) e.queuedAt = deps.now();
+      else if (deps.now() - e.queuedAt > MAX_ENTRY_AGE_MS) {
+        delete aged.entries[id];
+        setStatus(id, 'local');
+      } else continue;
+      agedChanged = true;
+    }
+    if (agedChanged) saveOutbox(kv, aged);
 
     const due = Object.values(loadOutbox(kv).entries)
       .filter((e) => (e.unconfirmed ? !!opts.atStart : !!opts.ignoreBackoff || e.nextAttemptAt <= deps.now()))

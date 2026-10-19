@@ -54,7 +54,9 @@ export function driveEveryEvent(extra: { pulseCheck: () => void; checklistToggle
   step();
   s().administerMagnesium();
   s().markAirwayPlaced('ETT');
+  step(); // the store ignores an airway toggle within 1.5 s of the last one, like the doses above
   s().markAirwayPlaced();
+  step();
   s().markAirwayPlaced('SGA');
   s().toggleCause('hypoxia');
   s().toggleCause('hypoxia');
