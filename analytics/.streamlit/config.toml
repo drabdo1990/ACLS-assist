@@ -1,0 +1,7 @@
+# The dashboard shows clinical-adjacent data: serve this computer only, and send no telemetry.
+[server]
+address = "127.0.0.1"
+headless = true
+
+[browser]
+gatherUsageStats = false

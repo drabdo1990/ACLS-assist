@@ -7,6 +7,13 @@ dev-dist
 .vite
 .playwright-cli
 
+# analytics (Python): venv, caches, the Google key and any exported data
+analytics/.venv/
+analytics/service-account.json
+analytics/*.csv
+__pycache__/
+.pytest_cache/
+
 # local tooling, not part of the app
 .agents/
 .archon/

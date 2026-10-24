@@ -85,11 +85,13 @@ units are silent.
 
 ## 12. Dashboard
 
-Formulas by unit and month, excluding training, void, `exclude` and incomplete codes. "Any ROSC"
+Formulas by unit and month, excluding training, void, `exclude`, `duplicate_of` (any value) and incomplete codes. "Any ROSC"
 counts `rosc` and `rosc_then_terminated`. The **Population** selector (`C2`/`D2`: all / adult /
 pediatric) narrows every row; older rows with an empty `population` cell count as adult.
 *The Dashboard formulas were not run against a live sheet when this was written. Check the first
 real upload.*
+
+*Optional: for trends, quality indicators and unit filters beyond this tab, see `analytics/README.md` (a local Python dashboard that reads this sheet read-only).*
 
 ## 13. Upgrading the script (app updates)
 
