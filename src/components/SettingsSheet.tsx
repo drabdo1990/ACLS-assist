@@ -23,6 +23,7 @@ import { HoldButton } from './ui/HoldButton';
 import { Panel } from './ui/Panel';
 import { TextField } from './ui/TextField';
 import { IdentityGate } from './ui/IdentityGate';
+import { EnrollmentLinkMaker } from './EnrollmentLinkMaker';
 import { EnrollmentSummary, destinationTail } from './EnrollmentSummary';
 
 const TONE: Record<Message['tone'], string> = { good: 'text-good', warn: 'text-warn', crit: 'text-crit' };
@@ -296,6 +297,8 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
             </div>
           )}
         </Panel>
+
+        <EnrollmentLinkMaker />
 
         <Panel title={t('settings.history.title')}>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
