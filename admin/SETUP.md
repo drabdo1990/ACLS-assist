@@ -53,15 +53,12 @@ old version is deployed.
 
 ## 8. Make an enrollment link
 
-Open ResusCode in a browser, run this in the browser console, then share the link or paste it into any QR-code generator.
-**Treat the link like a password**: anyone with it can add rows to your sheet.
+Open ResusCode in a browser → **Settings** (the gear) → **Admin: enrollment link**. Paste the `/exec` URL from
+step 6, the unit's `enrollment_key` from the `Units` tab, and (optionally) the unit name. Press **Make link**,
+then **Copy link**, and share it or paste it into any QR-code generator. The app checks the URL and key the same
+way a device will, and saves nothing. The link points at the address you opened the app from.
 
-```js
-const e = { url: 'https://script.google.com/macros/s/XXXX/exec', key: 'your-unit-key', unit: 'ICU' };
-const b = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(e))))
-  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-console.log(location.href.split('#')[0] + '#enroll=' + b);
-```
+**Treat the link like a password**: anyone with it can add rows to your sheet.
 
 ## 9. iPhone / iPad
 

@@ -59,7 +59,7 @@ const DEVICE_ID_RE = /^[0-9a-f]{12}$/;
 // the confirm screen shows the full script id so the user can compare it with the administrator's.
 const ENROLL_URL_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[A-Za-z0-9.-]+|macros)\/s\/[A-Za-z0-9_-]+\/exec$/;
 const ENROLL_KEY_RE = /^[A-Za-z0-9_-]{8,64}$/;
-const MAX_UNIT_LEN = 60;
+export const MAX_UNIT_LEN = 60;
 
 export function newDeviceId(): string {
   const bytes = new Uint8Array(6);
@@ -104,6 +104,19 @@ export function parseEnrollmentCode(input: string): Enrollment | null {
 
 export function enrollmentLink(appUrl: string, e: Enrollment): string {
   return `${appUrl.split('#')[0]}#enroll=${encodeEnrollment(e)}`;
+}
+
+export type EnrollmentLinkResult = { ok: true; link: string } | { ok: false; field: 'url' | 'key' | 'unit' };
+
+/** The admin's form → a link the app accepts, or the first field to fix. Reuses the app's own validation. */
+export function makeEnrollmentLink(appUrl: string, input: { url: string; key: string; unit: string }): EnrollmentLinkResult {
+  const url = input.url.trim();
+  const key = input.key.trim();
+  if (!ENROLL_URL_RE.test(url)) return { ok: false, field: 'url' };
+  if (!ENROLL_KEY_RE.test(key)) return { ok: false, field: 'key' };
+  const e = validateEnrollment({ url, key, unit: input.unit.trim() || null });
+  // Only the unit name can still be wrong here (too long): the URL and key passed their own checks above.
+  return e ? { ok: true, link: enrollmentLink(appUrl, e) } : { ok: false, field: 'unit' };
 }
 
 function sanitizeRetention(x: unknown): Retention {

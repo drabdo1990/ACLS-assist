@@ -7,6 +7,7 @@ import {
   enrollmentLink,
   encodeEnrollment,
   loadPrefs,
+  makeEnrollmentLink,
   needsIdentity,
   parseEnrollmentCode,
   readStoredPopulation,
@@ -86,6 +87,56 @@ describe('device id and prefs', () => {
     expect(validateIdentity('A', 'y'.repeat(61))).toBeNull();
     expect(needsIdentity(null)).toBe(true);
     expect(needsIdentity({ name: 'A', role: '' })).toBe(false);
+  });
+});
+
+describe('makeEnrollmentLink (the admin link maker)', () => {
+  const APP = 'https://drabdo1990.github.io/ACLS-assist/';
+  const ok = { url: URL_OK, key: KEY_OK, unit: 'ICU' };
+
+  it('builds a link the app itself accepts, dropping any old fragment', () => {
+    const r = makeEnrollmentLink(`${APP}#old`, ok);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.link.startsWith(`${APP}#enroll=`)).toBe(true);
+    expect(parseEnrollmentCode(r.link)).toEqual({ url: URL_OK, key: KEY_OK, unit: 'ICU' });
+  });
+
+  it('trims the inputs and reads a blank unit name as no unit', () => {
+    const r = makeEnrollmentLink(APP, { url: ` ${URL_OK}\n`, key: `  ${KEY_OK} `, unit: '   ' });
+    expect(r.ok && parseEnrollmentCode(r.link)).toEqual({ url: URL_OK, key: KEY_OK, unit: null });
+  });
+
+  it('keeps a non-Latin unit name and accepts the Workspace URL form', () => {
+    const url = 'https://script.google.com/a/macros/hospital.org/s/AKfycbxAbC/exec';
+    const r = makeEnrollmentLink(APP, { url, key: KEY_OK, unit: 'العناية المركزة' });
+    expect(r.ok && parseEnrollmentCode(r.link)).toEqual({ url, key: KEY_OK, unit: 'العناية المركزة' });
+  });
+
+  it.each([
+    ['empty', ''],
+    ['http scheme', 'http://script.google.com/macros/s/AKfycbx/exec'],
+    ['another host', 'https://evil.example/macros/s/AKfycbx/exec'],
+    ['query string', `${URL_OK}?x=1`],
+  ])('names the URL field when the URL is %s', (_n, url) => {
+    expect(makeEnrollmentLink(APP, { ...ok, url })).toEqual({ ok: false, field: 'url' });
+  });
+
+  it.each([
+    ['too short', 'short'],
+    ['has a space', 'has space in it'],
+    ['empty', ''],
+    ['too long', 'k'.repeat(65)],
+  ])('names the key field when the key is %s', (_n, key) => {
+    expect(makeEnrollmentLink(APP, { ...ok, key })).toEqual({ ok: false, field: 'key' });
+  });
+
+  it('reports the URL first when both the URL and the key are wrong', () => {
+    expect(makeEnrollmentLink(APP, { url: 'nope', key: 'x', unit: '' })).toEqual({ ok: false, field: 'url' });
+  });
+
+  it('names the unit field for an over-long unit name', () => {
+    expect(makeEnrollmentLink(APP, { ...ok, unit: 'x'.repeat(61) })).toEqual({ ok: false, field: 'unit' });
   });
 });
 
