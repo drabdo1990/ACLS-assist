@@ -388,8 +388,11 @@ function setupAdminSheet() {
     const c = letter_(col(name));
     return 'Codes!$' + c + '$2:$' + c; // open-ended: rows past CHECKBOX_ROWS must still be counted
   };
+  // A row the admin marked as a duplicate of another code is left out, like `exclude`. Guarded so a sheet
+  // that somehow lacks the column still sets up.
+  const noDup = col('duplicate_of') ? ',' + R('duplicate_of') + '=""' : '';
   const real =
-    R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"';
+    R('training') + '<>TRUE,' + R('void') + '<>TRUE,' + R('exclude') + '<>TRUE,' + R('outcome') + '<>"incomplete"' + noDup;
   // Population selector (C2/D2): all / adult / pediatric — like the month filter, it narrows every row.
   dash.getRange('C2').setValue('Population:');
   dash.getRange('D2').setDataValidation(list(['all', 'adult', 'pediatric']));
@@ -401,7 +404,7 @@ function setupAdminSheet() {
   };
   dash.getRange('A1').setValue('ResusCode — admin dashboard');
   dash.getRange('A2').setValue(
-    'Training, void and "exclude" rows and incomplete codes are left out. ROSC = any ROSC (rosc or rosc_then_terminated). Times in seconds from activation, as logged.',
+    'Training, void, "exclude" and "duplicate_of" rows and incomplete codes are left out. ROSC = any ROSC (rosc or rosc_then_terminated). Times in seconds from activation, as logged.',
   );
   dash.getRange('A4:H4').setValues([['Unit', 'Month', 'Codes', 'Any ROSC', 'ROSC rate', 'Median first epi (s)', 'Median first shock (s)', 'Median arrest (s)']]);
   dash.getRange('A5').setFormula(
@@ -433,7 +436,8 @@ function setupAdminSheet() {
   const issue = [];
   for (let i = 0; i < ISSUE_CATEGORIES.length; i++) {
     issue.push([
-      '=COUNTIFS(' + R('issue_category') + ',$J' + (5 + i) + ',' + R('exclude') + ',"<>TRUE",' + R('training') + ',"<>TRUE",' + R('void') + ',"<>TRUE")',
+      '=COUNTIFS(' + R('issue_category') + ',$J' + (5 + i) + ',' + R('exclude') + ',"<>TRUE",' + R('training') + ',"<>TRUE",' + R('void') + ',"<>TRUE"' +
+        (col('duplicate_of') ? ',' + R('duplicate_of') + ',""' : '') + ')',
     ]);
   }
   dash.getRange(5, 11, ISSUE_CATEGORIES.length, 1).setFormulas(issue);
