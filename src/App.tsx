@@ -78,6 +78,7 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
   const [tab, setTab] = useState<Tab>('hud');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const status = useCodeStore((s) => s.status);
+  const training = useCodeStore((s) => s.training);
   const population = useCodeStore((s) => s.population);
   const restored = useCodeStore((s) => s.restored);
   const dismissRestored = useCodeStore((s) => s.dismissRestored);
@@ -166,6 +167,14 @@ export default function App({ pendingEnroll }: { pendingEnroll: EnrollFragment }
             </button>
           </div>
         </div>
+        {training && status !== 'idle' ? (
+          <p
+            role="status"
+            className="border-t border-warn/60 bg-warn/15 px-3 py-1.5 text-center text-[11px] font-black tracking-widest text-warn"
+          >
+            {t('sim.banner')}
+          </p>
+        ) : null}
       </header>
 
       {/* Body */}

@@ -29,7 +29,7 @@ Before enrolling participants:
 
 Use one synchronized observer timer, starting at code activation. Optional video review requires explicit governance approval. Use a separate, unrecorded practice session to explain the device and controls; do not teach the study scenarios.
 
-Use the existing **Log/SBAR → Code statistics → Training / simulation** control so the run is excluded from clinical aggregates. Keep upload disabled even when the run is marked training. At the end, export the SBAR and attach it to the coded run record.
+Select **Start simulation** on the idle HUD so the code begins already marked training, then confirm the persistent **SIMULATION — NOT A REAL PATIENT** banner before the first cue. If a run was not started this way, restart it or mark **Log/SBAR → Code statistics → Training / simulation** before any action. Keep upload disabled even when the run is marked training. At the end, export the SBAR and attach it to the coded run record.
 
 ## Measure definitions
 
@@ -110,4 +110,4 @@ Derived times are `correct action time − opportunity time`. A missing correct 
 
 ## Technical preflight completed
 
-On 2026-10-25, the unchanged app passed 43 test files / 563 tests, TypeScript typechecking, and the production build. These checks establish a technical baseline only. Browser interaction timing, clinician performance, clinical safety, and patient outcomes still require the simulation and governance process above.
+On 2026-10-25, the app passed 43 test files / 565 tests, TypeScript typechecking, and the production build. A browser check confirmed that **Start simulation** opens an active code with `training: true` and the persistent simulation banner. These checks establish a technical baseline only. Browser interaction timing, clinician performance, clinical safety, and patient outcomes still require the simulation and governance process above.

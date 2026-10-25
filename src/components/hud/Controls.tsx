@@ -1,4 +1,4 @@
-import { ClipboardList, Pause, Play, Radio, RotateCcw, ShieldAlert, Siren } from 'lucide-react';
+import { ClipboardList, FlaskConical, Pause, Play, Radio, RotateCcw, ShieldAlert, Siren } from 'lucide-react';
 import { useCodeStore } from '../../engine/store';
 import { BigButton } from '../ui/BigButton';
 import { HoldButton } from '../ui/HoldButton';
@@ -16,6 +16,7 @@ export function Controls({ onEnd }: { onEnd: () => void }) {
   const status = useCodeStore((s) => s.status);
   const population = useCodeStore((s) => s.population);
   const startCode = useCodeStore((s) => s.startCode);
+  const startSimulation = useCodeStore((s) => s.startSimulation);
   const pauseCode = useCodeStore((s) => s.pauseCode);
   const resumeCode = useCodeStore((s) => s.resumeCode);
   const declareRosc = useCodeStore((s) => s.declareRosc);
@@ -36,6 +37,13 @@ export function Controls({ onEnd }: { onEnd: () => void }) {
           sub={t('hud.ctrl.startCodeSub')}
           onClick={startCode}
           className="animate-ping-crit"
+        />
+        <BigButton
+          variant="outline"
+          icon={FlaskConical}
+          label={t('hud.ctrl.startSim')}
+          sub={t('hud.ctrl.startSimSub')}
+          onClick={startSimulation}
         />
       </div>
     );

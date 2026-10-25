@@ -38,6 +38,8 @@ Blue teams, Emergency Departments, ICUs, and rapid-response resuscitation leader
 ### 1. ACLS Command HUD
 - **Master code header** — giant `MM:SS` total arrest timer, status pill
   (Active Arrest · ROSC Achieved · Terminated), Start / Pause / ROSC Achieved / End & Review.
+- **Simulation mode** — Start Simulation begins already marked training and keeps a
+  **SIMULATION — NOT A REAL PATIENT** banner on every tab; training codes are excluded from statistics.
 - **2-minute CPR cycle engine** — countdown ring: cyan (120–30 s) → amber (30–10 s) →
   flashing crimson (< 10 s, with a 3-chime warning). At 00:00 a klaxon sounds and a giant
   pulsating **RHYTHM CHECK / SWITCH COMPRESSORS** alert appears with one-tap rhythm logging.
