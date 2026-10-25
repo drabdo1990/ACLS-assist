@@ -13,6 +13,7 @@ describe('App shell', () => {
     const html = renderToStaticMarkup(createElement(App, { pendingEnroll: { kind: 'none' } as const }));
     expect(html).toContain('ResusCode');
     expect(html).toContain('START CODE');
+    expect(html).toContain('START SIMULATION');
     expect(html).toContain('History');
   });
 });

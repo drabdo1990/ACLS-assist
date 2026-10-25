@@ -390,6 +390,9 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   // ---- Controls ----
   'hud.ctrl.startCode': 'بدء نداء الإنعاش', // draft — clinician review required
   'hud.ctrl.startCodeSub': 'بدء ساعة التوقف ودورة الدقيقتين وسجل الأحداث', // draft — clinician review required
+  'hud.ctrl.startSim': 'بدء المحاكاة', // draft — clinician review required
+  'hud.ctrl.startSimSub': 'وضع التدريب · مستبعد من الإحصاءات السريرية', // draft — clinician review required
+  'sim.banner': 'محاكاة — ليست مريضاً حقيقياً', // draft — clinician review required
   'hud.ctrl.reviewCode': 'مراجعة النداء', // draft — clinician review required
   'hud.ctrl.reviewCodeSub': 'السجل و SBAR', // draft — clinician review required
   'hud.ctrl.newCode': 'نداء جديد', // draft — clinician review required

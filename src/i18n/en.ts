@@ -399,6 +399,9 @@ const UI = {
   // ---- Controls ----
   'hud.ctrl.startCode': 'START CODE',
   'hud.ctrl.startCodeSub': 'Starts the arrest clock, 2-min cycle and timestamped log',
+  'hud.ctrl.startSim': 'START SIMULATION',
+  'hud.ctrl.startSimSub': 'Training mode · excluded from clinical statistics',
+  'sim.banner': 'SIMULATION — NOT A REAL PATIENT',
   'hud.ctrl.reviewCode': 'Review code',
   'hud.ctrl.reviewCodeSub': 'Log & SBAR',
   'hud.ctrl.newCode': 'New code',

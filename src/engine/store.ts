@@ -115,6 +115,8 @@ export interface CodeStore extends PersistedSession {
   dismissRestored: () => void;
 
   startCode: () => void;
+  /** Idle only: start already marked as training, so a simulation cannot leak into clinical stats. */
+  startSimulation: () => void;
   pauseCode: () => void;
   resumeCode: () => void;
   resetCycle: (rhythm?: RhythmLoop) => void;
@@ -296,6 +298,13 @@ export const useCodeStore = create<CodeStore>((set, get) => {
           events,
         };
       }),
+
+    // shortcut: reuses the training flag, so a simulation has no scenario identity and an enrolled device can still upload a training row; upgrade when the app must own the protocol or isolate uploads.
+    startSimulation: () => {
+      if (get().status !== 'idle') return;
+      get().setTraining(true);
+      get().startCode();
+    },
 
     pauseCode: () =>
       apply((s) => {

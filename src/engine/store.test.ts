@@ -587,6 +587,23 @@ describe('training / void flags', () => {
     expect(s().training).toBe(false);
     expect(s().voided).toBe(false);
   });
+
+  it('starts a simulation already marked as training', () => {
+    s().startSimulation();
+    expect(s().status).toBe('active');
+    expect(s().training).toBe(true);
+    expect(s().startedAt).toBe(T0);
+  });
+
+  it('does not alter a code that is already running', () => {
+    s().startCode();
+    const startedAt = s().startedAt;
+    const events = s().events;
+    s().startSimulation();
+    expect(s().training).toBe(false);
+    expect(s().startedAt).toBe(startedAt);
+    expect(s().events).toBe(events);
+  });
 });
 
 describe('status guards', () => {
