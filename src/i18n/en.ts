@@ -613,6 +613,10 @@ const UI = {
   'settings.device.note':
     'Random, created on this device. When enrolled, finished codes send their statistics, start date and time, your unit and a summary note with relative times. No patient identifiers are ever recorded.',
 
+  'settings.about.title': 'About',
+  'settings.about.license': 'Open source, released under the MIT License. Copyright (c) 2026 Mohamed Abdelwahab Mansour.',
+  'settings.about.warranty': 'The software is provided "as is", without warranty of any kind.',
+
   // ---- Enrollment (consent wording) ----
   'enroll.enroll': 'Enroll',
   'enroll.cancel': 'Cancel',

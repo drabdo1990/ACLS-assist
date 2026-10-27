@@ -604,6 +604,10 @@ export const AR: Readonly<Record<MessageKey, string>> = {
   'settings.device.note':
     'معرّف عشوائي أُنشئ على هذا الجهاز. عند التسجيل، تُرسل النداءات المنتهية إحصاءاتها وتاريخ ووقت البدء ووحدتك وملخصاً بأوقات نسبية. لا تُسجَّل أي معرّفات للمرضى أبداً.', // draft — clinician review required (consent wording)
 
+  'settings.about.title': 'حول التطبيق', // draft — clinician review required
+  'settings.about.license': 'برنامج مفتوح المصدر، مرخّص بموجب رخصة MIT. حقوق النشر (c) 2026 Mohamed Abdelwahab Mansour.', // draft — clinician review required
+  'settings.about.warranty': 'يُقدَّم البرنامج «كما هو» دون أي ضمان من أي نوع.', // draft — clinician review required
+
   // ---- Enrollment (consent wording) ----
   'enroll.enroll': 'تسجيل',
   'enroll.cancel': 'إلغاء',

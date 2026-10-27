@@ -350,6 +350,12 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
           </p>
           <p className="mt-1 text-[11px] text-mute">{t('settings.device.note')}</p>
         </Panel>
+
+        <Panel title={t('settings.about.title')}>
+          <p className="text-xs text-ink">{t('settings.about.license')}</p>
+          <p className="mt-1 text-[11px] text-mute">{t('settings.about.warranty')}</p>
+          <p className="mt-2 text-[11px] leading-snug text-mute">{t('app.disclaimer')}</p>
+        </Panel>
       </div>
     </div>
   );
