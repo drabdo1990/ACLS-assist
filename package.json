@@ -2,6 +2,7 @@
   "name": "resuscode",
   "private": true,
   "version": "0.2.0",
+  "license": "MIT",
   "type": "module",
   "description": "ResusCode - ACLS & PALS Code Blue Command Engine. PHI-free offline-first PWA (optional anonymous statistics upload when your unit enrolls the device) for Code Blue, ED, ICU and rapid response resuscitation leaders.",
   "scripts": {
